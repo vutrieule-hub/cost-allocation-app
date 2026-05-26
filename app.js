@@ -6,214 +6,1585 @@ const STORAGE_KEY = "XTD_COST_ALLOCATION_STATE_V2";
 
 // Advanced Dynamic Default Template representing both sheets
 const DEFAULT_TEMPLATE = {
-    // 1. Departments (Revenue Centers & Support Centers)
-    departments: [
-        { id: "dept_tieuhoc", name: "Khối Tiểu học", type: "revenue", students: 45 },
-        { id: "dept_thcs", name: "Khối THCS", type: "revenue", students: 55 },
-        { id: "dept_thpt", name: "Khối THPT", type: "revenue", students: 147 },
-        { id: "dept_noitru", name: "Ban Nội trú", type: "revenue", students: 42 },
-        { id: "dept_bdh", name: "Ban Điều hành (BĐH)", type: "support" },
-        { id: "dept_bgh", name: "Ban Giám hiệu (BGH)", type: "support" },
-        { id: "dept_hckt", name: "Hành chính Kế toán (HCKT)", type: "support" },
-        { id: "dept_tuyensinh", name: "Tuyển sinh", type: "support" },
-        { id: "dept_truyenthong", name: "Truyền thông", type: "support" },
-        { id: "dept_tongvu", name: "Tổng vụ", type: "support" },
-        { id: "dept_bep", name: "Bếp ăn", type: "support" },
-        { id: "dept_anninh", name: "An ninh", type: "support" },
-        { id: "dept_sachdep", name: "Sạch đẹp", type: "support" },
-        { id: "dept_dien", name: "Chi phí Điện", type: "support", isUtility: true },
-        { id: "dept_nuoc", name: "Chi phí Nước", type: "support", isUtility: true }
+    "departments": [
+        {
+            "id": "dept_tieuhoc",
+            "name": "Khối Tiểu học",
+            "type": "revenue",
+            "students": 45
+        },
+        {
+            "id": "dept_thcs",
+            "name": "Khối THCS",
+            "type": "revenue",
+            "students": 55
+        },
+        {
+            "id": "dept_thpt",
+            "name": "Khối THPT",
+            "type": "revenue",
+            "students": 147
+        },
+        {
+            "id": "dept_noitru",
+            "name": "Ban Nội trú",
+            "type": "revenue",
+            "students": 42
+        },
+        {
+            "id": "dept_bdh",
+            "name": "Ban Điều hành (BĐH)",
+            "type": "support",
+            "driver": "custom_percent",
+            "note": "Trong giai đoạn này: \nBan Điều Hành tập trung vào phát triển cấp 1 và cấp 2 nên phân bổ chi phí của BĐH vào 2 khối này nhiều hơn\nNội trú được coi là dịch vụ kèm, không phải dịch vụ chính, vì vậy nhận phân bổ chi phí ít hơn \n\n"
+        },
+        {
+            "id": "dept_bgh",
+            "name": "Ban Giám hiệu (BGH)",
+            "type": "support",
+            "driver": "student_count",
+            "note": "Tiểu học có cô Hiền BGH tập trung\nTHCS có cô Hiền BGH làm kiêm nhiệm \nTHPT có thầy Phan BGH tập trung"
+        },
+        {
+            "id": "dept_hckt",
+            "name": "Hành chính Kế toán (HCKT)",
+            "type": "support",
+            "driver": "staff_count",
+            "note": "",
+            "allocationMethod": "student"
+        },
+        {
+            "id": "dept_tuyensinh",
+            "name": "Tuyển sinh",
+            "type": "support",
+            "driver": "new_students",
+            "note": "Ghi nhận nguồn lực thực tế nhìn nhận của bộ phận tuyển sinh giành cho từng khối\nTHPT chủ động tự tuyển sinh nhiều hơn\nNội trú chủ yếu PH phát sinh nhu cầu tìm đến"
+        },
+        {
+            "id": "dept_truyenthong",
+            "name": "Truyền thông",
+            "type": "support",
+            "driver": "new_students"
+        },
+        {
+            "id": "dept_tongvu",
+            "name": "Tổng vụ",
+            "type": "support",
+            "driver": "area_m2",
+            "allocationMethod": "student"
+        },
+        {
+            "id": "dept_bep",
+            "name": "Bếp ăn",
+            "type": "support",
+            "driver": "meals",
+            "allocationMethod": "manual",
+            "note": "Phân bổ đều cho các bộ phận. \nNội trú sử dụng riêng biệt bếp ăn buổi tối\nTHPT chưa sử dụng bếp, do lượng học sinh bán trú chưa nhiều, nhưng nhà trường cung cấp dịch vụ này và THPT cần hướng đến việc tuyển sinh hệ xanh, vì vậy sẽ vẫn phải ghi nhận chi phí phân bổ này"
+        },
+        {
+            "id": "dept_anninh",
+            "name": "An ninh",
+            "type": "support",
+            "driver": "area_m2",
+            "allocationMethod": "student"
+        },
+        {
+            "id": "dept_sachdep",
+            "name": "Sạch đẹp",
+            "type": "support",
+            "driver": "area_m2",
+            "note": "THPT đông học sinh, và ý thức kém nhất, vì vậy chịu phân bổ nhiều nhất\nTHCS và Tiểu học chịu phân bổ ít hơn do số lượng học sinh ít hơn và cũng đã có ý thức giữ gìn hơn\nNội trú tự dọn dẹp phòng ốc và phòng vệ sinh, nên phân bổ chi phí xanh sạch ít hơn các bộ phận khác, chủ yếu phân bổ chi phí đổ rác và dọn dẹp cảnh quan chung của sân trường\n"
+        },
+        {
+            "id": "dept_dien",
+            "name": "Chi phí Điện",
+            "type": "support",
+            "isUtility": true
+        },
+        {
+            "id": "dept_nuoc",
+            "name": "Chi phí Nước",
+            "type": "support",
+            "isUtility": true
+        },
+        {
+            "id": "dept_1779722697629",
+            "name": "Văn Hóa",
+            "type": "support",
+            "allocationMethod": "manual",
+            "note": ""
+        },
+        {
+            "id": "dept_1779781275635",
+            "name": "Xe bus",
+            "type": "support"
+        },
+        {
+            "id": "dept_1779782090457",
+            "name": "Kỹ năng - Sự kiện",
+            "type": "support",
+            "note": "THPT được tổ chức ít chương trình hơn vì không có hệ xanh\nTiểu học và THCS hệ xanh được tập trung tổ chức nhiều sự kiện hơn vì vậy sẽ chịu chi phí phân bổ nhiều hơn\nNội trú tự tổ chức do thầy cô nội trú nên không chịu phân bổ của tổ này"
+        },
+        {
+            "id": "dept_1779782898139",
+            "name": "Kỷ luật",
+            "type": "support",
+            "note": "Kỷ luật chưa làm tốt cho khối THPT nên chỉ phân bổ TH và THCS là chính\nThầy cô nội trú tự quản lý kỷ luật học sinh nên không chịu phân bổ",
+            "allocationMethod": "manual"
+        }
     ],
-
-    // 2. Dynamic Rent Blocks (Dãy nhà / Hạng mục lớn) - Total rent per month
-    rentBlocks: [
-        { id: "blk_hieubo", name: "Nhà Hiệu Bộ", totalRent: 39100000 },
-        { id: "blk_10phong", name: "Khu 10 phòng", totalRent: 39100000 },
-        { id: "blk_8phong", name: "Khu 8 phòng (Dãy Tiểu học)", totalRent: 32200000 },
-        { id: "blk_toamoi_l", name: "Khu toà mới L (8 phòng - Dãy THCS)", totalRent: 32200000 },
-        { id: "blk_toai", name: "Khu toà i (4 phòng - Dãy THPT)", totalRent: 23000000 },
-        { id: "blk_sanbong", name: "Sân Bóng đá", totalRent: 11500000 },
-        { id: "blk_westpoint", name: "Khu Westpoint cao + đất", totalRent: 11500000 },
-        { id: "blk_bepan", name: "Khu Bếp Ăn & Nhà ăn", totalRent: 11500000 },
-        { id: "blk_danang", name: "Nhà Đa năng", totalRent: 23000000 }
+    "rentBlocks": [
+        {
+            "id": "blk_hieubo",
+            "name": "Nhà Hiệu Bộ",
+            "totalRent": 39100000
+        },
+        {
+            "id": "blk_10phong",
+            "name": "Khu 10 phòng",
+            "totalRent": 39100000
+        },
+        {
+            "id": "blk_8phong",
+            "name": "Khu 8 phòng (Dãy Tiểu học)",
+            "totalRent": 32200000
+        },
+        {
+            "id": "blk_toamoi_l",
+            "name": "Khu toà mới L (8 phòng - Dãy THCS)",
+            "totalRent": 32200000
+        },
+        {
+            "id": "blk_toai",
+            "name": "Khu toà i (4 phòng - Dãy THPT)",
+            "totalRent": 23000000
+        },
+        {
+            "id": "blk_sanbong",
+            "name": "Sân Bóng đá",
+            "totalRent": 11500000
+        },
+        {
+            "id": "blk_westpoint",
+            "name": "Khu Westpoint cao + đất",
+            "totalRent": 11500000
+        },
+        {
+            "id": "blk_bepan",
+            "name": "Khu Bếp Ăn & Nhà ăn",
+            "totalRent": 11500000
+        },
+        {
+            "id": "blk_danang",
+            "name": "Nhà Đa năng",
+            "totalRent": 23000000
+        }
     ],
-
-    // 3. Dynamic Rooms (assigned to Rent Blocks with dynamic capacity, students, splits)
-    rooms: [
-        // --- NHÀ HIỆU BỘ (Chia đều cho các phòng chức năng/văn phòng trong dãy) ---
-        { id: "rm_hieubo_1", name: "Thư viện (T1)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 50, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 33.3, "dept_thcs": 33.3, "dept_thpt": 33.4 } },
-        { id: "rm_hieubo_2", name: "Phòng Hành chính (T1)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 15, currentStudents: 0, 
-          splits: { "dept_hckt": 50, "dept_truyenthong": 30, "dept_tongvu": 20 } },
-        { id: "rm_hieubo_3", name: "Văn phòng chuyên môn THPT (T1)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 10, currentStudents: 0, 
-          splits: { "dept_thpt": 100 } },
-        { id: "rm_hieubo_4", name: "Phòng Tĩnh Tâm (T2)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 40, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 33.3, "dept_thcs": 33.3, "dept_thpt": 33.4 } },
-        { id: "rm_hieubo_5", name: "Phòng nghỉ trưa thầy cô (T2)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 20, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 40, "dept_thcs": 40, "dept_thpt": 20 } },
-        { id: "rm_hieubo_6", name: "Phòng Kho (T2)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 0, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 50, "dept_thcs": 50 } },
-        { id: "rm_hieubo_7", name: "Phòng Tuyển sinh (T2)", blockId: "blk_hieubo", type: "functional", status: "active", capacity: 10, currentStudents: 0, 
-          splits: { "dept_tuyensinh": 100 } },
-
-        // --- KHU 8 PHÒNG (Dãy Tiểu học - Chia đều 8 phòng) ---
-        { id: "rm_tieuhoc_1", name: "Lớp 1 (Phòng học hệ xanh)", blockId: "blk_8phong", type: "classroom", status: "active", capacity: 22, currentStudents: 6, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_2", name: "Lớp 2 (Phòng học hệ xanh)", blockId: "blk_8phong", type: "classroom", status: "active", capacity: 22, currentStudents: 5, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_3", name: "Lớp 3 (Phòng học hệ xanh)", blockId: "blk_8phong", type: "classroom", status: "active", capacity: 22, currentStudents: 11, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_4", name: "Lớp 4 (Phòng học hệ xanh)", blockId: "blk_8phong", type: "classroom", status: "active", capacity: 22, currentStudents: 6, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_5", name: "Lớp 5 (Phòng học hệ xanh)", blockId: "blk_8phong", type: "classroom", status: "active", capacity: 22, currentStudents: 17, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_6", name: "Phòng Tiểu học chưa sử dụng", blockId: "blk_8phong", type: "classroom", status: "empty", capacity: 22, currentStudents: 0, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_7", name: "Phòng Sáng tạo", blockId: "blk_8phong", type: "functional", status: "active", capacity: 30, currentStudents: 0, splits: { "dept_tieuhoc": 100 } },
-        { id: "rm_tieuhoc_8", name: "Phòng Chuyên môn TH", blockId: "blk_8phong", type: "functional", status: "empty", capacity: 20, currentStudents: 0, splits: { "dept_tieuhoc": 100 } },
-
-        // --- KHU TOÀ MỚI L (Dãy THCS - Chia đều 8 phòng) ---
-        { id: "rm_thcs_1", name: "Lớp 6 (Phòng học hệ xanh)", blockId: "blk_toamoi_l", type: "classroom", status: "active", capacity: 22, currentStudents: 18, splits: { "dept_thcs": 100 } },
-        { id: "rm_thcs_2", name: "Lớp 7 (Phòng học hệ xanh)", blockId: "blk_toamoi_l", type: "classroom", status: "active", capacity: 22, currentStudents: 9, splits: { "dept_thcs": 100 } },
-        { id: "rm_thcs_3", name: "Lớp 8 (Phòng học hệ xanh)", blockId: "blk_toamoi_l", type: "classroom", status: "active", capacity: 22, currentStudents: 16, splits: { "dept_thcs": 100 } },
-        { id: "rm_thcs_4", name: "Lớp 9 (Phòng học hệ xanh)", blockId: "blk_toamoi_l", type: "classroom", status: "active", capacity: 22, currentStudents: 12, splits: { "dept_thcs": 100 } },
-        { id: "rm_thcs_5", name: "Phòng THCS chưa sử dụng A", blockId: "blk_toamoi_l", type: "classroom", status: "empty", capacity: 22, currentStudents: 0, splits: { "dept_thcs": 100 } },
-        { id: "rm_thcs_6", name: "Phòng THCS chưa sử dụng B", blockId: "blk_toamoi_l", type: "classroom", status: "empty", capacity: 22, currentStudents: 0, splits: { "dept_thcs": 100 } },
-        { id: "rm_thcs_7", name: "Phòng nội trú nữ B1", blockId: "blk_toamoi_l", type: "boarding", status: "active", capacity: 18, currentStudents: 0, splits: { "dept_noitru": 100 } },
-        { id: "rm_thcs_8", name: "Phòng nội trú nữ B2", blockId: "blk_toamoi_l", type: "boarding", status: "active", capacity: 18, currentStudents: 12, splits: { "dept_noitru": 100 } },
-
-        // --- KHU 10 PHÒNG (Dãy THPT - Chia đều 10 phòng) ---
-        { id: "rm_thpt_1", name: "Lớp 10A1 (Hệ thường)", blockId: "blk_10phong", type: "classroom", status: "active", capacity: 45, currentStudents: 28, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_2", name: "Lớp 10A2 (Hệ thường)", blockId: "blk_10phong", type: "classroom", status: "active", capacity: 45, currentStudents: 27, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_3", name: "Lớp 10A3 (Hệ xanh)", blockId: "blk_10phong", type: "classroom", status: "active", capacity: 22, currentStudents: 8, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_4", name: "Lớp 11A1 (Hệ thường)", blockId: "blk_10phong", type: "classroom", status: "active", capacity: 45, currentStudents: 15, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_5", name: "Lớp 12A1 (Hệ thường)", blockId: "blk_10phong", type: "classroom", status: "active", capacity: 45, currentStudents: 36, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_6", name: "Lớp 12A2 (Hệ thường)", blockId: "blk_10phong", type: "classroom", status: "active", capacity: 45, currentStudents: 33, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_7", name: "Phòng chuyên môn THPT", blockId: "blk_10phong", type: "functional", status: "active", capacity: 20, currentStudents: 0, splits: { "dept_thpt": 100 } },
-        { id: "rm_thpt_8", name: "Phòng hóa sinh THPT", blockId: "blk_10phong", type: "functional", status: "empty", capacity: 30, currentStudents: 0, splits: { "dept_thcs": 50, "dept_thpt": 50 } },
-        { id: "rm_thpt_9", name: "Phòng Nội trú nam A1", blockId: "blk_10phong", type: "boarding", status: "active", capacity: 18, currentStudents: 18, splits: { "dept_noitru": 100 } },
-        { id: "rm_thpt_10", name: "Phòng Nội trú nam A2", blockId: "blk_10phong", type: "boarding", status: "active", capacity: 18, currentStudents: 12, splits: { "dept_noitru": 100 } },
-
-        // --- KHU TOÀ I (Dãy THPT phụ - Chia đều 4 phòng) ---
-        { id: "rm_toai_1", name: "Phòng Tin Học 1", blockId: "blk_toai", type: "functional", status: "active", capacity: 30, currentStudents: 0, splits: { "dept_tieuhoc": 33.3, "dept_thcs": 33.3, "dept_thpt": 33.4 } },
-        { id: "rm_toai_2", name: "Phòng Tin Học 2", blockId: "blk_toai", type: "functional", status: "active", capacity: 30, currentStudents: 0, splits: { "dept_tieuhoc": 33.3, "dept_thcs": 33.3, "dept_thpt": 33.4 } },
-        { id: "rm_toai_3", name: "Phòng học dự trữ T1", blockId: "blk_toai", type: "classroom", status: "empty", capacity: 45, currentStudents: 0, splits: { "dept_thpt": 100 } },
-        { id: "rm_toai_4", name: "Phòng học dự trữ T2", blockId: "blk_toai", type: "classroom", status: "empty", capacity: 45, currentStudents: 0, splits: { "dept_thpt": 100 } },
-
-        // --- CÁC DIỆN TÍCH DÙNG CHUNG KHÁC (100% chi phí phân bổ theo splits của hạng mục lớn) ---
-        { id: "rm_shared_1", name: "Sân bóng đá lớn", blockId: "blk_sanbong", type: "functional", status: "active", capacity: 200, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 25, "dept_thcs": 25, "dept_thpt": 25, "dept_noitru": 25 } },
-        { id: "rm_shared_2", name: "Khu rèn luyện Westpoint", blockId: "blk_westpoint", type: "functional", status: "active", capacity: 300, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 35, "dept_thcs": 35, "dept_thpt": 30 } },
-        { id: "rm_shared_3", name: "Bếp ăn & Khu ăn uống", blockId: "blk_bepan", type: "functional", status: "active", capacity: 500, currentStudents: 0, 
-          splits: { "dept_bep": 100 } },
-        { id: "rm_shared_4", name: "Nhà Đa năng rộng lớn", blockId: "blk_danang", type: "functional", status: "active", capacity: 600, currentStudents: 0, 
-          splits: { "dept_tieuhoc": 30, "dept_thcs": 30, "dept_thpt": 30, "dept_noitru": 10 } }
+    "rooms": [
+        {
+            "id": "rm_hieubo_1",
+            "name": "Thư viện (T1)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 50,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 33.3,
+                "dept_thcs": 33.3,
+                "dept_thpt": 33.4
+            }
+        },
+        {
+            "id": "rm_hieubo_2",
+            "name": "Phòng Hành chính (T1)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 15,
+            "currentStudents": 0,
+            "splits": {
+                "dept_hckt": 50,
+                "dept_truyenthong": 30,
+                "dept_tongvu": 20
+            }
+        },
+        {
+            "id": "rm_hieubo_3",
+            "name": "Văn phòng chuyên môn THPT (T1)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 10,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_hieubo_4",
+            "name": "Phòng Tĩnh Tâm (T2)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 40,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 33.3,
+                "dept_thcs": 33.3,
+                "dept_thpt": 33.4
+            }
+        },
+        {
+            "id": "rm_hieubo_5",
+            "name": "Phòng nghỉ trưa thầy cô (T2)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 20,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 40,
+                "dept_thcs": 40,
+                "dept_thpt": 20
+            }
+        },
+        {
+            "id": "rm_hieubo_6",
+            "name": "Phòng Kho (T2)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 0,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 50,
+                "dept_thcs": 50
+            }
+        },
+        {
+            "id": "rm_hieubo_7",
+            "name": "Phòng Tuyển sinh (T2)",
+            "blockId": "blk_hieubo",
+            "type": "functional",
+            "status": "active",
+            "capacity": 10,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tuyensinh": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_1",
+            "name": "Lớp 1 (Phòng học hệ xanh)",
+            "blockId": "blk_8phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 6,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_2",
+            "name": "Lớp 2 (Phòng học hệ xanh)",
+            "blockId": "blk_8phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 5,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_3",
+            "name": "Lớp 3 (Phòng học hệ xanh)",
+            "blockId": "blk_8phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 11,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_4",
+            "name": "Lớp 4 (Phòng học hệ xanh)",
+            "blockId": "blk_8phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 6,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_5",
+            "name": "Lớp 5 (Phòng học hệ xanh)",
+            "blockId": "blk_8phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 17,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_6",
+            "name": "Phòng Tiểu học chưa sử dụng",
+            "blockId": "blk_8phong",
+            "type": "classroom",
+            "status": "empty",
+            "capacity": 22,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_7",
+            "name": "Phòng Sáng tạo",
+            "blockId": "blk_8phong",
+            "type": "functional",
+            "status": "active",
+            "capacity": 30,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_tieuhoc_8",
+            "name": "Phòng Chuyên môn TH",
+            "blockId": "blk_8phong",
+            "type": "functional",
+            "status": "empty",
+            "capacity": 20,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 100
+            }
+        },
+        {
+            "id": "rm_thcs_1",
+            "name": "Lớp 6 (Phòng học hệ xanh)",
+            "blockId": "blk_toamoi_l",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 18,
+            "splits": {
+                "dept_thcs": 100
+            }
+        },
+        {
+            "id": "rm_thcs_2",
+            "name": "Lớp 7 (Phòng học hệ xanh)",
+            "blockId": "blk_toamoi_l",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 9,
+            "splits": {
+                "dept_thcs": 100
+            }
+        },
+        {
+            "id": "rm_thcs_3",
+            "name": "Lớp 8 (Phòng học hệ xanh)",
+            "blockId": "blk_toamoi_l",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 16,
+            "splits": {
+                "dept_thcs": 100
+            }
+        },
+        {
+            "id": "rm_thcs_4",
+            "name": "Lớp 9 (Phòng học hệ xanh)",
+            "blockId": "blk_toamoi_l",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 12,
+            "splits": {
+                "dept_thcs": 100
+            }
+        },
+        {
+            "id": "rm_thcs_5",
+            "name": "Phòng THCS chưa sử dụng A",
+            "blockId": "blk_toamoi_l",
+            "type": "classroom",
+            "status": "empty",
+            "capacity": 22,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thcs": 100
+            }
+        },
+        {
+            "id": "rm_thcs_6",
+            "name": "Phòng THCS chưa sử dụng B",
+            "blockId": "blk_toamoi_l",
+            "type": "classroom",
+            "status": "empty",
+            "capacity": 22,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thcs": 100
+            }
+        },
+        {
+            "id": "rm_thcs_7",
+            "name": "Phòng nội trú nữ B1",
+            "blockId": "blk_toamoi_l",
+            "type": "boarding",
+            "status": "active",
+            "capacity": 18,
+            "currentStudents": 0,
+            "splits": {
+                "dept_noitru": 100
+            }
+        },
+        {
+            "id": "rm_thcs_8",
+            "name": "Phòng nội trú nữ B2",
+            "blockId": "blk_toamoi_l",
+            "type": "boarding",
+            "status": "active",
+            "capacity": 18,
+            "currentStudents": 12,
+            "splits": {
+                "dept_noitru": 100
+            }
+        },
+        {
+            "id": "rm_thpt_1",
+            "name": "Lớp 10A1 (Hệ thường)",
+            "blockId": "blk_10phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 45,
+            "currentStudents": 28,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_2",
+            "name": "Lớp 10A2 (Hệ thường)",
+            "blockId": "blk_10phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 45,
+            "currentStudents": 27,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_3",
+            "name": "Lớp 10A3 (Hệ xanh)",
+            "blockId": "blk_10phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 22,
+            "currentStudents": 8,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_4",
+            "name": "Lớp 11A1 (Hệ thường)",
+            "blockId": "blk_10phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 45,
+            "currentStudents": 15,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_5",
+            "name": "Lớp 12A1 (Hệ thường)",
+            "blockId": "blk_10phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 45,
+            "currentStudents": 36,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_6",
+            "name": "Lớp 12A2 (Hệ thường)",
+            "blockId": "blk_10phong",
+            "type": "classroom",
+            "status": "active",
+            "capacity": 45,
+            "currentStudents": 33,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_7",
+            "name": "Phòng chuyên môn THPT",
+            "blockId": "blk_10phong",
+            "type": "functional",
+            "status": "active",
+            "capacity": 20,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_thpt_8",
+            "name": "Phòng hóa sinh THPT",
+            "blockId": "blk_10phong",
+            "type": "functional",
+            "status": "empty",
+            "capacity": 30,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thcs": 50,
+                "dept_thpt": 50
+            }
+        },
+        {
+            "id": "rm_thpt_9",
+            "name": "Phòng Nội trú nam A1",
+            "blockId": "blk_10phong",
+            "type": "boarding",
+            "status": "active",
+            "capacity": 18,
+            "currentStudents": 18,
+            "splits": {
+                "dept_noitru": 100
+            }
+        },
+        {
+            "id": "rm_thpt_10",
+            "name": "Phòng Nội trú nam A2",
+            "blockId": "blk_10phong",
+            "type": "boarding",
+            "status": "active",
+            "capacity": 18,
+            "currentStudents": 12,
+            "splits": {
+                "dept_noitru": 100
+            }
+        },
+        {
+            "id": "rm_toai_1",
+            "name": "Phòng Tin Học 1",
+            "blockId": "blk_toai",
+            "type": "functional",
+            "status": "active",
+            "capacity": 30,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 33.3,
+                "dept_thcs": 33.3,
+                "dept_thpt": 33.4
+            }
+        },
+        {
+            "id": "rm_toai_2",
+            "name": "Phòng Tin Học 2",
+            "blockId": "blk_toai",
+            "type": "functional",
+            "status": "empty",
+            "capacity": 30,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 33.3,
+                "dept_thcs": 33.3,
+                "dept_thpt": 33.4
+            }
+        },
+        {
+            "id": "rm_toai_3",
+            "name": "Phòng học dự trữ T1",
+            "blockId": "blk_toai",
+            "type": "classroom",
+            "status": "empty",
+            "capacity": 45,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_toai_4",
+            "name": "Phòng học dự trữ T2",
+            "blockId": "blk_toai",
+            "type": "classroom",
+            "status": "empty",
+            "capacity": 45,
+            "currentStudents": 0,
+            "splits": {
+                "dept_thpt": 100
+            }
+        },
+        {
+            "id": "rm_shared_1",
+            "name": "Sân bóng đá lớn",
+            "blockId": "blk_sanbong",
+            "type": "functional",
+            "status": "active",
+            "capacity": 200,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 25,
+                "dept_thcs": 25,
+                "dept_thpt": 25,
+                "dept_noitru": 25
+            }
+        },
+        {
+            "id": "rm_shared_2",
+            "name": "Khu rèn luyện Westpoint",
+            "blockId": "blk_westpoint",
+            "type": "functional",
+            "status": "active",
+            "capacity": 300,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 35,
+                "dept_thcs": 35,
+                "dept_thpt": 30
+            }
+        },
+        {
+            "id": "rm_shared_3",
+            "name": "Bếp ăn & Khu ăn uống",
+            "blockId": "blk_bepan",
+            "type": "functional",
+            "status": "active",
+            "capacity": 500,
+            "currentStudents": 0,
+            "splits": {
+                "dept_bep": 100
+            }
+        },
+        {
+            "id": "rm_shared_4",
+            "name": "Nhà Đa năng rộng lớn",
+            "blockId": "blk_danang",
+            "type": "functional",
+            "status": "active",
+            "capacity": 600,
+            "currentStudents": 0,
+            "splits": {
+                "dept_tieuhoc": 30,
+                "dept_thcs": 30,
+                "dept_thpt": 30,
+                "dept_noitru": 10
+            }
+        }
     ],
-
-    // 4. Employees & Salaries (same template)
-    employees: [
-        { id: "emp_real_1", name: "Nguyễn Duy Phan", deptId: "dept_bgh", salary: 16500000, isMultiLevel: false },
-        { id: "emp_real_2", name: "Nguyễn Thị Hiền", deptId: "dept_bdh", salary: 15000000, isMultiLevel: false },
-        { id: "emp_real_3", name: "Lê Thị Hằng", deptId: "dept_bdh", salary: 7041667, isMultiLevel: false },
-        { id: "emp_real_4", name: "Nguyễn Thị Mai Hoa", deptId: "dept_tieuhoc", salary: 8834475, isMultiLevel: false },
-        { id: "emp_real_5", name: "Phạm Thị Thu Hiền", deptId: "dept_tieuhoc", salary: 11916667, isMultiLevel: false },
-        { id: "emp_real_6", name: "Lê Thị Lụa", deptId: "dept_thcs", salary: 10626000, isMultiLevel: false },
-        { id: "emp_real_7", name: "Lương Thị Hiền", deptId: "dept_thcs", salary: 10876667, isMultiLevel: false },
-        { id: "emp_real_8", name: "Phạm Thị Kim Thoa", deptId: "dept_thpt", salary: 8729146, isMultiLevel: false },
-        { id: "emp_real_9", name: "Trịnh Thị Thu Ngân", deptId: "dept_thcs", salary: 9218400, isMultiLevel: false },
-        { id: "emp_real_10", name: "Lê Thị Tuyên", deptId: "dept_thpt", salary: 10667500, isMultiLevel: false },
-        { id: "emp_real_11", name: "Lương Thị Xuân", deptId: "dept_thpt", salary: 9018240, isMultiLevel: false },
-        { id: "emp_real_12", name: "Nguyễn Thị Phương", deptId: "dept_bdh", salary: 12000000, isMultiLevel: false },
-        { id: "emp_real_13", name: "Nguyễn Thị Thu Trang", deptId: "dept_thpt", salary: 10089100, isMultiLevel: false },
-        { id: "emp_real_14", name: "Nguyễn Vũ Minh", deptId: "dept_thpt", salary: 9000000, isMultiLevel: false },
-        { id: "emp_real_15", name: "Bùi Gia Khiêm", deptId: "dept_hckt", salary: 12833333, isMultiLevel: false },
-        { id: "emp_real_16", name: "Bùi Văn Lượng", deptId: "dept_hckt", salary: 5000000, isMultiLevel: false },
-        { id: "emp_real_17", name: "Đào Thị Kim Dung", deptId: "dept_bdh", salary: 7000000, isMultiLevel: false },
-        { id: "emp_real_18", name: "Đỗ Thị Miện", deptId: "dept_bep", salary: 5900000, isMultiLevel: false },
-        { id: "emp_real_19", name: "Phạm Thị Gấm", deptId: "dept_bep", salary: 5900000, isMultiLevel: false },
-        { id: "emp_real_20", name: "Phạm Thị Nga", deptId: "dept_noitru", salary: 5900000, isMultiLevel: false },
-        { id: "emp_real_21", name: "Phạm Thị Quỳnh", deptId: "dept_sachdep", salary: 7000000, isMultiLevel: false },
-        { id: "emp_real_22", name: "Phạm Thị Tuyết", deptId: "dept_bep", salary: 8000000, isMultiLevel: false },
-        { id: "emp_real_23", name: "Trần Duy Hưng", deptId: "dept_hckt", salary: 8000000, isMultiLevel: false },
-        { id: "emp_real_24", name: "Trần Minh Trường", deptId: "dept_bdh", salary: 9300000, isMultiLevel: false },
-        { id: "emp_real_25", name: "Trần Văn Quyết", deptId: "dept_hckt", salary: 5000000, isMultiLevel: false },
-        { id: "emp_real_26", name: "Vũ Văn Tính", deptId: "dept_bdh", salary: 5000000, isMultiLevel: false },
-        { id: "emp_real_27", name: "Hoàng Thị Thúy", deptId: "dept_thpt", salary: 11575000, isMultiLevel: true, ratios: {"dept_tieuhoc": 30, "dept_thcs": 30, "dept_thpt": 40} },
-        { id: "emp_real_28", name: "Nguyễn Ngọc Dương", deptId: "dept_thpt", salary: 9051840, isMultiLevel: false },
-        { id: "emp_real_29", name: "Nguyễn Phương Thảo", deptId: "dept_tieuhoc", salary: 8553600, isMultiLevel: false },
-        { id: "emp_real_30", name: "Nguyễn Thị Lan", deptId: "dept_tieuhoc", salary: 10483200, isMultiLevel: true, ratios: {"dept_tieuhoc": 40, "dept_thcs": 40, "dept_thpt": 20} },
-        { id: "emp_real_31", name: "Phạm Ngọc Thúy", deptId: "dept_thcs", salary: 10784900, isMultiLevel: true, ratios: {"dept_tieuhoc": 50, "dept_thcs": 50, "dept_thpt": 0} },
-        { id: "emp_real_32", name: "Trịnh Hà An", deptId: "dept_tieuhoc", salary: 10368300, isMultiLevel: true, ratios: {"dept_tieuhoc": 50, "dept_thcs": 50, "dept_thpt": 0} },
-        { id: "emp_real_33", name: "Bùi Ngọc Trà", deptId: "dept_hckt", salary: 12525000, isMultiLevel: false },
-        { id: "emp_real_34", name: "Đặng Thị Hoan", deptId: "dept_hckt", salary: 6467916, isMultiLevel: false },
-        { id: "emp_real_35", name: "Phạm Mai Linh", deptId: "dept_thcs", salary: 11731000, isMultiLevel: true, ratios: {"dept_tieuhoc": 40, "dept_thcs": 60, "dept_thpt": 0} },
-        { id: "emp_real_36", name: "Trần Thị Nhung", deptId: "dept_hckt", salary: 14667916, isMultiLevel: false },
-        { id: "emp_real_37", name: "Bùi Mạnh Hùng", deptId: "dept_bdh", salary: 12000000, isMultiLevel: false },
-        { id: "emp_real_38", name: "Đoàn Thu Hà", deptId: "dept_thpt", salary: 9240000, isMultiLevel: true, ratios: {"dept_tieuhoc": 30, "dept_thcs": 30, "dept_thpt": 40} },
-        { id: "emp_real_39", name: "Mạc Lệ Quỳnh", deptId: "dept_bdh", salary: 17025000, isMultiLevel: false },
-        { id: "emp_real_40", name: "Nguyễn Duy Hoàng", deptId: "dept_thcs", salary: 16755000, isMultiLevel: true, ratios: {"dept_tieuhoc": 20, "dept_thcs": 50, "dept_thpt": 30} },
-        { id: "emp_real_41", name: "Lê Thị Thảo Nguyên", deptId: "dept_tieuhoc", salary: 8000000, isMultiLevel: true, ratios: {"dept_tieuhoc": 60, "dept_thcs": 40, "dept_thpt": 0} },
-        { id: "emp_real_42", name: "Tô Thị Huệ", deptId: "dept_bdh", salary: 7366667, isMultiLevel: false },
-        { id: "emp_real_43", name: "Lê Thị Linh", deptId: "dept_tieuhoc", salary: 6600000, isMultiLevel: false },
-        { id: "emp_real_44", name: "Trần Công Thìn", deptId: "dept_bdh", salary: 10000000, isMultiLevel: false },
-        { id: "emp_real_45", name: "Lê Triều Vũ", deptId: "dept_bdh", salary: 15000000, isMultiLevel: false },
-        { id: "emp_real_46", name: "Trần Nguyễn Thùy Trang", deptId: "dept_bdh", salary: 17000000, isMultiLevel: false },
-        { id: "emp_real_47", name: "Đỗ Thanh Tùng", deptId: "dept_bdh", salary: 25000000, isMultiLevel: false },
-        { id: "emp_real_48", name: "Lê Thị Ngọc Quỳnh", deptId: "dept_hckt", salary: 12000000, isMultiLevel: false },
-        { id: "emp_real_49", name: "Đào Thu Hà", deptId: "dept_bdh", salary: 0, isMultiLevel: false },
-        { id: "emp_real_50", name: "Phạm Thị Thu Hà", deptId: "dept_bdh", salary: 7890000, isMultiLevel: false },
-        { id: "emp_real_51", name: "Trần Thị Kim Thoa", deptId: "dept_bdh", salary: 10140000, isMultiLevel: false },
-        { id: "emp_real_52", name: "Nguyễn Thị Hải Yến", deptId: "dept_hckt", salary: 9000000, isMultiLevel: false },
-        { id: "emp_real_53", name: "Lương Hồng Loan", deptId: "dept_thcs", salary: 6310000, isMultiLevel: false },
-        { id: "emp_real_54", name: "Phạm Văn Quyết", deptId: "dept_anninh", salary: 3034615, isMultiLevel: false },
-        { id: "emp_real_55", name: "Nguyễn Minh Lộc", deptId: "dept_anninh", salary: 3150000, isMultiLevel: false },
-        { id: "emp_real_56", name: "Trần Công Thìn", deptId: "dept_truyenthong", salary: 2600000, isMultiLevel: false },
-        { id: "emp_real_57", name: "Nguyễn Thị Yên", deptId: "dept_bdh", salary: 2520000, isMultiLevel: false },
-        { id: "emp_real_58", name: "Hoàng Thị Hương", deptId: "dept_bdh", salary: 4920000, isMultiLevel: false },
-        { id: "emp_real_59", name: "Bùi Thị Kim Thoa", deptId: "dept_bdh", salary: 5640000, isMultiLevel: false },
-        { id: "emp_real_60", name: "Trần Văn Đồng", deptId: "dept_thpt", salary: 3835000, isMultiLevel: false },
-        { id: "emp_real_61", name: "Nguyễn Phương Thảo", deptId: "dept_tieuhoc", salary: 3000000, isMultiLevel: false },
-        { id: "emp_real_62", name: "Đồng Thị Nghiệp", deptId: "dept_thcs", salary: 3600000, isMultiLevel: false },
-        { id: "emp_real_63", name: "Vũ Thị Phượng", deptId: "dept_thpt", salary: 4380000, isMultiLevel: false },
-        { id: "emp_real_64", name: "Phạm Quang Hưng", deptId: "dept_bdh", salary: 6240000, isMultiLevel: false },
-        { id: "emp_real_65", name: "Phạm Thanh Dịu", deptId: "dept_bdh", salary: 4900000, isMultiLevel: false }
+    "employees": [
+        {
+            "id": "emp_real_1",
+            "name": "Nguyễn Duy Phan",
+            "deptId": "dept_bgh",
+            "salary": 16500000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 0,
+                "dept_thpt": 100,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0
+            }
+        },
+        {
+            "id": "emp_real_2",
+            "name": "Nguyễn Thị Hiền",
+            "deptId": "dept_bgh",
+            "salary": 15000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 80,
+                "dept_thcs": 20,
+                "dept_thpt": 0,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0
+            }
+        },
+        {
+            "id": "emp_real_3",
+            "name": "Lê Thị Hằng",
+            "deptId": "dept_tieuhoc",
+            "salary": 7041667,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 100,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0
+            }
+        },
+        {
+            "id": "emp_real_4",
+            "name": "Nguyễn Thị Mai Hoa",
+            "deptId": "dept_tieuhoc",
+            "salary": 8834475,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_5",
+            "name": "Phạm Thị Thu Hiền",
+            "deptId": "dept_tieuhoc",
+            "salary": 11916667,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_6",
+            "name": "Lê Thị Lụa",
+            "deptId": "dept_thcs",
+            "salary": 10626000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 100,
+                "dept_thpt": 0,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0
+            }
+        },
+        {
+            "id": "emp_real_7",
+            "name": "Lương Thị Hiền",
+            "deptId": "dept_thcs",
+            "salary": 10876667,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_8",
+            "name": "Phạm Thị Kim Thoa",
+            "deptId": "dept_thpt",
+            "salary": 8729146,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_9",
+            "name": "Trịnh Thị Thu Ngân",
+            "deptId": "dept_thcs",
+            "salary": 9218400,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_10",
+            "name": "Lê Thị Tuyên",
+            "deptId": "dept_thpt",
+            "salary": 10667500,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_11",
+            "name": "Lương Thị Xuân",
+            "deptId": "dept_thpt",
+            "salary": 9018240,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_12",
+            "name": "Nguyễn Thị Phương",
+            "deptId": "dept_thpt",
+            "salary": 12000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 20,
+                "dept_thpt": 80,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0
+            }
+        },
+        {
+            "id": "emp_real_13",
+            "name": "Nguyễn Thị Thu Trang",
+            "deptId": "dept_thpt",
+            "salary": 10089100,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_14",
+            "name": "Nguyễn Vũ Minh",
+            "deptId": "dept_thpt",
+            "salary": 9000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_15",
+            "name": "Bùi Gia Khiêm",
+            "deptId": "dept_hckt",
+            "salary": 12833333,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 80,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 20
+            }
+        },
+        {
+            "id": "emp_real_16",
+            "name": "Bùi Văn Lượng",
+            "deptId": "dept_anninh",
+            "salary": 5000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_17",
+            "name": "Đào Thị Kim Dung",
+            "deptId": "dept_thpt",
+            "salary": 7000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_18",
+            "name": "Đỗ Thị Miện",
+            "deptId": "dept_sachdep",
+            "salary": 5900000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_19",
+            "name": "Phạm Thị Gấm",
+            "deptId": "dept_sachdep",
+            "salary": 5900000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_20",
+            "name": "Phạm Thị Nga",
+            "deptId": "dept_sachdep",
+            "salary": 5900000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_21",
+            "name": "Phạm Thị Quỳnh",
+            "deptId": "dept_bep",
+            "salary": 7000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_22",
+            "name": "Phạm Thị Tuyết",
+            "deptId": "dept_bep",
+            "salary": 8000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_23",
+            "name": "Trần Duy Hưng",
+            "deptId": "dept_tongvu",
+            "salary": 8000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_24",
+            "name": "Trần Minh Trường",
+            "deptId": "dept_tongvu",
+            "salary": 9300000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_25",
+            "name": "Trần Văn Quyết",
+            "deptId": "dept_anninh",
+            "salary": 5000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_26",
+            "name": "Vũ Văn Tính",
+            "deptId": "dept_anninh",
+            "salary": 5000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_27",
+            "name": "Hoàng Thị Thúy",
+            "deptId": "dept_thpt",
+            "salary": 11575000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_28",
+            "name": "Nguyễn Ngọc Dương",
+            "deptId": "dept_thpt",
+            "salary": 9051840,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_29",
+            "name": "Nguyễn Phương Thảo",
+            "deptId": "dept_tieuhoc",
+            "salary": 8553600,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_30",
+            "name": "Nguyễn Thị Lan",
+            "deptId": "dept_tieuhoc",
+            "salary": 10483200,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_31",
+            "name": "Phạm Ngọc Thúy",
+            "deptId": "dept_thcs",
+            "salary": 10784900,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_32",
+            "name": "Trịnh Hà An",
+            "deptId": "dept_tieuhoc",
+            "salary": 10368300,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_33",
+            "name": "Bùi Ngọc Trà",
+            "deptId": "dept_truyenthong",
+            "salary": 12525000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_34",
+            "name": "Đặng Thị Hoan",
+            "deptId": "dept_tuyensinh",
+            "salary": 6467916,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_35",
+            "name": "Phạm Mai Linh",
+            "deptId": "dept_thcs",
+            "salary": 11731000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_36",
+            "name": "Trần Thị Nhung",
+            "deptId": "dept_tuyensinh",
+            "salary": 14667916,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_37",
+            "name": "Bùi Mạnh Hùng",
+            "deptId": "dept_tieuhoc",
+            "salary": 12000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 45,
+                "dept_thcs": 45,
+                "dept_thpt": 10,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0
+            }
+        },
+        {
+            "id": "emp_real_38",
+            "name": "Đoàn Thu Hà",
+            "deptId": "dept_tieuhoc",
+            "salary": 9240000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 45,
+                "dept_thcs": 45,
+                "dept_thpt": 10
+            }
+        },
+        {
+            "id": "emp_real_39",
+            "name": "Mạc Lệ Quỳnh",
+            "deptId": "dept_1779782090457",
+            "salary": 17025000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 50,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 50
+            }
+        },
+        {
+            "id": "emp_real_40",
+            "name": "Nguyễn Duy Hoàng",
+            "deptId": "dept_1779782090457",
+            "salary": 16755000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 20,
+                "dept_thcs": 20,
+                "dept_thpt": 20,
+                "dept_1779782090457": 10,
+                "dept_noitru": 20,
+                "dept_1779782898139": 10
+            }
+        },
+        {
+            "id": "emp_real_41",
+            "name": "Lê Thị Thảo Nguyên",
+            "deptId": "dept_tuyensinh",
+            "salary": 8000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_42",
+            "name": "Tô Thị Huệ",
+            "deptId": "dept_tieuhoc",
+            "salary": 7366667,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_43",
+            "name": "Lê Thị Linh",
+            "deptId": "dept_hckt",
+            "salary": 6600000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 20,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 20,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 20,
+                "dept_tuyensinh": 20,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 0,
+                "dept_1779782898139": 20
+            }
+        },
+        {
+            "id": "emp_real_44",
+            "name": "Trần Công Thìn",
+            "deptId": "dept_truyenthong",
+            "salary": 10000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_45",
+            "name": "Lê Triều Vũ",
+            "deptId": "dept_bdh",
+            "salary": 10000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 10,
+                "dept_bdh": 20,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 10,
+                "dept_truyenthong": 20,
+                "dept_tongvu": 20,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 10,
+                "dept_1779782898139": 10
+            }
+        },
+        {
+            "id": "emp_real_46",
+            "name": "Trần Nguyễn Thùy Trang",
+            "deptId": "dept_bdh",
+            "salary": 17000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 30,
+                "dept_thcs": 30,
+                "dept_thpt": 10,
+                "dept_noitru": 0,
+                "dept_bdh": 10,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 20,
+                "dept_1779782898139": 0
+            }
+        },
+        {
+            "id": "emp_real_47",
+            "name": "Đỗ Thanh Tùng",
+            "deptId": "dept_bdh",
+            "salary": 25000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_48",
+            "name": "Lê Thị Ngọc Quỳnh",
+            "deptId": "dept_hckt",
+            "salary": 12000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 10,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 10,
+                "dept_bdh": 20,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 20,
+                "dept_anninh": 0,
+                "dept_sachdep": 20,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 0,
+                "dept_1779782898139": 20
+            }
+        },
+        {
+            "id": "emp_real_49",
+            "name": "Đào Thu Hà",
+            "deptId": "dept_1779782090457",
+            "salary": 0,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 45,
+                "dept_thcs": 45,
+                "dept_thpt": 10,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 0,
+                "dept_1779782898139": 0
+            }
+        },
+        {
+            "id": "emp_real_50",
+            "name": "Phạm Thị Thu Hà",
+            "deptId": "dept_noitru",
+            "salary": 7890000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 60,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 40,
+                "dept_1779782898139": 0
+            }
+        },
+        {
+            "id": "emp_real_51",
+            "name": "Trần Thị Kim Thoa",
+            "deptId": "dept_thpt",
+            "salary": 10140000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_52",
+            "name": "Nguyễn Thị Hải Yến",
+            "deptId": "dept_hckt",
+            "salary": 9000000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 0,
+                "dept_thcs": 0,
+                "dept_thpt": 0,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 70,
+                "dept_tuyensinh": 30,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 0,
+                "dept_1779782898139": 0
+            }
+        },
+        {
+            "id": "emp_real_53",
+            "name": "Lương Hồng Loan",
+            "deptId": "dept_hckt",
+            "salary": 6310000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_54",
+            "name": "Phạm Văn Quyết",
+            "deptId": "dept_anninh",
+            "salary": 3034615,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_55",
+            "name": "Nguyễn Minh Lộc",
+            "deptId": "dept_anninh",
+            "salary": 3150000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_56",
+            "name": "Trần Công Thìn",
+            "deptId": "dept_truyenthong",
+            "salary": 2600000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_57",
+            "name": "Nguyễn Thị Yên",
+            "deptId": "dept_thpt",
+            "salary": 2520000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_58",
+            "name": "Hoàng Thị Hương",
+            "deptId": "dept_thpt",
+            "salary": 4920000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_59",
+            "name": "Bùi Thị Kim Thoa",
+            "deptId": "dept_thpt",
+            "salary": 5640000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_60",
+            "name": "Trần Văn Đồng",
+            "deptId": "dept_thpt",
+            "salary": 3835000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_61",
+            "name": "Nguyễn Phương Thảo",
+            "deptId": "dept_tieuhoc",
+            "salary": 3000000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_62",
+            "name": "Đồng Thị Nghiệp",
+            "deptId": "dept_thcs",
+            "salary": 3600000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_63",
+            "name": "Vũ Thị Phượng",
+            "deptId": "dept_thpt",
+            "salary": 4380000,
+            "isMultiLevel": false
+        },
+        {
+            "id": "emp_real_64",
+            "name": "Phạm Quang Hưng",
+            "deptId": "dept_1779782090457",
+            "salary": 6240000,
+            "isMultiLevel": true,
+            "ratios": {
+                "dept_tieuhoc": 45,
+                "dept_thcs": 45,
+                "dept_thpt": 10,
+                "dept_noitru": 0,
+                "dept_bdh": 0,
+                "dept_bgh": 0,
+                "dept_hckt": 0,
+                "dept_tuyensinh": 0,
+                "dept_truyenthong": 0,
+                "dept_tongvu": 0,
+                "dept_bep": 0,
+                "dept_anninh": 0,
+                "dept_sachdep": 0,
+                "dept_1779722697629": 0,
+                "dept_1779781275635": 0,
+                "dept_1779782090457": 0,
+                "dept_1779782898139": 0
+            }
+        },
+        {
+            "id": "emp_real_65",
+            "name": "Phạm Thanh Dịu",
+            "deptId": "dept_noitru",
+            "salary": 4900000,
+            "isMultiLevel": false
+        }
     ],
-
-    // 5. Raw monthly static values (Manual Split Percentages)
-    drivers: {
-        custom_percent: {
-            "dept_bdh": { "dept_tieuhoc": 30, "dept_thcs": 24, "dept_thpt": 35, "dept_noitru": 11 },
-            "dept_bgh": { "dept_tieuhoc": 20, "dept_thcs": 20, "dept_thpt": 45, "dept_noitru": 15 },
-            "dept_hckt": { "dept_tieuhoc": 35, "dept_thcs": 30, "dept_thpt": 25, "dept_noitru": 10 },
-            "dept_tuyensinh": { "dept_tieuhoc": 35, "dept_thcs": 25, "dept_thpt": 40, "dept_noitru": 0 },
-            "dept_truyenthong": { "dept_tieuhoc": 35, "dept_thcs": 25, "dept_thpt": 40, "dept_noitru": 0 },
-            "dept_tongvu": { "dept_tieuhoc": 30, "dept_thcs": 30, "dept_thpt": 30, "dept_noitru": 10 },
-            "dept_bep": { "dept_tieuhoc": 25, "dept_thcs": 25, "dept_thpt": 25, "dept_noitru": 25 },
-            "dept_anninh": { "dept_tieuhoc": 30, "dept_thcs": 30, "dept_thpt": 30, "dept_noitru": 10 },
-            "dept_sachdep": { "dept_tieuhoc": 30, "dept_thcs": 30, "dept_thpt": 30, "dept_noitru": 10 }
+    "drivers": {
+        "student_count": {
+            "dept_tieuhoc": 45,
+            "dept_thcs": 55,
+            "dept_thpt": 147,
+            "dept_noitru": 0
+        },
+        "new_students": {
+            "dept_tieuhoc": 40,
+            "dept_thcs": 30,
+            "dept_thpt": 50,
+            "dept_noitru": 0
+        },
+        "meals": {
+            "dept_tieuhoc": 41,
+            "dept_thcs": 50,
+            "dept_thpt": 132,
+            "dept_noitru": 42
+        },
+        "area_m2": {
+            "dept_tieuhoc": 770.56,
+            "dept_thcs": 650.56,
+            "dept_thpt": 870.8800000000001,
+            "dept_noitru": 148
+        },
+        "staff_count": {
+            "dept_tieuhoc": 7.8,
+            "dept_thcs": 8.9,
+            "dept_thpt": 7.300000000000001,
+            "dept_noitru": 4
+        },
+        "revenue_share": {
+            "dept_tieuhoc": 29.75206611570248,
+            "dept_thcs": 23.96694214876033,
+            "dept_thpt": 35.12396694214876,
+            "dept_noitru": 11.15702479338843
+        },
+        "custom_percent": {
+            "dept_1779722697629": {
+                "dept_tieuhoc": 30,
+                "dept_thcs": 30,
+                "dept_thpt": 30,
+                "dept_noitru": 10
+            },
+            "dept_sachdep": {
+                "dept_noitru": 5,
+                "dept_tieuhoc": 30,
+                "dept_thcs": 30,
+                "dept_thpt": 35
+            },
+            "dept_anninh": {
+                "dept_tieuhoc": 30,
+                "dept_thcs": 30,
+                "dept_thpt": 30,
+                "dept_noitru": 10
+            },
+            "dept_tongvu": {
+                "dept_noitru": 12,
+                "dept_tieuhoc": 30,
+                "dept_thcs": 30,
+                "dept_thpt": 30
+            },
+            "dept_bdh": {
+                "dept_tieuhoc": 40,
+                "dept_thcs": 40,
+                "dept_thpt": 15,
+                "dept_noitru": 5
+            },
+            "dept_bgh": {
+                "dept_tieuhoc": 40,
+                "dept_thcs": 15,
+                "dept_thpt": 45,
+                "dept_noitru": 0
+            },
+            "dept_hckt": {
+                "dept_noitru": 0,
+                "dept_tieuhoc": 32,
+                "dept_thcs": 32,
+                "dept_thpt": 32
+            },
+            "dept_tuyensinh": {
+                "dept_noitru": 5,
+                "dept_thpt": 15,
+                "dept_tieuhoc": 40,
+                "dept_thcs": 40
+            },
+            "dept_truyenthong": {
+                "dept_noitru": 5,
+                "dept_tieuhoc": 40,
+                "dept_thcs": 40,
+                "dept_thpt": 15
+            },
+            "dept_bep": {
+                "dept_tieuhoc": 25,
+                "dept_thcs": 25,
+                "dept_thpt": 25,
+                "dept_noitru": 25
+            },
+            "dept_1779781275635": {
+                "dept_tieuhoc": 34,
+                "dept_thcs": 33,
+                "dept_thpt": 33,
+                "dept_noitru": 0
+            },
+            "dept_1779782090457": {
+                "dept_tieuhoc": 40,
+                "dept_thcs": 40,
+                "dept_thpt": 20,
+                "dept_noitru": 0
+            },
+            "dept_1779782898139": {
+                "dept_tieuhoc": 45,
+                "dept_thcs": 45,
+                "dept_thpt": 10,
+                "dept_noitru": 0
+            }
         }
     },
-
-    // 6. Revenues per direct department
-    revenues: {
-        "dept_tieuhoc": 720000000,
-        "dept_thcs": 580000000,
-        "dept_thpt": 850000000,
-        "dept_noitru": 270000000
+    "revenues": {
+        "dept_tieuhoc": 112500000,
+        "dept_thcs": 112500000,
+        "dept_thpt": 165000000,
+        "dept_noitru": 81000000
     },
-
-    // 7. Utility Bills (Elect & Water)
-    utilityCosts: {
+    "utilityCosts": {
         "dept_dien": 45000000,
         "dept_nuoc": 12000000
     },
-    
-    // 8. Boarding notes for special guideline (interactive and editable by user)
-    boardingNotes: {
-        ratioNote: `- BGH & Ban Điều hành (BĐH): Định mức đề xuất (0% - 5%) nhằm phản ánh đúng tập trung chuyên môn cốt lõi vào chương trình chính khóa.
-- Tuyển sinh & Truyền thông: Định mức đề xuất (2% - 5%) do hoạt động tuyển sinh nội trú là dịch vụ tích hợp đi kèm.
-- Hành chính Kế toán (HCKT): Định mức đề xuất (3% - 5%) tương ứng với tần suất giao dịch và quản lý học phí thực tế.
-- Tổng vụ (Cơ sở vật chất): Định mức đề xuất (8% - 12%) để bù đắp hao mòn vận hành và công tác trực ca ngoài giờ.`,
-        facilityNote: `- Phương pháp phân bổ trực tiếp: Nhằm phản ánh chính xác diện tích sử dụng thực tế của khối Nội trú (chỉ gồm 4 phòng).
-- Hướng dẫn cấu hình: Truy cập tab "Mặt bằng & Phòng học", nhấp nút "Sửa tỷ lệ %" tại 4 phòng nội trú và gán đúng 100% tỷ lệ gánh chi phí cho khối Nội trú.
-- Lợi ích: Khối Nội trú tự chịu trách nhiệm tài chính trọn vẹn trên đúng phạm vi cơ sở vật chất thực tế đang vận hành.`
-    }
+    "boardingNotes": {
+        "ratioNote": "- BGH & Ban Điều hành (BĐH): Định mức đề xuất (0% - 5%) nhằm phản ánh đúng tập trung chuyên môn cốt lõi vào chương trình chính khóa.\n- Tuyển sinh & Truyền thông: Định mức đề xuất (2% - 5%) do hoạt động tuyển sinh nội trú là dịch vụ tích hợp đi kèm.\n- Hành chính Kế toán (HCKT): Định mức đề xuất (3% - 5%) tương ứng với tần suất giao dịch và quản lý học phí thực tế.\n- Tổng vụ (Cơ sở vật chất): Định mức đề xuất (8% - 12%) để bù đắp hao mòn vận hành và công tác trực ca ngoài giờ.",
+        "facilityNote": "- Phương pháp phân bổ trực tiếp: Nhằm phản ánh chính xác diện tích sử dụng thực tế của khối Nội trú (chỉ gồm 4 phòng).\n- Hướng dẫn cấu hình: Truy cập tab \"Mặt bằng & Phòng học\", nhấp nút \"Sửa tỷ lệ %\" tại 4 phòng nội trú và gán đúng 100% tỷ lệ gánh chi phí cho khối Nội trú.\n- Lợi ích: Khối Nội trú tự chịu trách nhiệm tài chính trọn vẹn trên đúng phạm vi cơ sở vật chất thực tế đang vận hành."
+    },
+    "aprilSalaryUpdated": true
 };
+
 
 let appState = {};
 
