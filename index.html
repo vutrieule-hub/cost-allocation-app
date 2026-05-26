@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Phân Bổ Chi Phí & Báo Cáo Lợi Nhuận - Trường Xanh Tuệ Đức</title>
+    
+    <!-- Premium Icons & Typography -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Link Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Firebase CDN SDK (v8 Compat for quick and reliable static integration) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+    <!-- 1. SIDEBAR NAVIGATION -->
+    <aside>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fa-solid fa-school-flag" style="color: #FFF; font-size: 18px;"></i>
+            </div>
+            <div class="logo-text">XANH TUỆ ĐỨC</div>
+        </div>
+
+        <ul class="nav-links">
+            <li>
+                <a class="nav-item active" data-tab="view_dashboard">
+                    <i class="fa-solid fa-chart-line"></i> Bảng Điều Khiển & Lợi Nhuận
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="view_departments">
+                    <i class="fa-solid fa-network-wired"></i> Quản lý Phòng ban
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="view_employees">
+                    <i class="fa-solid fa-users"></i> Nhân sự & Bảng lương
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="view_payroll_matrix">
+                    <i class="fa-solid fa-table-cells"></i> Bảng Đối Soát Lương (Excel)
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="view_facilities">
+                    <i class="fa-solid fa-building-user"></i> Mặt bằng & Phòng học
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="view_guidelines">
+                    <i class="fa-solid fa-book-open"></i> Nguyên lý Vận hành
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-secondary btn-sm" onclick="exportStateJSON()" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-file-export"></i> Backup Dữ liệu (JSON)
+            </button>
+            <div style="position: relative;">
+                <input type="file" id="import_file_input" style="display:none;" onchange="importStateJSON(event)">
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import_file_input').click()" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-file-import"></i> Restore Dữ liệu
+                </button>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="resetToDefault()" style="width: 100%; justify-content: center; margin-top: 5px;">
+                <i class="fa-solid fa-rotate-left"></i> Khôi phục mẫu gốc
+            </button>
+        </div>
+    </aside>
+
+    <!-- 2. MAIN WORKSPACE -->
+    <main>
+        
+        <!-- Main Top Header -->
+        <header>
+            <div class="header-title">
+                <h1>Hệ Thống Quản Trị Chi Phí & Phân Bổ Tự Động</h1>
+                <p>Hệ thống tự động hóa Báo cáo Lợi nhuận theo các Khối học trường Xanh Tuệ Đức</p>
+            </div>
+            <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
+                <!-- Cloud Sync Bar -->
+                <div class="cloud-sync-bar" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.7); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 5px 12px; box-shadow: var(--shadow-sm);">
+                    <div id="cloud_sync_status" class="cloud-status-dot offline" title="Chưa kết nối Đám mây. Dữ liệu đang được lưu cục bộ (Offline)"></div>
+                    <span id="cloud_sync_text" style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Offline
+                    </span>
+                    <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;"></div>
+                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; margin: 0;">MÃ ĐỒNG BỘ:</label>
+                    <input type="text" id="cloud_project_code" placeholder="Mã đồng bộ (VD: XTD_2026)" onchange="connectCloudSync(this.value)" style="border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; width: 150px; font-weight: 600; outline: none; background: #FFF; transition: var(--transition);">
+                </div>
+
+                <span class="badge badge-revenue" style="padding: 10px 16px; font-size: 0.85rem; border-radius: var(--radius-md); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-regular fa-calendar-days"></i> Phiên Bản HĐQT 2026
+                </span>
+            </div>
+        </header>
+
+        <!-- KPI SUMMARY CARDS -->
+        <div class="kpi-grid">
+            <div class="card kpi-card total-salary">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div class="kpi-info">
+                    <h3>Tổng quỹ lương tháng</h3>
+                    <div class="kpi-value" id="kpi_total_salary">0 ₫</div>
+                </div>
+            </div>
+            <div class="card kpi-card total-rent">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                <div class="kpi-info">
+                    <h3>Tiền mặt bằng / Thuê</h3>
+                    <div class="kpi-value" id="kpi_total_rent">0 ₫</div>
+                </div>
+            </div>
+            <div class="card kpi-card staff-count">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div class="kpi-info">
+                    <h3>Tổng số nhân sự</h3>
+                    <div class="kpi-value" id="kpi_staff_count">0 Nhân sự</div>
+                </div>
+            </div>
+            <div class="card kpi-card revenue-centers">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="kpi-info">
+                    <h3>Khối Doanh thu</h3>
+                    <div class="kpi-value" id="kpi_revenue_centers">0 Khối</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW SECTION: 1. DASHBOARD & FINANCIAL P&L REPORT
+             =================================================================== -->
+        <div id="view_dashboard" class="view-section active">
+            
+            <div class="dashboard-grid">
+                
+                <!-- Left Screen: P&L Detailed Table Report -->
+                <div class="card" style="padding: 1.75rem;">
+                    <div class="section-header">
+                        <h2>Báo Cáo Kết Quả Hoạt Động (Lợi Nhuận) Sau Phân Bổ</h2>
+                        <span class="text-muted" style="font-size: 0.85rem;"><i class="fa-solid fa-circle-info"></i> Click vào số tiền chi phí phân bổ để xem giải trình</span>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="pl-table">
+                            <thead>
+                                <tr id="pl_table_header">
+                                    <th>Cơ Cấu Tài Chính</th>
+                                    <th class="text-right" style="width: 140px;">Tiểu học</th>
+                                    <th class="text-right" style="width: 140px;">THCS</th>
+                                    <th class="text-right" style="width: 140px;">THPT</th>
+                                    <th class="text-right" style="width: 140px;">Nội trú</th>
+                                    <th class="text-right" style="width: 150px;">Tổng toàn trường</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pl_report_body">
+                                <!-- Appended Dynamically by app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Screen: visual charts and performance -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div class="card">
+                        <div class="section-header">
+                            <h2>Hiệu năng Tài chính các khối</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="dashboard_chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card" style="background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(31,41,55,0.45));">
+                        <div class="section-header" style="margin-bottom: 10px;">
+                            <h2 style="color: var(--primary);"><i class="fa-solid fa-bolt"></i> Gợi ý Quản trị Kinh doanh</h2>
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            * <strong>Đơn giá phòng học</strong> được chia đều tự động từ Dãy nhà giúp anh tối ưu hóa mật độ sử dụng phòng. Những phòng trống nên được ưu tiên đón học sinh mới tuyển để tối ưu hóa chi phí thuê.<br>
+                            * **Sĩ số học sinh** được tự động tổng hợp động trực tiếp từ danh mục phòng học. Anh chỉ cần thay đổi số học sinh ở danh sách lớp, toàn bộ tỷ lệ phân bổ của các phòng gián tiếp sẽ tự nhảy theo mượt mà!
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW SECTION: 2. DEPARTMENTS MANAGEMENT
+             =================================================================== -->
+        <div id="view_departments" class="view-section">
+            <div class="card" style="margin-bottom: 2rem;">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-plus" style="color: var(--primary);"></i> Khởi tạo & Thêm phòng ban mới</h2>
+                </div>
+                
+                <form id="dept_add_form" onsubmit="addDepartment(event)">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label>Tên Phòng ban / Khối chức năng</label>
+                            <input type="text" id="dept_add_name" placeholder="Ví dụ: Phòng Công nghệ thông tin (IT), Kỷ luật..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tính chất hoạt động</label>
+                            <select id="dept_add_type">
+                                <option value="support">Bộ phận Gián tiếp</option>
+                                <option value="revenue">Khối Trực tiếp mang Doanh thu</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-circle-check"></i> Lưu và Tạo phòng ban
+                    </button>
+                </form>
+            </div>
+
+            <!-- BẢNG 1: KHỐI TRỰC TIẾP & DOANH THU -->
+            <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--success);">
+                <div class="section-header" style="margin-bottom: 1rem;">
+                    <h2 style="color: var(--success); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-graduation-cap"></i> 
+                        1. Khối Học Trực Tiếp & Doanh Thu (Revenue Centers)
+                    </h2>
+                    <span class="text-muted" style="font-size: 0.8rem;"><i class="fa-solid fa-circle-info"></i> Chỉ dành cho các khối đào tạo có nguồn doanh thu trực tiếp</span>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">STT</th>
+                                <th style="min-width: 180px;">Khối Học</th>
+                                <th style="width: 180px;">Sỹ Số Học Sinh (HS)</th>
+                                <th style="width: 250px;">Doanh Thu Học Phí Tháng (VNĐ)</th>
+                                <th style="width: 100px;" class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dept_list_revenue">
+                            <!-- Appended dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BẢNG 2: BAN HỖ TRỢ GIÁN TIẾP -->
+            <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--primary);">
+                <div class="section-header" style="margin-bottom: 1rem;">
+                    <h2 style="color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-handshake-angle"></i>
+                        2. Các Ban Hỗ Trợ Gián Tiếp & Phân Bổ Chi Phí (Support Centers)
+                    </h2>
+                    <span class="text-muted" style="font-size: 0.8rem;"><i class="fa-solid fa-circle-info"></i> Click vào tên ban gián tiếp để xem phân tích cơ cấu chi phí cụ thể</span>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">STT</th>
+                                <th style="min-width: 180px;">Bộ Phận Gián Tiếp</th>
+                                <th style="width: 240px;">Phương Thức Phân Bổ</th>
+                                <th style="min-width: 380px;">Chi Tiết Tỷ Lệ / Quy Tắc Kết Chuyển</th>
+                                <th style="width: 100px;" class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dept_list_support">
+                            <!-- Appended dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BẢNG 3: CHI PHÍ TIỆN ÍCH -->
+            <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--warning);">
+                <div class="section-header" style="margin-bottom: 1rem;">
+                    <h2 style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        3. Chi Phí Tiện Ích & Vận Hành (Utility Costs)
+                    </h2>
+                    <span class="text-muted" style="font-size: 0.8rem;"><i class="fa-solid fa-circle-info"></i> Nhập tiền hóa đơn tháng để hệ thống tự động kết chuyển phân bổ</span>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">STT</th>
+                                <th style="min-width: 180px;">Hạng Mục Tiện Ích</th>
+                                <th style="width: 250px;">Hóa Đơn Tiện Ích Tháng (VNĐ)</th>
+                                <th style="width: 240px;">Phương Thức Phân Bổ</th>
+                                <th style="min-width: 300px;">Chi Tiết Tỷ Lệ Phân Bổ</th>
+                                <th style="width: 100px;" class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dept_list_utility">
+                            <!-- Appended dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===================================================================
+                 CẨM NANG HƯỚNG DẪN TƯ DUY PHÂN BỔ CHI PHÍ NỘI TRÚ (EDITABLE)
+                 =================================================================== -->
+            <div class="callout-box callout-info" style="margin-top: 1.5rem; border-left: 4px solid var(--accent); background: rgba(0, 122, 255, 0.03); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); border-left-width: 4px;">
+                <h4 style="margin-top: 0; color: var(--accent); display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 600;">
+                    <i class="fa-solid fa-lightbulb" style="color: var(--accent);"></i>
+                    GHI CHÚ & CẨM NANG QUẢN TRỊ: PHÂN BỔ CHI PHÍ KHỐI NỘI TRÚ ĐẶC THÙ
+                </h4>
+                <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px;">
+                    Khối <strong>Nội trú</strong> tại trường Xanh Tuệ Đức có quy mô cơ sở vật chất đặc thù (4 phòng) và hoạt động phụ trợ ngoài giờ. Để đảm bảo mô hình phân bổ chi phí phản ánh khách quan, khoa học và trung thực (phù hợp với mức độ tiêu hao nguồn lực và tần suất giao dịch thực tế), ban quản lý có thể tham khảo đề xuất định mức hoặc chủ động ghi chú điều chỉnh dưới đây (văn bản sẽ tự động lưu lại khi gõ):
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 12px;">
+                    <div style="background: #FFF; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                        <h5 style="margin: 0 0 8px 0; font-size: 0.8rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-sliders" style="color: var(--success);"></i> 1. ĐỊNH HÌNH TỶ LỆ PHÂN BỔ GIÁN TIẾP (%)
+                        </h5>
+                        <textarea id="note_ratio_text" oninput="saveBoardingNotes()" style="width: 100%; border: none; outline: none; background: transparent; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6; resize: vertical; min-height: 150px; font-family: inherit; font-weight: normal; padding: 0;" placeholder="Nhập ghi chú định hình tỷ lệ phân bổ tại đây..."></textarea>
+                    </div>
+                    <div style="background: #FFF; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                        <h5 style="margin: 0 0 8px 0; font-size: 0.8rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-hotel" style="color: var(--accent);"></i> 2. PHÂN ĐỊNH CHI PHÍ THUÊ MẶT BẰNG
+                        </h5>
+                        <textarea id="note_facility_text" oninput="saveBoardingNotes()" style="width: 100%; border: none; outline: none; background: transparent; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6; resize: vertical; min-height: 150px; font-family: inherit; font-weight: normal; padding: 0;" placeholder="Nhập ghi chú chi phí thuê mặt bằng tại đây..."></textarea>
+                    </div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--info);"></i>
+                    <em>Áp dụng các nguyên tắc phân bổ khoa học giúp báo cáo quản trị P&L của khối Nội trú phản ánh trung thực kết quả hoạt động tại trường Xanh Tuệ Đức.</em>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW SECTION: 3. EMPLOYEES & PAYROLL MANAGEMENT
+             =================================================================== -->
+        <div id="view_employees" class="view-section">
+            <div class="card" style="margin-bottom: 2rem;">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-plus" style="color: var(--primary);"></i> Thêm Nhân sự & Thiết lập lương mới</h2>
+                </div>
+
+                <form id="emp_add_form" onsubmit="addEmployee(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Họ và Tên</label>
+                            <input type="text" id="emp_add_name" placeholder="Nhập họ và tên nhân viên..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Thuộc Phòng ban / Bộ phận</label>
+                            <select id="emp_add_dept" required>
+                                <!-- Rendered dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="priority-container">Mức Lương thỏa thuận mới (vnđ/tháng) <span class="priority-dot" title="Trường dữ liệu lương quan trọng bắt buộc để tự động tính quỹ lương tháng"></span></label>
+                            <input type="text" id="emp_add_salary" placeholder="Ví dụ: 10.000.000" oninput="handleMoneyInput(this)" required>
+                        </div>
+                    </div>
+
+                    <!-- Multi-level Toggle for Multi-department split -->
+                    <div class="form-group" style="margin-bottom: 12px; flex-direction: row; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="emp_add_multilevel" onchange="toggleMultiLevelInputs()" style="width:18px; height:18px; cursor:pointer;">
+                        <label for="emp_add_multilevel" style="cursor:pointer; font-weight:600; color:#FFF;">
+                            Nhân sự này kiêm nhiệm nhiều phòng ban (Dạy chéo khối, hỗ trợ đa bộ phận)
+                        </label>
+                    </div>
+
+                    <!-- Hidden Multi-level ratio values inputs -->
+                    <div id="emp_add_ratios_wrapper" style="display: none; margin-bottom: 20px;">
+                        <p class="text-muted" style="font-size:0.85rem; margin-bottom:8px;">
+                            <i class="fa-solid fa-calculator"></i> Nhập tỷ lệ (%) phân bổ lương / thời gian làm việc. Tổng tỷ lệ bắt buộc phải bằng 100%:
+                        </p>
+                        <div class="ratios-grid">
+                            <!-- Dynamic Ratio inputs built by JS -->
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-circle-check"></i> Lưu và Thêm nhân viên
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <h2>Danh sách CBNV - Giáo viên & Bảng lương Xanh Tuệ Đức</h2>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">STT</th>
+                                <th style="min-width: 250px;">Họ và Tên</th>
+                                <th style="width: 200px; min-width: 180px;">Bộ phận chính</th>
+                                <th style="width: 150px; min-width: 130px;">Phân loại nhân sự</th>
+                                <th class="text-right" style="width: 180px; min-width: 160px;">Lương thỏa thuận mới (vnđ)</th>
+                                <th style="width: 100px;" class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emp_list_body">
+                            <!-- Rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW SECTION: 3.5 PAYROLL ALLOCATION MATRIX (EXCEL-LIKE MATRIX)
+             =================================================================== -->
+        <div id="view_payroll_matrix" class="view-section">
+            <div class="card" style="margin-bottom: 2rem;">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                    <div>
+                        <h2><i class="fa-solid fa-table-cells" style="color: var(--primary);"></i> Ma Trận Phân Bổ Quỹ Lương CBNV & Giáo Viên</h2>
+                        <p style="font-size:0.85rem; color: var(--text-secondary); margin-top:4px;">
+                            Bảng tổng hợp chi tiết dòng phân bổ quỹ lương của từng nhân sự về các khối trực tiếp và ban chức năng (Dạng bảng Excel)
+                        </p>
+                    </div>
+                    <span class="badge badge-revenue" style="font-weight: 600; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;">
+                        <i class="fa-solid fa-calculator"></i> Tự động quy đổi VNĐ
+                    </span>
+                </div>
+                
+                <div class="table-container" style="overflow-x: auto; background: rgba(0,0,0,0.05); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <table class="pl-table" style="width: 100%; border-collapse: collapse; min-width: 1200px; font-size: 0.85rem;" id="matrix_table">
+                        <!-- Excel Matrix rendered dynamically -->
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW SECTION: 4. FACILITIES & RENT BLOCKS (ADVANCED RENT MODEL)
+             =================================================================== -->
+        <div id="view_facilities" class="view-section">
+            
+            <!-- Apple-style Segmented Control for Subtabs -->
+            <div class="facility-segmented-control">
+                <button class="facility-subtab-btn active" id="btn_subtab_rooms" onclick="switchFacilitySubtab('subtab_rooms')">
+                    <i class="fa-solid fa-door-open"></i> Danh Sách & Phân Bổ Phòng Học
+                </button>
+                <button class="facility-subtab-btn" id="btn_subtab_blocks" onclick="switchFacilitySubtab('subtab_blocks')">
+                    <i class="fa-solid fa-hotel"></i> Cấu Hình Dãy Nhà & Tiền Thuê
+                </button>
+            </div>
+
+            <!-- SUBTAB 1: PHÒNG HỌC & LỚP HỌC -->
+            <div id="subtab_rooms" class="facility-subtab-section">
+                <!-- Accordion Form: Thêm phòng học mới -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <div class="section-header" onclick="toggleCollapsible('room_add_form_wrapper', 'room_add_arrow_icon')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                        <h2><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Thêm Phòng Học Mới (Nhấp để mở rộng biểu mẫu)</h2>
+                        <i class="fa-solid fa-chevron-down text-muted" id="room_add_arrow_icon" style="transition: transform 0.25s ease;"></i>
+                    </div>
+                    
+                    <div id="room_add_form_wrapper" style="display: none; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <form id="room_add_form" onsubmit="addRoom(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Tên Phòng vật lý</label>
+                                    <input type="text" id="room_add_name" placeholder="Ví dụ: Lớp 10A1, Phòng Âm nhạc, Phòng B1..." required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Thuộc Dãy nhà nào (Để chia đều chi phí)</label>
+                                    <select id="room_add_block" required>
+                                        <!-- Loaded dynamically -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phân loại phòng</label>
+                                    <select id="room_add_type">
+                                        <option value="classroom">Phòng học học sinh</option>
+                                        <option value="boarding">Phòng nội trú</option>
+                                        <option value="functional">Phòng chức năng / Dùng chung</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Trạng thái sử dụng</label>
+                                    <select id="room_add_status">
+                                        <option value="active">Đang sử dụng</option>
+                                        <option value="empty">Phòng trống / Dự trữ</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Sức chứa tiêu chuẩn</label>
+                                    <input type="number" id="room_add_capacity" value="22" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="priority-container">Sỹ số học sinh hiện tại <span class="priority-dot" title="Sỹ số học sinh hiện tại là động cơ chính để phân bổ tự động chi phí nước sinh hoạt"></span></label>
+                                    <input type="number" id="room_add_students" value="0" required>
+                                </div>
+                            </div>
+
+                            <!-- Room Split Ratios across departments -->
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label style="font-weight: 600; color:#FFF;">
+                                    <i class="fa-solid fa-percent"></i> Bản chất sử dụng: Nhập tỷ lệ sử dụng (%) của các phòng ban (Tổng phải bằng 100%):
+                                </label>
+                                <div class="ratios-grid" id="room_add_splits_container">
+                                    <!-- Loaded Dynamically by app.js -->
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="margin-top: 15px;">
+                                <i class="fa-solid fa-circle-check"></i> Lưu và Thêm phòng vật lý
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách chi tiết phòng học -->
+                <div class="card">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem;">
+                        <div>
+                            <h2>Bảng Phân bổ chi tiết & Quản lý sỹ số học sinh từng phòng</h2>
+                            <p style="font-size:0.82rem; color: var(--text-secondary); margin-top: 4px;">Xem chi tiết giá thuê quy đổi của từng phòng và các khối học tương ứng gánh chịu chi phí</p>
+                        </div>
+                    </div>
+
+                    <!-- SaaS Smart Filter Bar -->
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 18px; background: rgba(0,0,0,0.02); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); flex-wrap: wrap;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-filter"></i> Lọc nhanh:</span>
+                        <select id="filter_room_block" onchange="filterRoomsList()" class="base-select-dropdown" style="width: 200px; padding: 6px 10px; font-size: 0.82rem;">
+                            <option value="">-- Tất cả Dãy nhà --</option>
+                        </select>
+                        <select id="filter_room_status" onchange="filterRoomsList()" class="base-select-dropdown" style="width: 180px; padding: 6px 10px; font-size: 0.82rem;">
+                            <option value="">-- Tất cả Trạng thái --</option>
+                            <option value="active">Đang sử dụng</option>
+                            <option value="empty">Phòng trống / Dự trữ</option>
+                        </select>
+                        <span class="text-muted" style="font-size: 0.8rem; margin-left: auto; font-weight: 500;" id="filtered_room_count">Đang tải phòng...</span>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">STT</th>
+                                    <th style="min-width: 200px;">Phòng vật lý / Lớp học (Bấm trực tiếp để sửa tên)</th>
+                                    <th class="text-right" style="width: 140px;">Tiền thuê quy đổi</th>
+                                    <th style="width: 180px;" class="text-center">Trạng thái phòng</th>
+                                    <th style="width: 165px;">Sỹ số Học Sinh</th>
+                                    <th>Bản chất sử dụng & Tỷ lệ gánh chi phí</th>
+                                    <th style="width: 60px;" class="text-center">Xóa</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="room_list_body">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBTAB 2: DÃY NHÀ & KHU VỰC THUÊ LỚN -->
+            <div id="subtab_blocks" class="facility-subtab-section" style="display: none;">
+                <div class="dashboard-grid">
+                    
+                    <!-- Accordion Form: Thêm dãy nhà mới -->
+                    <div class="card" style="align-self: start;">
+                        <div class="section-header" onclick="toggleCollapsible('block_add_form_wrapper', 'block_add_arrow_icon')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h2><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Thêm Dãy nhà Mới</h2>
+                            <i class="fa-solid fa-chevron-down text-muted" id="block_add_arrow_icon" style="transition: transform 0.25s ease;"></i>
+                        </div>
+                        
+                        <div id="block_add_form_wrapper" style="display: none; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <form id="blk_add_form" onsubmit="addRentBlock(event)">
+                                <div class="form-row" style="flex-direction: column; gap: 12px;">
+                                    <div class="form-group" style="width: 100%;">
+                                        <label>Tên Dãy nhà / Khu vực thuê</label>
+                                        <input type="text" id="blk_add_name" placeholder="Ví dụ: Khu 10 phòng, Khu tòa mới L..." required>
+                                    </div>
+                                    <div class="form-group" style="width: 100%;">
+                                        <label class="priority-container">Tiền thuê tháng trần (vnđ) <span class="priority-dot" title="Trường dữ liệu tiền thuê quan trọng bắt buộc để chia đều cho từng phòng và tính P&L mặt bằng"></span></label>
+                                        <input type="text" id="blk_add_rent" placeholder="Ví dụ: 32.200.000" oninput="handleMoneyInput(this)" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="margin-top: 15px; width: 100%; justify-content: center;">
+                                    <i class="fa-solid fa-circle-check"></i> Lưu và tạo Dãy nhà
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Bảng danh sách Dãy nhà -->
+                    <div class="card">
+                        <div class="section-header">
+                            <h2>Danh sách Dãy nhà & Đơn giá phòng tự động</h2>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">STT</th>
+                                        <th>Dãy nhà</th>
+                                        <th class="text-right" style="width: 130px;">Tiền thuê tháng</th>
+                                        <th class="text-center" style="width: 100px;">Quy mô</th>
+                                        <th class="text-right" style="width: 160px;">Giá / Phòng tự động</th>
+                                        <th style="width: 60px;" class="text-center">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="block_list_body">
+                                    <!-- Rendered dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===================================================================
+             VIEW SECTION: 5. NGUYÊN LÝ VÀ PHƯƠNG PHÁP TÍNH TOÁN (NGUYÊN LÝ VẬN HÀNH)
+             =================================================================== -->
+        <div id="view_guidelines" class="view-section">
+            <div class="guidelines-layout">
+                
+                <!-- Cột bên trái: Danh mục nội dung hướng dẫn (Table of Contents) -->
+                <nav class="guidelines-toc">
+                    <div class="guidelines-toc-title">Danh mục hướng dẫn</div>
+                    <a class="guidelines-toc-item active" href="#guide_intro">
+                        <i class="fa-solid fa-circle-info"></i> Giới thiệu chung
+                    </a>
+                    <a class="guidelines-toc-item" href="#guide_revenue">
+                        <i class="fa-solid fa-coins"></i> Ⅰ. Thu nhập & Doanh thu
+                    </a>
+                    <a class="guidelines-toc-item" href="#guide_payroll">
+                        <i class="fa-solid fa-users-gear"></i> Ⅱ. Phân bổ quỹ lương
+                    </a>
+                    <a class="guidelines-toc-item" href="#guide_facilities">
+                        <i class="fa-solid fa-hotel"></i> Ⅲ. Tiền thuê mặt bằng
+                    </a>
+                    <a class="guidelines-toc-item" href="#guide_utilities">
+                        <i class="fa-solid fa-bolt"></i> Ⅳ. Tiền Điện & Nước
+                    </a>
+                    <a class="guidelines-toc-item" href="#guide_support">
+                        <i class="fa-solid fa-diagram-project"></i> Ⅴ. Bộ phận hỗ trợ chung
+                    </a>
+                </nav>
+
+                <!-- Cột bên phải: Nội dung chi tiết các nguyên lý -->
+                <div class="guidelines-content-panel" style="max-width: 900px;">
+                    
+                    <!-- Phần giới thiệu chung -->
+                    <section class="guidelines-section" id="guide_intro">
+                        <div class="guidelines-section-title" style="border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 20px;">
+                            <i class="fa-solid fa-book-open" style="color: var(--primary); font-size: 1.4rem;"></i>
+                            <h2 style="font-size: 1.4rem; color: var(--text-primary); margin: 0; font-weight: 700;">Cẩm Nang Nguyên Lý Vận Hành & Phân Bổ Chi Phí</h2>
+                        </div>
+                        
+                        <div class="callout-box info">
+                            <div class="callout-header">
+                                <i class="fa-solid fa-graduation-cap"></i> Chào mừng Ban quản trị Xanh Tuệ Đức
+                            </div>
+                            Tài liệu này giải thích rõ ràng và giản dị cách hệ thống tự động tính toán, phân chia tiền lương nhân viên dạy chéo, chi phí thuê lớp học và hóa đơn điện nước về cho 4 khối học chính. Bất kỳ ai khi đọc cẩm nang này đều có thể nắm bắt ngay bản chất của các con số trên báo cáo lợi nhuận.
+                        </div>
+
+                        <!-- Sơ đồ mô tả dòng tiền phân bổ trực quan tuyệt đẹp nhúng bằng ảnh -->
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-top: 25px; margin-bottom: 5px; text-align: center;">
+                            SƠ ĐỒ TRỰC QUAN HÓA DÒNG TIỀN VÀ CƠ CHẾ PHÂN CHIA CHI PHÍ TOÀN TRƯỜNG
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <img src="allocation_flowchart.png" alt="Sơ đồ phân bổ chi phí Xanh Tuệ Đức" class="illustration-img">
+                        </div>
+
+                        <div class="callout-box tip">
+                            <div class="callout-header">
+                                <i class="fa-solid fa-lightbulb"></i> Gợi ý sử dụng phần mềm dễ dàng
+                            </div>
+                            Anh chỉ cần nhập các con số thực tế phát sinh (như sỹ số học sinh của các lớp, hóa đơn tiền điện nước toàn trường, mức lương thỏa thuận của giáo viên). Hệ thống thông minh sẽ tự động thực hiện mọi phép tính chia chéo và hiển thị báo cáo lợi nhuận ngay lập tức.
+                        </div>
+                    </section>
+
+                    <!-- Phần 1: Doanh thu -->
+                    <section class="guidelines-section" id="guide_revenue">
+                        <div class="guidelines-section-title">
+                            <i class="fa-solid fa-coins text-warning" style="color: var(--warning);"></i>
+                            <span>Ⅰ. NGUYÊN TẮC GHI NHẬN HỌC PHÍ & DOANH THU</span>
+                        </div>
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">Tiền học phí và các phí dịch vụ thu được từ học sinh được ghi nhận trực tiếp và độc lập cho từng khối cấp học:</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px;">
+                            <div class="guidelines-card">
+                                <strong style="color: var(--success);"><i class="fa-solid fa-graduation-cap"></i> 1. Khối Tiểu học (Cấp 1)</strong>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">Ghi nhận toàn bộ các khoản thu học phí, tiền ăn bán trú và các phí dịch vụ trực tiếp từ học sinh cấp Tiểu học.</span>
+                            </div>
+                            <div class="guidelines-card">
+                                <strong style="color: var(--info);"><i class="fa-solid fa-graduation-cap"></i> 2. Khối THCS (Cấp 2)</strong>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">Ghi nhận toàn bộ các khoản thu học phí, bán trú và dịch vụ phát sinh trực tiếp từ học sinh cấp THCS.</span>
+                            </div>
+                            <div class="guidelines-card">
+                                <strong style="color: #8A2BE2;"><i class="fa-solid fa-graduation-cap"></i> 3. Khối THPT (Cấp 3)</strong>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">Ghi nhận toàn bộ học phí và các khoản phí dịch vụ thu được từ học sinh thuộc cấp THPT.</span>
+                            </div>
+                            <div class="guidelines-card">
+                                <strong style="color: var(--warning);"><i class="fa-solid fa-hotel"></i> 4. Ban Nội trú</strong>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">Ghi nhận riêng biệt tất cả các khoản thu dịch vụ phòng ở nội trú, phí bán trú nội trú của học sinh ở lại trường.</span>
+                            </div>
+                        </div>
+
+                        <div class="callout-box info">
+                            <div class="callout-header">
+                                <i class="fa-solid fa-scale-balanced"></i> Nguyên tắc công bằng tuyệt đối
+                            </div>
+                            Tiền học phí của học sinh khối nào sẽ nằm nguyên tại khối đó nhằm giúp đánh giá chính xác khả năng tự chủ tài chính của từng cấp học. Hệ thống không chia sẻ hay phân bổ chéo tiền học phí giữa các khối với nhau.
+                        </div>
+                    </section>
+
+                    <!-- Phần 2: Tiền lương -->
+                    <section class="guidelines-section" id="guide_payroll">
+                        <div class="guidelines-section-title">
+                            <i class="fa-solid fa-users-gear text-primary" style="color: var(--info);"></i>
+                            <span>Ⅱ. CƠ CHẾ PHÂN CHIA CHI PHÍ LƯƠNG NHÂN SỰ</span>
+                        </div>
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">Quỹ lương của cán bộ giáo viên được bóc tách tự động theo 2 nhóm để đảm bảo tính chính xác:</p>
+                        
+                        <div class="guidelines-card">
+                            <strong>1. Giáo viên & Nhân viên chuyên trách (Làm việc tại 1 khối cố định)</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem;">
+                                Là những thầy cô chỉ giảng dạy cố định tại một cấp học duy nhất (ví dụ: giáo viên chỉ dạy khối THPT). 100% tiền lương của họ sẽ tính trực tiếp vào chi phí của khối đó.
+                            </span>
+                        </div>
+
+                        <div class="guidelines-card">
+                            <strong>2. Giáo viên dạy chéo khối & Nhân sự kiêm nhiệm nhiều ban</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem;">
+                                Là những thầy cô dạy học ở nhiều cấp học khác nhau hoặc hỗ trợ nhiều phòng ban (ví dụ: một thầy giáo vừa dạy lớp Tiểu học vừa dạy cấp THCS). Tiền lương của họ sẽ được tự động chia nhỏ về các khối tương ứng dựa trên tỉ lệ phần trăm (%) làm việc thực tế được cài đặt.
+                            </span>
+                            <div class="guidelines-formula">
+                                Lương chia về Khối Y = Lương gốc × (Tỉ lệ % kiêm nhiệm Khối Y ÷ Tổng tỉ lệ % ở tất cả các ban)
+                            </div>
+                            
+                            <div class="callout-box example">
+                                <div class="callout-header">
+                                    <i class="fa-solid fa-circle-info"></i> Ví dụ thực tế dễ hiểu
+                                </div>
+                                Cô Nguyễn Thị A có mức lương thỏa thuận là 20 triệu/tháng. Cô dạy học tại cấp Tiểu học 60% và cấp THCS 40%. Hệ thống thông minh sẽ tự động chia quỹ lương của Cô A: tính vào chi phí khối Tiểu học 12 triệu và tính vào khối THCS 8 triệu. Không cần người dùng phải bấm máy tính tay!
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Phần 3: Tiền thuê mặt bằng -->
+                    <section class="guidelines-section" id="guide_facilities">
+                        <div class="guidelines-section-title">
+                            <i class="fa-solid fa-hotel text-success" style="color: var(--success);"></i>
+                            <span>Ⅲ. CƠ CHẾ CHIA CHI PHÍ THUÊ MẶT BẰNG & PHÒNG HỌC</span>
+                        </div>
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">Tiền mặt bằng thuê đất và các tòa nhà được quản lý và tự động chia theo nguyên tắc phòng học sử dụng thực tế:</p>
+                        
+                        <div class="guidelines-card" style="margin-bottom: 12px;">
+                            <strong>Bước A: Xác định giá trị tiền thuê của từng phòng học vật lý</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem;">
+                                Tiền thuê trọn gói của mỗi dãy nhà lớn (ví dụ: Dãy nhà 10 phòng có giá thuê 32.2 triệu/tháng) được chia đều cho tổng số lượng các phòng thực tế có trong dãy đó để ra đơn giá thuê bình quan trên từng phòng.
+                            </span>
+                            <div class="guidelines-formula" style="background: rgba(0, 122, 255, 0.04); border: 1px solid rgba(0, 122, 255, 0.08); color: var(--info);">
+                                Giá thuê 1 phòng học = Tổng tiền thuê dãy nhà ÷ Tổng số phòng của dãy nhà đó
+                            </div>
+                        </div>
+                        
+                        <div class="guidelines-card">
+                            <strong>Bước B: Chia tiền thuê phòng về các khối học sử dụng</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem;">
+                                Tiền thuê của từng phòng học sẽ tự động trôi về chi phí mặt bằng của khối học dựa theo tỷ lệ sử dụng phòng (Ví dụ: Phòng học lớp 1 gán 100% cho khối Tiểu học gánh chi phí; Thư viện dùng chung được gán chia đều 33.3% cho 3 khối học cùng gánh chịu).
+                            </span>
+                        </div>
+                    </section>
+
+                    <!-- Phần 4: Điện nước -->
+                    <section class="guidelines-section" id="guide_utilities">
+                        <div class="guidelines-section-title">
+                            <i class="fa-solid fa-bolt text-warning" style="color: var(--warning);"></i>
+                            <span>Ⅳ. CƠ CHẾ PHÂN CHIA HÓA ĐƠN ĐIỆN & NƯỚC HỢP LÝ</span>
+                        </div>
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">Tiền Điện và tiền Nước sinh hoạt toàn trường được hệ thống phân bổ khoa học và công bằng theo 2 cơ chế riêng biệt:</p>
+                        
+                        <div class="guidelines-card" style="margin-bottom: 12px;">
+                            <strong>1. Tiền Điện: Chia theo Số lượng phòng học đang sử dụng thực tế</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem; display: block; margin-bottom: 8px;">
+                                **Tư duy thực tế:** Bất kể phòng đông hay ít người, mỗi khi lên lớp đều phải bật 2 máy lạnh và hệ thống đèn chiếu sáng tương tự nhau. Vì vậy, tiền điện được chia đều dựa trên số lượng phòng mà khối học đó đang gánh chịu chi phí sử dụng (quy đổi).
+                            </span>
+                            <div class="guidelines-formula">
+                                Tiền Điện khối Y = Tổng hóa đơn điện toàn trường × (Số phòng khối Y đang dùng ÷ Tổng số phòng đang hoạt động)
+                            </div>
+                            
+                            <div class="callout-box example">
+                                <div class="callout-header">
+                                    <i class="fa-solid fa-circle-info"></i> Ví dụ thực tế dễ hiểu (Tiền Điện)
+                                </div>
+                                Hóa đơn tiền điện toàn trường tháng này là 40 triệu đồng. <br>
+                                Tổng số phòng học đang hoạt động quy đổi của toàn trường là 20 phòng. <br>
+                                Khối Tiểu học sử dụng 5 phòng &rarr; Gánh tiền điện = 40 triệu × (5 phòng ÷ 20 phòng) = 10 triệu đồng.
+                            </div>
+                        </div>
+
+                        <div class="guidelines-card">
+                            <strong>2. Tiền Nước: Chia theo Sỹ số học sinh thực tế (Đầu người)</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem; display: block; margin-bottom: 8px;">
+                                **Tư duy thực tế:** Nước sinh hoạt (nước uống, vệ sinh, bán trú...) chủ yếu được tiêu thụ trực tiếp theo đầu người. Khối nào có sỹ số học sinh đông hơn thì sẽ gánh vác phần tiền nước lớn tương ứng chéo theo sỹ số.
+                            </span>
+                            <div class="guidelines-formula">
+                                Tiền Nước khối Y = Tổng hóa đơn nước toàn trường × (Sỹ số học sinh khối Y ÷ Tổng sỹ số học sinh toàn trường)
+                            </div>
+                            
+                            <div class="callout-box example">
+                                <div class="callout-header">
+                                    <i class="fa-solid fa-circle-info"></i> Ví dụ thực tế dễ hiểu (Tiền Nước)
+                                </div>
+                                Hóa đơn tiền nước toàn trường tháng này là 10 triệu đồng. <br>
+                                Tổng sỹ số học sinh toàn trường gộp lại là 200 học sinh. <br>
+                                Khối THPT có 100 học sinh &rarr; Gánh tiền nước = 10 triệu × (100 HS ÷ 200 HS) = 5 triệu đồng.
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Phần 5: Ban gián tiếp -->
+                    <section class="guidelines-section" id="guide_support">
+                        <div class="guidelines-section-title">
+                            <i class="fa-solid fa-diagram-project text-info" style="color: var(--info);"></i>
+                            <span>Ⅴ. CƠ CHẾ CHIA CHI PHÍ PHÒNG BAN CHUNG (GIÁN TIẾP)</span>
+                        </div>
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">Các bộ phận dùng chung (như Ban Điều hành, Ban Giám hiệu, Hành chính Kế toán, Tuyển sinh...) không tạo ra nguồn thu trực tiếp từ học phí. Chi phí vận hành của các ban này được chia đều về cho 4 khối học chính gánh chịu:</p>
+                        
+                        <div class="guidelines-card" style="margin-bottom: 12px;">
+                            <strong>Bước 1: Tính tổng chi phí tự thân của bộ phận chung</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem;">
+                                Cộng gộp toàn bộ chi phí lương của nhân sự bộ phận đó và chi phí tiền thuê văn phòng làm việc vật lý mà bộ phận đó sử dụng.
+                            </span>
+                        </div>
+                        
+                        <div class="guidelines-card">
+                            <strong>Bước 2: Phân chia về 4 khối chính theo tỷ lệ gán tay</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.88rem;">
+                                Tổng chi phí tự thân ở Bước 1 sẽ được kết chuyển về 4 khối chính dựa trên tỷ lệ phần trăm (%) do anh gán thủ công tại mục quản lý phòng ban (Ví dụ: Chi phí của Ban Tuyển sinh được gán chia đều 25% cho cả 4 khối cùng gánh chịu).
+                            </span>
+                        </div>
+
+                        <div class="callout-box warning">
+                            <div class="callout-header">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Lưu ý quan trọng
+                            </div>
+                            Để báo cáo lợi nhuận chính xác 100%, anh cần đảm bảo tổng tỉ lệ gán chia chi phí của mỗi ban chung cho các khối học phải bằng đúng 100%. Hộp trạng thái kế bên tên ban sẽ tự động đổi màu đỏ cảnh báo nếu tỉ lệ gõ thiếu hoặc gõ thừa!
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ===================================================================
+         MODAL POPUP: EXPLANATORY AUDIT DETAIL
+         =================================================================== -->
+    <div class="modal-overlay" id="audit_modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="audit_modal_title">Bảng Giải Trình Phân Bổ Chi Phí</h3>
+                <button class="modal-close" onclick="closeModal('audit_modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="audit_modal_body">
+                <!-- Loaded dynamically by audit popups -->
+            </div>
+            <div class="modal-overlay" style="display:none;"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('audit_modal')">Đóng lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL POPUP: EDIT ROOM SPLITS RATIOS
+         =================================================================== -->
+    <div class="modal-overlay" id="room_split_modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pen-to-square"></i> Điều Chỉnh Tỷ Lệ % Sử Dụng Phòng Học</h3>
+                <button class="modal-close" onclick="closeModal('room_split_modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 0.9rem; margin-bottom: 15px; color: var(--text-secondary);" id="room_split_modal_desc">
+                    Cài đặt tỷ lệ phần trăm (%) gán chi phí thuê phòng học cho các khối trực tiếp/bộ phận.
+                </div>
+                
+                <form id="room_split_edit_form" onsubmit="updateRoomSplits(event)">
+                    <input type="hidden" id="edit_room_id">
+                    
+                    <div id="room_split_inputs_container" class="ratios-grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <!-- Rendered dynamically by JS -->
+                    </div>
+
+                    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Trạng thái tỷ lệ (%):</span>
+                        <span id="room_split_total_badge" class="badge">Đang tính...</span>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('room_split_modal')">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-circle-check"></i> Cập nhật tỷ lệ %
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL POPUP: EDIT DEPARTMENT NOTES
+         =================================================================== -->
+    <div class="modal-overlay" id="dept_note_modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pen-to-square"></i> Giải Trình Phương Án Phân Bổ</h3>
+                <button class="modal-close" onclick="closeModal('dept_note_modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-secondary); line-height: 1.4;" id="dept_note_modal_desc">
+                    Nhập giải trình phương án phân bổ cho bộ phận này:
+                </div>
+                
+                <input type="hidden" id="edit_dept_note_id">
+                
+                <div style="margin-bottom: 20px;">
+                    <textarea id="dept_note_textarea" style="width: 100%; height: 140px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none; box-sizing: border-box; line-height: 1.5; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);" placeholder="Nhập chi tiết ghi chú giải trình... Nhấn Enter để xuống dòng thoải mái."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('dept_note_modal')">Hủy bỏ</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDepartmentNoteFromModal()">
+                        <i class="fa-solid fa-circle-check"></i> Lưu ghi chú
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ===================================================================
+         INTERACTIVE APPLE SIRI-STYLE HELPER BOT WIDGET
+         =================================================================== -->
+    <div class="helper-bot-container">
+        <!-- Expanded Assistant Card -->
+        <div class="helper-bot-card" id="helper_bot_card">
+            <div class="helper-bot-header">
+                <h4><i class="fa-solid fa-circle-nodes"></i> Trợ Lý Phân Bổ Tuệ Đức</h4>
+                <button class="helper-bot-close" onclick="toggleHelperBot()">&times;</button>
+            </div>
+            <div class="helper-bot-body">
+                <p style="margin-bottom: 8px;">Chào anh Tommy! Để hoàn tất thiết lập tài chính cho trường, anh hãy thao tác theo lộ trình 4 bước cực kỳ dễ dàng này nhé:</p>
+                
+                <div class="helper-steps-list">
+                    <div class="helper-step-item" id="step_dept" onclick="switchTab('view_departments'); toggleHelperBot();">
+                        <i class="fa-regular fa-circle status-icon" id="step_icon_dept"></i>
+                        <span>Bước 1: Quản lý Phòng ban</span>
+                    </div>
+                    <div class="helper-step-item" id="step_fac" onclick="switchTab('view_facilities'); toggleHelperBot();">
+                        <i class="fa-regular fa-circle status-icon" id="step_icon_fac"></i>
+                        <span>Bước 2: Quản lý Mặt bằng & Phòng học</span>
+                    </div>
+                    <div class="helper-step-item" id="step_emp" onclick="switchTab('view_employees'); toggleHelperBot();">
+                        <i class="fa-regular fa-circle status-icon" id="step_icon_emp"></i>
+                        <span>Bước 3: Nhân sự & Quỹ lương</span>
+                    </div>
+                    <div class="helper-step-item" id="step_dash" onclick="switchTab('view_dashboard'); toggleHelperBot();">
+                        <i class="fa-regular fa-circle status-icon" id="step_icon_dash"></i>
+                        <span>Bước 4: Xem Báo Cáo Lợi Nhuận</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dynamic smart advice/tip area based on active tab -->
+            <div class="helper-bot-advice" id="helper_bot_advice">
+                Anh đang xem Bảng điều khiển. Hãy nhấp vào các số tiền màu xanh lá cây để xem giải trình công thức toán học chi tiết nhé!
+            </div>
+        </div>
+
+        <!-- Breathing Pulse Siri Bubble -->
+        <div class="helper-bot-bubble" onclick="toggleHelperBot()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+    </div>
+
+    <!-- Script loading -->
+    <script src="app.js"></script>
+</body>
+</html>
