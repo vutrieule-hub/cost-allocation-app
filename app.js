@@ -4032,9 +4032,14 @@ function renderFacilities() {
         if (blockRoomCounts[room.blockId] !== undefined) blockRoomCounts[room.blockId]++;
     });
 
+    let totalRentSum = 0;
+    let totalRoomsSum = 0;
+
     appState.rentBlocks.forEach((blk, idx) => {
         const roomCount = blockRoomCounts[blk.id] || 0;
         const roomPrice = roomCount > 0 ? blk.totalRent / roomCount : blk.totalRent;
+        totalRentSum += blk.totalRent;
+        totalRoomsSum += roomCount;
 
         blocksBody.innerHTML += `
             <tr>
@@ -4049,6 +4054,20 @@ function renderFacilities() {
             </tr>
         `;
     });
+
+    // Thêm dòng SUM tổng cộng ở dưới cùng bảng mặt bằng
+    blocksBody.innerHTML += `
+        <tr style="background: #f8fafc; font-weight: 700; border-top: 2px solid var(--border-color); border-bottom: 2px solid var(--border-color);">
+            <td></td>
+            <td style="color: var(--text-primary); text-transform: uppercase; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.5px;">TỔNG CỘNG (TOTAL)</td>
+            <td class="text-right" style="color: var(--danger); font-size: 0.85rem; font-weight: 800;">${formatCurrency(totalRentSum)}</td>
+            <td class="text-center">
+                <span class="badge" style="background: var(--accent); color: #FFF; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;">${totalRoomsSum} Phòng</span>
+            </td>
+            <td class="text-right text-success"></td>
+            <td></td>
+        </tr>
+    `;
 
     // Populate block select in add room form
     const blockSelect = document.getElementById("room_add_block");
