@@ -3132,6 +3132,7 @@ function saveBoardingNotes() {
 }
 
 // Bảng giải trình chi tiết cơ cấu chi phí phòng ban
+// Bảng giải trình chi tiết cơ cấu chi phí phòng ban
 function openDepartmentCostAuditModal(deptId) {
     const data = runAllocation();
     const dept = appState.departments.find(d => d.id === deptId);
@@ -3139,7 +3140,7 @@ function openDepartmentCostAuditModal(deptId) {
 
     // Set title
     document.getElementById("audit_modal_title").innerHTML = `
-        <i class="fa-solid fa-magnifying-glass-chart"></i> Giải Trình Cơ Cấu Chi Phí Phòng Ban: <strong>${dept.name}</strong>
+        <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--primary);"></i> Giải Trình Cơ Cấu Chi Phí Phòng Ban: <strong style="color: var(--text-primary);">${dept.name}</strong>
     `;
 
     // 1. Chi phí nhân sự (Lương)
@@ -3149,8 +3150,20 @@ function openDepartmentCostAuditModal(deptId) {
         return emp.deptId === deptId;
     });
 
-    let employeesListHtml = '<ul style="margin: 0; padding-left: 20px; font-size: 0.8rem; line-height: 1.6; color: var(--text-secondary);">';
+    let employeesListHtml = "";
     if (deptEmployees.length > 0) {
+        employeesListHtml = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.78rem; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Nhân sự</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: center; width: 100px;">Loại hình</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Chi tiết công thức</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Lương phân bổ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         deptEmployees.forEach(emp => {
             if (emp.isMultiLevel && emp.ratios) {
                 let totalRatio = Object.values(emp.ratios).reduce((a, b) => a + b, 0);
@@ -3158,24 +3171,38 @@ function openDepartmentCostAuditModal(deptId) {
                 const allocatedSalary = emp.salary * (ratioVal / totalRatio);
                 totalSalary += allocatedSalary;
                 employeesListHtml += `
-                    <li style="margin-bottom: 4px;">
-                        ${emp.name}: <strong class="text-success">${formatCurrency(allocatedSalary)}</strong> 
-                        <span class="badge" style="font-size: 0.65rem; padding: 1px 4px; background: rgba(52, 199, 89, 0.06); color: var(--success);">Kiêm nhiệm - Gánh ${ratioVal}% trên tổng lương ${formatCurrency(emp.salary)}</span>
-                    </li>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                        <td style="padding: 10px 12px; text-align: center;">
+                            <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: #059669; font-weight: 700; border-radius: 6px;">Kiêm nhiệm</span>
+                        </td>
+                        <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Gánh <strong>${ratioVal}%</strong> trên tổng lương ${formatCurrency(emp.salary)}</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #059669;">${formatCurrency(allocatedSalary)}</td>
+                    </tr>
                 `;
             } else {
                 totalSalary += emp.salary;
                 employeesListHtml += `
-                    <li style="margin-bottom: 4px;">
-                        ${emp.name}: <strong class="text-success">${formatCurrency(emp.salary)}</strong> (Định biên Toàn thời gian)
-                    </li>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                        <td style="padding: 10px 12px; text-align: center;">
+                            <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(71, 85, 105, 0.08); color: var(--text-secondary); font-weight: 700; border-radius: 6px;">Cơ hữu</span>
+                        </td>
+                        <td style="padding: 10px 12px; color: var(--text-muted); font-size: 0.75rem; font-style: italic;">Định biên toàn thời gian (100%)</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-primary);">${formatCurrency(emp.salary)}</td>
+                    </tr>
                 `;
             }
         });
+        employeesListHtml += '</tbody></table>';
     } else {
-        employeesListHtml += '<li><em>Không có nhân sự trực thuộc phòng ban này.</em></li>';
+        employeesListHtml = `
+            <div style="text-align: center; padding: 24px; background: #f8fafc; border-radius: 12px; border: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--text-muted);">
+                <i class="fa-solid fa-users-slash" style="font-size: 1.6rem; margin-bottom: 8px; display: block; color: var(--text-muted); opacity: 0.5;"></i>
+                <em>Không có nhân sự trực thuộc phòng ban này.</em>
+            </div>
+        `;
     }
-    employeesListHtml += '</ul>';
 
     // 2. Chi phí thuê mặt bằng
     let totalRent = 0;
@@ -3186,8 +3213,20 @@ function openDepartmentCostAuditModal(deptId) {
     });
 
     const deptRooms = appState.rooms.filter(room => room.splits && room.splits[deptId] > 0);
-    let roomsListHtml = '<ul style="margin: 0; padding-left: 20px; font-size: 0.8rem; line-height: 1.6; color: var(--text-secondary);">';
+    let roomsListHtml = "";
     if (deptRooms.length > 0) {
+        roomsListHtml = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.78rem; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Phòng học / Mặt bằng</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Khu / Toà</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Tỷ lệ gánh mặt bằng</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Tiền mặt bằng phân bổ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         deptRooms.forEach(room => {
             const block = appState.rentBlocks.find(b => b.id === room.blockId);
             if (!block) return;
@@ -3197,18 +3236,23 @@ function openDepartmentCostAuditModal(deptId) {
             const allocatedRent = roomRent * (ratio / 100);
             totalRent += allocatedRent;
             roomsListHtml += `
-                <li style="margin-bottom: 4px;">
-                    ${room.name} (Thuộc ${block.name}): <strong class="text-primary">${formatCurrency(allocatedRent)}</strong> 
-                    <span class="badge" style="font-size: 0.65rem; padding: 1px 4px; background: rgba(0, 122, 255, 0.08); color: var(--accent);">
-                        Tỷ lệ sử dụng: ${ratio}% (tiền phòng gốc: ${formatCurrency(roomRent)}/tháng)
-                    </span>
-                </li>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-building" style="color: var(--text-muted); margin-right: 8px;"></i>${room.name}</td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary);">${block.name}</td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Sử dụng <strong>${ratio}%</strong> (Định mức phòng: ${formatCurrency(roomRent)}/tháng)</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--accent);">${formatCurrency(allocatedRent)}</td>
+                </tr>
             `;
         });
+        roomsListHtml += '</tbody></table>';
     } else {
-        roomsListHtml += '<li><em>Không gán chi phí thuê mặt bằng riêng lẻ.</em></li>';
+        roomsListHtml = `
+            <div style="text-align: center; padding: 24px; background: #f8fafc; border-radius: 12px; border: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--text-muted);">
+                <i class="fa-solid fa-building-circle-slash" style="font-size: 1.6rem; margin-bottom: 8px; display: block; color: var(--text-muted); opacity: 0.5;"></i>
+                <em>Không gán chi phí thuê mặt bằng riêng lẻ.</em>
+            </div>
+        `;
     }
-    roomsListHtml += '</ul>';
 
     // 3. Chi phí tiện ích (đối với các ban Điện, Nước tự thân nếu có hóa đơn gốc)
     let totalUtilitySelf = 0;
@@ -3223,11 +3267,20 @@ function openDepartmentCostAuditModal(deptId) {
     let allocationDetailHtml = "";
 
     if (dept.type === "support") {
-        allocationTitle = "<i class='fa-solid fa-share-nodes'></i> HƯỚNG PHÂN BỔ KẾT CHUYỂN CHI PHÍ";
-        let listRowsHtml = "";
+        allocationTitle = "<i class='fa-solid fa-share-nodes' style='margin-right:6px;'></i> HƯỚNG PHÂN BỔ KẾT CHUYỂN CHI PHÍ";
+        let listRowsHtml = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); margin-top: 10px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Bộ phận nhận phân bổ</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Công thức / Phương pháp phân bổ</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 140px;">Tỷ trọng phân bổ</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 140px;">Chi phí phân bổ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         const revenueDepts = appState.departments.filter(d => d.type === "revenue");
-        
-        // Đối với cả các ban support và tiện ích (giờ đã phân bổ đồng bộ)
         const method = dept.allocationMethod || (dept.isUtility ? "student" : "manual");
         
         revenueDepts.forEach(rd => {
@@ -3241,55 +3294,79 @@ function openDepartmentCostAuditModal(deptId) {
 
             let ratioExplanation = "";
             if (method === "student") {
-                ratioExplanation = `Tự động theo sỹ số: ${rawVal} HS / ${sumVal} HS &rarr; tỷ lệ: ${percent}%`;
+                ratioExplanation = `Phân bổ sỹ số: <strong>${rawVal} HS</strong> / ${sumVal} HS`;
             } else if (method === "staff") {
-                ratioExplanation = `Tự động theo nhân sự: ${Number(rawVal).toFixed(1).replace(".0", "")} người / ${Number(sumVal).toFixed(1).replace(".0", "")} người &rarr; tỷ lệ: ${percent}%`;
+                ratioExplanation = `Phân bổ nhân sự: <strong>${Number(rawVal).toFixed(1).replace(".0", "")} người</strong> / ${Number(sumVal).toFixed(1).replace(".0", "")} người`;
             } else {
                 const rawPercent = appState.drivers.custom_percent[deptId]?.[rd.id] || 0;
-                ratioExplanation = `Tỷ lệ gán thủ công: ${rawPercent}% &rarr; quy đổi trọng số: ${percent}%`;
+                ratioExplanation = `Tỷ lệ gán thủ công: <strong>${rawPercent}%</strong>`;
             }
 
             listRowsHtml += `
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 6px 0; border-bottom: 1px dashed var(--border-color);">
-                    <span><strong>${rd.name}</strong> (${ratioExplanation})</span>
-                    <strong style="color: var(--success);">${formatCurrency(allocatedVal)}</strong>
-                </div>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-graduation-cap" style="color: var(--primary); margin-right: 6px;"></i>${rd.name}</td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary);">${ratioExplanation}</td>
+                    <td style="padding: 10px 12px; text-align: right;">
+                        <div style="display: inline-block; width: 60px; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden; margin-right: 8px; vertical-align: middle;">
+                            <div style="width: ${percent}%; background: var(--primary); height: 100%;"></div>
+                        </div>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary);">${percent}%</span>
+                    </td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #059669;">${formatCurrency(allocatedVal)}</td>
+                </tr>
             `;
         });
-
+        listRowsHtml += '</tbody></table>';
 
         let noteHtml = "";
         if (dept.note) {
             noteHtml = `
-                <div class="callout-box info" style="margin-bottom: 12px; padding: 10px; font-size: 0.75rem; border-left: 3px solid var(--accent); background: rgba(0, 122, 255, 0.02); border-radius: 6px; white-space: pre-wrap; line-height: 1.45;">
-                    <strong>✍️ Thuyết minh chiến lược phân bổ:</strong> <em style="white-space: pre-wrap; display: block; margin-top: 4px; color: var(--text-primary); font-weight: 500;">"${dept.note}"</em>
+                <div class="callout-box info" style="margin-bottom: 15px; padding: 12px; font-size: 0.78rem; border-left: 4px solid var(--accent); background: rgba(0, 122, 255, 0.03); border-radius: 8px; white-space: pre-wrap; line-height: 1.5; box-shadow: var(--shadow-sm);">
+                    <strong>🎯 Thuyết minh chiến lược phân bổ:</strong> <em style="white-space: pre-wrap; display: block; margin-top: 5px; color: var(--text-primary); font-weight: 500; font-style: normal;">"${dept.note}"</em>
                 </div>
             `;
         }
 
-
         allocationDetailHtml = `
             ${noteHtml}
             <p style="font-size:0.75rem; color: var(--text-secondary); margin-bottom: 10px;">
-                Tổng chi phí tự thân <strong>${formatCurrency(totalBaseCost)}</strong> của ban được kết chuyển trọn vẹn 100% sang các khối doanh thu để cùng chịu trách nhiệm tài chính:
+                Tổng chi phí tự thân ban đầu <strong style="color: var(--text-primary);">${formatCurrency(totalBaseCost)}</strong> được kết chuyển trọn vẹn sang các khối doanh thu để cùng gánh trách nhiệm tài chính:
             </p>
             ${listRowsHtml}
         `;
     } else {
         // Đối với Khối trực tiếp (Tiểu học, THCS, THPT, Nội trú)
-        allocationTitle = "<i class='fa-solid fa-plus-minus'></i> CHI PHÍ NHẬN PHÂN BỔ TỪ CÁC BAN CHUNG";
-        let listRowsHtml = "";
+        allocationTitle = "<i class='fa-solid fa-plus-minus' style='margin-right:6px;'></i> CHI PHÍ NHẬN PHÂN BỔ TỪ CÁC BAN CHUNG";
+        let listRowsHtml = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); margin-top: 10px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Ban Gián Tiếp Kết Chuyển Về</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Phương pháp gán</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 140px;">Tỷ trọng gánh</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 140px;">Chi phí phân bổ nhận về</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         
         // Chi phí từ ban support
         const supportDepts = appState.departments.filter(d => d.type === "support" && !d.isUtility);
         supportDepts.forEach(sd => {
             const val = data.allocatedCosts?.[deptId]?.[sd.id] || 0;
             if (val > 0) {
+                const detail = data.allocatedDetails?.[deptId]?.[sd.id] || {};
+                const percent = detail.ratioPercent || 0;
+                const method = sd.allocationMethod || "manual";
+                let methodLabel = method === "student" ? "Sỹ số học sinh" : (method === "staff" ? "Nhân sự" : "Tỷ lệ gán tay");
+
                 listRowsHtml += `
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 6px 0; border-bottom: 1px dashed var(--border-color);">
-                        <span>Nhận từ <strong>${sd.name}</strong></span>
-                        <strong style="color: var(--danger);">${formatCurrency(val)}</strong>
-                    </div>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-users-gear" style="color: var(--text-muted); margin-right: 6px;"></i>${sd.name}</td>
+                        <td style="padding: 10px 12px; color: var(--text-secondary);">${methodLabel}</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-secondary);">${percent}%</td>
+                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--danger);">${formatCurrency(val)}</td>
+                    </tr>
                 `;
             }
         });
@@ -3298,21 +3375,30 @@ function openDepartmentCostAuditModal(deptId) {
         const dienVal = data.allocatedUtilityCosts?.[deptId]?.["dept_dien"] || 0;
         const nuocVal = data.allocatedUtilityCosts?.[deptId]?.["dept_nuoc"] || 0;
         if (dienVal > 0) {
+            const detail = data.allocatedUtilityDetails?.[deptId]?.["dept_dien"] || {};
+            const percent = detail.ratioPercent || 0;
             listRowsHtml += `
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 6px 0; border-bottom: 1px dashed var(--border-color);">
-                    <span>Phân bổ <strong>Chi phí Điện</strong> (Theo số phòng dùng thực tế)</span>
-                    <strong style="color: var(--danger);">${formatCurrency(dienVal)}</strong>
-                </div>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-bolt" style="color: #FF9500; margin-right: 8px;"></i>Chi phí Điện</td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary);">Mặt bằng dùng thực tế (Phòng)</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-secondary);">${percent}%</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--danger);">${formatCurrency(dienVal)}</td>
+                </tr>
             `;
         }
         if (nuocVal > 0) {
+            const detail = data.allocatedUtilityDetails?.[deptId]?.["dept_nuoc"] || {};
+            const percent = detail.ratioPercent || 0;
             listRowsHtml += `
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 6px 0; border-bottom: 1px dashed var(--border-color);">
-                    <span>Phân bổ <strong>Chi phí Nước</strong> (Theo sỹ số học sinh thực tế)</span>
-                    <strong style="color: var(--danger);">${formatCurrency(nuocVal)}</strong>
-                </div>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-faucet-drip" style="color: var(--accent); margin-right: 8px;"></i>Chi phí Nước</td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary);">Sỹ số học sinh thực tế (HS)</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-secondary);">${percent}%</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--danger);">${formatCurrency(nuocVal)}</td>
+                </tr>
             `;
         }
+        listRowsHtml += '</tbody></table>';
 
         let totalAllocatedReceived = dienVal + nuocVal;
         supportDepts.forEach(sd => {
@@ -3322,11 +3408,11 @@ function openDepartmentCostAuditModal(deptId) {
 
         allocationDetailHtml = `
             <p style="font-size:0.75rem; color: var(--text-secondary); margin-bottom: 10px;">
-                Bên cạnh chi phí trực tiếp của mình, khối nhận thêm chi phí gián tiếp kết chuyển về để định hình bức tranh P&L thực tế:
+                Bên cạnh chi phí trực tiếp tự thân, khối được nhận thêm các chi phí gián tiếp kết chuyển về để tạo nên bức tranh P&L thực tế:
             </p>
             ${listRowsHtml}
-            <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700; margin-top: 12px; padding-top: 10px; border-top: 2px solid var(--border-color); color: var(--danger);">
-                <span>Tổng chi phí hoạt động sau phân bổ cuối cùng:</span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700; margin-top: 15px; padding-top: 12px; border-top: 2px solid var(--border-color); color: var(--danger);">
+                <span>TỔNG CHI PHÍ HOẠT ĐỘNG SAU PHÂN BỔ (FINAL COST):</span>
                 <span>${formatCurrency(finalConsolidatedCost)}</span>
             </div>
         `;
@@ -3336,47 +3422,47 @@ function openDepartmentCostAuditModal(deptId) {
     modalBody.innerHTML = `
         <div class="audit-section" style="max-height: 70vh; overflow-y: auto; padding-right: 5px;">
             <!-- 1. Consolidated Summary Card -->
-            <div style="background: rgba(0, 122, 255, 0.04); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border-color);">
-                <h4 style="margin:0 0 8px 0; color: var(--accent); font-size: 0.85rem; font-weight: 700;">I. CƠ CẤU CHI PHÍ TỰ THÂN TRỰC TIẾP</h4>
-                <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+            <div style="background: rgba(0, 122, 255, 0.03); padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(0, 122, 255, 0.08); box-shadow: var(--shadow-sm);">
+                <h4 style="margin:0 0 10px 0; color: var(--accent); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">I. CƠ CẤU CHI PHÍ TỰ THÂN TRỰC TIẾP</h4>
+                <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px;">
                     <span>Tổng chi phí tự thân ban đầu:</span>
-                    <span style="color: var(--danger);">${formatCurrency(totalBaseCost)}</span>
+                    <span style="color: var(--danger); font-size: 1.1rem;">${formatCurrency(totalBaseCost)}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                    <div style="background: #FFF; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                        <strong style="font-size: 0.65rem; color: var(--text-secondary); display: block;">1. Quỹ Lương:</strong>
-                        <span style="display: block; font-size: 0.85rem; font-weight: 600; margin-top: 2px; color: var(--success);">${formatCurrency(totalSalary)}</span>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <div style="background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <strong style="font-size: 0.65rem; color: var(--text-secondary); display: block; text-transform: uppercase;">1. Quỹ Lương:</strong>
+                        <span style="display: block; font-size: 0.9rem; font-weight: 700; margin-top: 4px; color: #059669;">${formatCurrency(totalSalary)}</span>
                     </div>
-                    <div style="background: #FFF; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                        <strong style="font-size: 0.65rem; color: var(--text-secondary); display: block;">2. Tiền Mặt bằng:</strong>
-                        <span style="display: block; font-size: 0.85rem; font-weight: 600; margin-top: 2px; color: var(--accent);">${formatCurrency(totalRent)}</span>
+                    <div style="background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <strong style="font-size: 0.65rem; color: var(--text-secondary); display: block; text-transform: uppercase;">2. Tiền Mặt bằng:</strong>
+                        <span style="display: block; font-size: 0.9rem; font-weight: 700; margin-top: 4px; color: var(--accent);">${formatCurrency(totalRent)}</span>
                     </div>
-                    <div style="background: #FFF; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                        <strong style="font-size: 0.65rem; color: var(--text-secondary); display: block;">3. Tiền Tiện ích:</strong>
-                        <span style="display: block; font-size: 0.85rem; font-weight: 600; margin-top: 2px; color: #FF9500;">${formatCurrency(totalUtilitySelf)}</span>
+                    <div style="background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <strong style="font-size: 0.65rem; color: var(--text-secondary); display: block; text-transform: uppercase;">3. Tiền Tiện ích:</strong>
+                        <span style="display: block; font-size: 0.9rem; font-weight: 700; margin-top: 4px; color: #FF9500;">${formatCurrency(totalUtilitySelf)}</span>
                     </div>
                 </div>
             </div>
 
             <!-- 2. Employees Section -->
-            <div style="margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                    <i class="fa-solid fa-users" style="color: var(--success);"></i> CHI TIẾT NHÂN SỰ & QUỸ LƯƠNG
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.85rem; color: var(--text-primary); border-bottom: 1.5px solid var(--border-color); padding-bottom: 6px; display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                    <i class="fa-solid fa-users" style="color: #059669;"></i> CHI TIẾT NHÂN SỰ & QUỸ LƯƠNG
                 </h4>
                 ${employeesListHtml}
             </div>
 
             <!-- 3. Rooms Section -->
-            <div style="margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.85rem; color: var(--text-primary); border-bottom: 1.5px solid var(--border-color); padding-bottom: 6px; display: flex; align-items: center; gap: 8px; font-weight: 700;">
                     <i class="fa-solid fa-hotel" style="color: var(--accent);"></i> CHI TIẾT CƠ SỞ VẬT CHẤT & TIỀN PHÒNG
                 </h4>
                 ${roomsListHtml}
             </div>
 
             <!-- 4. Allocation Details Section -->
-            <div style="background: rgba(52, 199, 89, 0.04); padding: 15px; border-radius: 8px; border: 1px solid rgba(52, 199, 89, 0.15);">
-                <h4 style="margin:0 0 10px 0; color: var(--success); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+            <div style="background: rgba(52, 199, 89, 0.02); padding: 16px; border-radius: 12px; border: 1px solid rgba(52, 199, 89, 0.12); box-shadow: var(--shadow-sm); margin-bottom: 10px;">
+                <h4 style="margin:0 0 12px 0; color: #059669; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 8px; text-transform: uppercase;">
                     ${allocationTitle}
                 </h4>
                 ${allocationDetailHtml}
