@@ -2381,7 +2381,8 @@ function renderDashboardChart(revenueDepts, data) {
                         callback: function(value) {
                             return (value / 1000000).toLocaleString() + 'M';
                         }
-                    }
+                    },
+                    min: 0
                 }
             }
         },
