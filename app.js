@@ -4939,7 +4939,6 @@ function connectCloudSync(projectCode) {
         const firebaseConfig = {
             apiKey: "AIzaSyBqUnifWKaPeZ03q9cLMCgQNQbQm6mmX5M",
             authDomain: "xanh-tue-duc-apps.firebaseapp.com",
-            databaseURL: "https://xanh-tue-duc-apps-default-rtdb.firebaseio.com",
             projectId: "xanh-tue-duc-apps",
             storageBucket: "xanh-tue-duc-apps.firebasestorage.app",
             messagingSenderId: "955600480894",
@@ -4948,7 +4947,7 @@ function connectCloudSync(projectCode) {
         };
         try {
             firebase.initializeApp(firebaseConfig);
-            firebaseDb = firebase.database();
+            firebaseDb = firebase.firestore();
         } catch (e) {
             console.error("Firebase initialization failed:", e);
             updateCloudSyncUI("offline");
@@ -4956,13 +4955,19 @@ function connectCloudSync(projectCode) {
         }
     }
 
-    // Lắng nghe dữ liệu realtime từ đám mây trên node của dự án
-    const dbRef = firebaseDb.ref("sessions/" + projectCode);
-    dbRef.off(); // Gỡ các listener cũ nếu có
-    dbRef.on("value", (snapshot) => {
-        const cloudData = snapshot.val();
-        if (cloudData) {
-            console.log("Cloud data updated from Firebase!");
+    // Lắng nghe dữ liệu realtime từ Firestore Cloud trên tài liệu của dự án
+    updateCloudSyncUI("syncing");
+    
+    // Hủy listener cũ nếu có bằng cách gọi hàm unsubscribe cũ
+    if (window.firestoreUnsubscribe) {
+        window.firestoreUnsubscribe();
+    }
+
+    const docRef = firebaseDb.collection("sessions").doc(projectCode);
+    window.firestoreUnsubscribe = docRef.onSnapshot((doc) => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            console.log("Cloud data updated from Firestore!");
             isSyncingFromCloud = true;
             
             // Cập nhật appState và lưu cục bộ để đồng bộ
@@ -4980,7 +4985,7 @@ function connectCloudSync(projectCode) {
             updateCloudSyncUI("online");
         } else {
             // Nếu node trống, đẩy dữ liệu hiện tại từ máy lên đám mây làm dữ liệu gốc ban đầu
-            console.log("Cloud node is empty. Initializing with local data...");
+            console.log("Cloud document is empty. Initializing with local data...");
             pushLocalDataToCloud();
         }
     }, (error) => {
@@ -4996,10 +5001,10 @@ function updateCloudSyncUI(status) {
 
     statusDot.className = "cloud-status-dot " + status;
     if (status === "online") {
-        statusDot.setAttribute("title", "Đã kết nối Đám mây. Dữ liệu đang được đồng bộ hóa thời gian thực (Real-time)");
+        statusDot.setAttribute("title", "Đã kết nối Firestore Cloud. Dữ liệu đang được đồng bộ hóa thời gian thực (Real-time)");
         statusText.innerHTML = `<i class="fa-solid fa-cloud-arrow-up" style="color: var(--success);"></i> Đã đồng bộ`;
     } else if (status === "syncing") {
-        statusDot.setAttribute("title", "Đang kết nối đám mây và đồng bộ hóa số liệu...");
+        statusDot.setAttribute("title", "Đang kết nối Firestore cloud và đồng bộ hóa số liệu...");
         statusText.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--warning);"></i> Đang đồng bộ`;
     } else {
         statusDot.setAttribute("title", "Chưa kết nối Đám mây. Dữ liệu đang được lưu cục bộ (Offline)");
@@ -5011,9 +5016,13 @@ function pushLocalDataToCloud() {
     if (!currentProjectCode || !firebaseDb) return;
     
     updateCloudSyncUI("syncing");
-    firebaseDb.ref("sessions/" + currentProjectCode).set(appState)
+    
+    // Firestore yêu cầu gửi đối tượng JSON thuần
+    const cleanState = JSON.parse(JSON.stringify(appState));
+    
+    firebaseDb.collection("sessions").doc(currentProjectCode).set(cleanState)
         .then(() => {
-            console.log("Local data successfully synchronized to Firebase Cloud!");
+            console.log("Local data successfully synchronized to Firestore Cloud!");
             updateCloudSyncUI("online");
         })
         .catch(e => {
