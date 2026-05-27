@@ -2402,7 +2402,11 @@ function renderDashboardChart(revenueDepts, data) {
                         const rectWidth = textWidth + paddingX * 2;
                         const rectHeight = 16;
                         const rectX = element.x - rectWidth / 2;
-                        const rectY = element.y - 8; // Float right at the value level
+                        
+                        // Find the height of the tallest bar in this category group to float above it
+                        const maxVal = Math.max(revenueData[index], costData[index]);
+                        const barTopY = chart.scales.y.getPixelForValue(maxVal);
+                        const rectY = barTopY - 22; // Float elegantly 22px above the tallest bar
                         
                         // Draw rounded rect pill
                         ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)';
