@@ -2929,17 +2929,17 @@ function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
         badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalPct}% (Thừa ${totalPct - 100}%)</span>`;
     }
 
-    // Định nghĩa bảng màu thương hiệu sang trọng cho các Khối học
+    // Định nghĩa bảng màu thương hiệu sang trọng cho các Khối học (THPT sử dụng màu Tím Hoàng Gia để khác biệt rõ nét với Tiểu Học)
     const getDeptTheme = (name) => {
         const lower = name.toLowerCase();
-        if (lower.includes("tiểu học")) return { color: "#007AFF", bg: "rgba(0,122,255,0.04)", border: "rgba(0,122,255,0.15)" };
-        if (lower.includes("thcs")) return { color: "#34C759", bg: "rgba(52,199,89,0.04)", border: "rgba(52,199,89,0.15)" };
-        if (lower.includes("thpt")) return { color: "#5856D6", bg: "rgba(88,86,214,0.04)", border: "rgba(88,86,214,0.15)" };
-        return { color: "#FF9500", bg: "rgba(255,149,0,0.04)", border: "rgba(255,149,0,0.15)" }; // Nội trú
+        if (lower.includes("tiểu học")) return { color: "#007AFF" }; // Blue
+        if (lower.includes("thcs")) return { color: "#34C759" };    // Green
+        if (lower.includes("thpt")) return { color: "#AF52DE" };    // Premium Violet / Royal Purple
+        return { color: "#FF9500" };                                // Gold/Orange for Nội trú
     };
 
-    // 1. Tạo Thanh phân bổ tỷ lệ trực quan (Segmented Progress Bar) siêu sang trọng
-    let progressBarHtml = `<div style="display: flex; height: 6px; width: 100%; border-radius: 3px; overflow: hidden; background: #E5E5EA; margin-top: 6px; margin-bottom: 8px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);">`;
+    // 1. Tạo Thanh phân bổ tỷ lệ trực quan (Segmented Progress Bar) siêu sang trọng (Thu nhỏ độ dày 4px thanh lịch)
+    let progressBarHtml = `<div style="display: flex; height: 4px; width: 100%; border-radius: 2px; overflow: hidden; background: #EAEAEF; margin-top: 6px; margin-bottom: 8px; box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,0.05);">`;
     revenueDepts.forEach(rd => {
         const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
             ? appState.drivers.custom_percent[dept.id][rd.id]
@@ -2951,7 +2951,7 @@ function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
     });
     progressBarHtml += `</div>`;
 
-    // 2. Tạo lưới nhập liệu Card/Pill hiện đại
+    // 2. Tạo lưới nhập liệu Card/Pill hiện đại (Nền trắng sang trọng, tối giản để chống lóa mắt)
     let cardsHtml = `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; width: 100%;">`;
     revenueDepts.forEach((rd, rdIndex) => {
         const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
@@ -2965,8 +2965,11 @@ function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
             : "";
         
         cardsHtml += `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: ${theme.bg}; border: 1px solid ${theme.border}; border-radius: 8px; transition: all 0.2s; min-width: 0;">
-                <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex-grow: 1; margin-right: 4px;" title="${rd.name}">${shortName}</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
+                <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
+                    <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 5px; flex-shrink: 0;"></span>
+                    <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${rd.name}">${shortName}</span>
+                </div>
                 <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
                     <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
                       value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
