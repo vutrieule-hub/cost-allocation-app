@@ -2972,33 +2972,33 @@ function renderDepartments() {
     supportDepts.forEach((dept, index) => {
         const method = dept.allocationMethod || "manual";
         
-        // 2.1 Dropdown phương pháp phân bổ
+        // 2.1 Dropdown phương pháp phân bổ - Tối giản & Chuyên nghiệp
         let dropdownHtml = `
-            <select onchange="updateAllocationMethod('${dept.id}', this.value)" class="base-select-dropdown" style="padding: 4px 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); border-radius: 4px; outline: none; background: #FFF; width: 100%;">
-                <option value="manual" ${method === "manual" ? "selected" : ""}>🎛️ Phân bổ thủ công (%)</option>
-                <option value="student" ${method === "student" ? "selected" : ""}>👥 Phân bổ theo Sỹ số học sinh</option>
-                <option value="staff" ${method === "staff" ? "selected" : ""}>🧑‍🏫 Phân bổ theo Số lượng nhân sự</option>
+            <select onchange="updateAllocationMethod('${dept.id}', this.value)" class="base-select-dropdown" style="padding: 6px 10px; font-size: 0.78rem; font-weight: 550; cursor: pointer; border: 1px solid rgba(0, 122, 255, 0.15); border-radius: 6px; outline: none; background: #FFF; width: 100%; transition: all 0.2s;">
+                <option value="manual" ${method === "manual" ? "selected" : ""}>Phân bổ thủ công (%)</option>
+                <option value="student" ${method === "student" ? "selected" : ""}>Phân bổ theo Sỹ số học sinh</option>
+                <option value="staff" ${method === "staff" ? "selected" : ""}>Phân bổ theo Số lượng nhân sự</option>
             </select>
         `;
 
-        // Kính lúp giải trình
+        // Biểu tượng Giải trình (Comment Dots) - Tối giản và phân biệt rõ ràng
         const hasNote = dept.note && dept.note.trim() !== "";
-        const noteIconClass = "fa-solid fa-magnifying-glass";
+        const noteIconClass = hasNote ? "fa-solid fa-comment-dots" : "fa-regular fa-comment-dots";
         const noteIconStyle = hasNote 
-            ? "cursor: pointer; font-size: 0.85rem; color: var(--primary); transition: transform 0.2s; display: inline-block; padding: 6px 8px; background: rgba(0, 122, 255, 0.08); border-radius: 4px;" 
-            : "cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); opacity: 0.4; transition: transform 0.2s; display: inline-block; padding: 6px 8px;";
+            ? "cursor: pointer; font-size: 0.85rem; color: #FF5E00; transition: all 0.2s; display: inline-block; padding: 6px 8px; background: rgba(255, 94, 0, 0.08); border-radius: 6px;" 
+            : "cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); opacity: 0.4; transition: all 0.2s; display: inline-block; padding: 6px 8px; border-radius: 6px;";
         
         const safeNoteContent = hasNote 
             ? dept.note.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
             : "";
 
         const tooltipText = hasNote 
-            ? `<strong style="color: #34C759; display: block; margin-bottom: 6px; font-size: 0.82rem;"><i class="fa-solid fa-square-check"></i> Đã giải trình phương án:</strong><span style="font-style: italic; white-space: pre-wrap; display: block; font-weight: 500; font-size: 0.8rem; color: #E5E5EA;">${safeNoteContent}</span><hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 8px 0 6px 0;"><span style="font-size: 0.75rem; opacity: 0.7; display: block; text-align: center; color: #007AFF;"><i class="fa-solid fa-pen"></i> Nhấp chuột để chỉnh sửa</span>`
-            : `<span style="opacity: 0.9; display: block; text-align: center;"><i class="fa-solid fa-pen-fancy"></i> Chưa có giải trình.<br>Nhấp chuột để thêm mới!</span>`;
+            ? `<strong style="color: #34C759; display: block; margin-bottom: 6px; font-size: 0.82rem;"><i class="fa-solid fa-square-check"></i> Đã giải trình phương án:</strong><span style="font-style: italic; white-space: pre-wrap; display: block; font-weight: 500; font-size: 0.8rem; color: #E5E5EA;">${safeNoteContent}</span><hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 8px 0 6px 0;"><span style="font-size: 0.75rem; opacity: 0.7; display: block; text-align: center; color: #FF5E00;"><i class="fa-solid fa-pen"></i> Nhấp chuột để chỉnh sửa</span>`
+            : `<span style="opacity: 0.9; display: block; text-align: center; font-size: 0.78rem;"><i class="fa-regular fa-comment-dots"></i> Chưa có giải trình.<br>Nhấp chuột để thêm mới!</span>`;
 
         const noteIconHtml = `
             <div class="dept-note-tooltip-trigger">
-                <i class="${noteIconClass}" style="${noteIconStyle}" onclick="editDepartmentNote('${dept.id}')" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'"></i>
+                <i class="${noteIconClass}" style="${noteIconStyle}" onclick="editDepartmentNote('${dept.id}')" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"></i>
                 <div class="custom-note-tooltip">
                     ${tooltipText}
                 </div>
@@ -3006,8 +3006,8 @@ function renderDepartments() {
         `;
 
         const dropdownWrapperHtml = `
-            <div style="display: flex; align-items: center; gap: 8px;">
-                ${dropdownHtml}
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                <div style="flex-grow: 1;">${dropdownHtml}</div>
                 ${noteIconHtml}
             </div>
         `;
@@ -3110,33 +3110,33 @@ function renderDepartments() {
         const bill = appState.utilityCosts?.[dept.id] || 0;
         const method = dept.allocationMethod || "student"; // Tiện ích mặc định theo sỹ số
 
-        // 3.1 Dropdown phân bổ tiện ích
+        // 3.1 Dropdown phân bổ tiện ích - Tối giản & Chuyên nghiệp
         let dropdownHtml = `
-            <select onchange="updateAllocationMethod('${dept.id}', this.value)" class="base-select-dropdown" style="padding: 4px 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); border-radius: 4px; outline: none; background: #FFF; width: 100%;">
-                <option value="student" ${method === "student" ? "selected" : ""}>👥 Phân bổ theo Sỹ số học sinh</option>
-                <option value="staff" ${method === "staff" ? "selected" : ""}>🧑‍🏫 Phân bổ theo Số lượng nhân sự</option>
-                <option value="manual" ${method === "manual" ? "selected" : ""}>🎛️ Phân bổ thủ công (%)</option>
+            <select onchange="updateAllocationMethod('${dept.id}', this.value)" class="base-select-dropdown" style="padding: 6px 10px; font-size: 0.78rem; font-weight: 550; cursor: pointer; border: 1px solid rgba(0, 122, 255, 0.15); border-radius: 6px; outline: none; background: #FFF; width: 100%; transition: all 0.2s;">
+                <option value="student" ${method === "student" ? "selected" : ""}>Phân bổ theo Sỹ số học sinh</option>
+                <option value="staff" ${method === "staff" ? "selected" : ""}>Phân bổ theo Số lượng nhân sự</option>
+                <option value="manual" ${method === "manual" ? "selected" : ""}>Phân bổ thủ công (%)</option>
             </select>
         `;
 
-        // Kính lúp giải trình
+        // Biểu tượng Giải trình (Comment Dots) - Tối giản và phân biệt rõ ràng
         const hasNote = dept.note && dept.note.trim() !== "";
-        const noteIconClass = "fa-solid fa-magnifying-glass";
+        const noteIconClass = hasNote ? "fa-solid fa-comment-dots" : "fa-regular fa-comment-dots";
         const noteIconStyle = hasNote 
-            ? "cursor: pointer; font-size: 0.85rem; color: var(--primary); transition: transform 0.2s; display: inline-block; padding: 6px 8px; background: rgba(0, 122, 255, 0.08); border-radius: 4px;" 
-            : "cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); opacity: 0.4; transition: transform 0.2s; display: inline-block; padding: 6px 8px;";
+            ? "cursor: pointer; font-size: 0.85rem; color: #FF5E00; transition: all 0.2s; display: inline-block; padding: 6px 8px; background: rgba(255, 94, 0, 0.08); border-radius: 6px;" 
+            : "cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); opacity: 0.4; transition: all 0.2s; display: inline-block; padding: 6px 8px; border-radius: 6px;";
         
         const safeNoteContent = hasNote 
             ? dept.note.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
             : "";
 
         const tooltipText = hasNote 
-            ? `<strong style="color: #34C759; display: block; margin-bottom: 6px; font-size: 0.82rem;"><i class="fa-solid fa-square-check"></i> Đã giải trình phương án:</strong><span style="font-style: italic; white-space: pre-wrap; display: block; font-weight: 500; font-size: 0.8rem; color: #E5E5EA;">${safeNoteContent}</span><hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 8px 0 6px 0;"><span style="font-size: 0.75rem; opacity: 0.7; display: block; text-align: center; color: #007AFF;"><i class="fa-solid fa-pen"></i> Nhấp chuột để chỉnh sửa</span>`
-            : `<span style="opacity: 0.9; display: block; text-align: center;"><i class="fa-solid fa-pen-fancy"></i> Chưa có giải trình.<br>Nhấp chuột để thêm mới!</span>`;
+            ? `<strong style="color: #34C759; display: block; margin-bottom: 6px; font-size: 0.82rem;"><i class="fa-solid fa-square-check"></i> Đã giải trình phương án:</strong><span style="font-style: italic; white-space: pre-wrap; display: block; font-weight: 500; font-size: 0.8rem; color: #E5E5EA;">${safeNoteContent}</span><hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 8px 0 6px 0;"><span style="font-size: 0.75rem; opacity: 0.7; display: block; text-align: center; color: #FF5E00;"><i class="fa-solid fa-pen"></i> Nhấp chuột để chỉnh sửa</span>`
+            : `<span style="opacity: 0.9; display: block; text-align: center; font-size: 0.78rem;"><i class="fa-regular fa-comment-dots"></i> Chưa có giải trình.<br>Nhấp chuột để thêm mới!</span>`;
 
         const noteIconHtml = `
             <div class="dept-note-tooltip-trigger">
-                <i class="${noteIconClass}" style="${noteIconStyle}" onclick="editDepartmentNote('${dept.id}')" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'"></i>
+                <i class="${noteIconClass}" style="${noteIconStyle}" onclick="editDepartmentNote('${dept.id}')" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"></i>
                 <div class="custom-note-tooltip">
                     ${tooltipText}
                 </div>
@@ -3144,8 +3144,8 @@ function renderDepartments() {
         `;
 
         const dropdownWrapperHtml = `
-            <div style="display: flex; align-items: center; gap: 8px;">
-                ${dropdownHtml}
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                <div style="flex-grow: 1;">${dropdownHtml}</div>
                 ${noteIconHtml}
             </div>
         `;
