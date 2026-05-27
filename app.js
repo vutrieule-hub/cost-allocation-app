@@ -2124,7 +2124,7 @@ function renderDashboard() {
         salaryDirectHtml += `<td class="text-right">
             <a href="#" class="audit-link" onclick="openDirectSalaryAuditModal('${rd.id}'); return false;" style="color: var(--success); text-decoration: underline; position: relative;">
                 ${formatCurrency(data.directSalary?.[rd.id] || 0)}
-                ${isFirstCell ? '<i class="fa-solid fa-magnifying-glass pulse-magnifier" style="font-size: 0.7rem; margin-left: 3px; color: var(--success); font-weight: 900;" title="Nhấp vào bất kỳ số có gạch chân nào để xem giải trình"></i>' : ''}
+                ${isFirstCell ? '<i class="fa-solid fa-magnifying-glass pulse-magnifier" style="font-size: 0.75rem; margin-left: 4px; font-weight: 900;" title="Nhấp vào bất kỳ số có gạch chân nào để xem giải trình"></i>' : ''}
             </a>
         </td>`;
     });
@@ -4933,7 +4933,8 @@ function initApp() {
             .pulse-magnifier {
                 animation: pulseMagnifier 1.2s infinite alternate;
                 display: inline-block;
-                text-shadow: 0 0 4px rgba(52, 199, 89, 0.4);
+                color: #FF5E00 !important;
+                text-shadow: 0 0 5px rgba(255, 94, 0, 0.4);
             }
         `;
         document.head.appendChild(style);
