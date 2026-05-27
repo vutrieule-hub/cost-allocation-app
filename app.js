@@ -4381,6 +4381,9 @@ function renderFacilities() {
     let totalRentSum = 0;
     let totalRoomsSum = 0;
 
+    // Chuỗi chứa HTML tổng quan Dãy nhà & Tiền thuê gán bên tab Danh sách để tiện đối chiếu
+    let overviewCardsHtml = "";
+
     appState.rentBlocks.forEach((blk, idx) => {
         const roomCount = blockRoomCounts[blk.id] || 0;
         const roomPrice = roomCount > 0 ? blk.totalRent / roomCount : blk.totalRent;
@@ -4399,7 +4402,81 @@ function renderFacilities() {
                 </td>
             </tr>
         `;
+
+        overviewCardsHtml += `
+            <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(0,122,255,0.2)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(0, 122, 255, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa-solid fa-building" style="color: var(--info); font-size: 0.85rem;"></i>
+                    </div>
+                    <div style="min-width: 0; flex-grow: 1;">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${blk.name}">${blk.name}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 1px;">Có ${roomCount} phòng vật lý</div>
+                    </div>
+                </div>
+                <hr style="border: 0; border-top: 1px dashed rgba(0,0,0,0.06); margin: 6px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;">Tiền thuê dãy:</span>
+                    <strong style="font-size: 0.8rem; color: var(--danger); font-weight: 700;">${formatCurrency(blk.totalRent)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;">Đơn giá phòng:</span>
+                    <span class="badge" style="background: rgba(52, 199, 89, 0.06); color: var(--success); font-size: 0.72rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.1);">
+                        ${formatCurrency(roomPrice)} / phòng
+                    </span>
+                </div>
+            </div>
+        `;
     });
+
+    // Render Panel tổng quan Dãy nhà & Tiền thuê
+    const overviewPanel = document.getElementById("facility_overview_panel");
+    if (overviewPanel) {
+        overviewPanel.innerHTML = `
+            <div class="card" style="border-left: 4px solid var(--info); background: rgba(0, 122, 255, 0.01); padding: 16px 20px; margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-chart-pie" style="color: var(--info);"></i>
+                            TỔNG QUAN CHI PHÍ MẶT BẰNG & PHÒNG HỌC (RENTAL SUMMARY)
+                        </h3>
+                        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">
+                            Dữ liệu tổng quan: Tiền thuê tháng trần của từng dãy nhà được chia đều cho các phòng thuộc dãy đó làm đơn giá gánh chi phí mặt bằng.
+                        </p>
+                    </div>
+                    <span class="badge" style="background: var(--info); color: #FFF; font-size: 0.7rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-circle-info"></i> Thông tin nền
+                    </span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 8px;">
+                    ${overviewCardsHtml}
+                    
+                    <!-- Card tổng cộng -->
+                    <div style="background: rgba(0, 122, 255, 0.05); border: 1px solid rgba(0, 122, 255, 0.12); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fa-solid fa-calculator" style="color: #FFF; font-size: 0.85rem;"></i>
+                            </div>
+                            <div style="min-width: 0; flex-grow: 1;">
+                                <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary);">TỔNG CỘNG MẶT BẰNG</div>
+                                <div style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 550; margin-top: 1px;">Toàn bộ cơ sở trường</div>
+                            </div>
+                        </div>
+                        <hr style="border: 0; border-top: 1px dashed rgba(0, 122, 255, 0.15); margin: 6px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">Tổng tiền thuê tháng:</span>
+                            <strong style="font-size: 0.88rem; color: var(--danger); font-weight: 800;">${formatCurrency(totalRentSum)}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">Tổng số phòng học:</span>
+                            <strong style="font-size: 0.8rem; color: var(--info); font-weight: 800;">${totalRoomsSum} Phòng vật lý</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
     // Thêm dòng SUM tổng cộng ở dưới cùng bảng mặt bằng
     blocksBody.innerHTML += `
