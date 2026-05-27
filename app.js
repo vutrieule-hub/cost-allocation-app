@@ -2118,11 +2118,13 @@ function renderDashboard() {
 
     // Row I.1: Lương trực tiếp
     let salaryDirectHtml = `<tr>
-        <td style="padding-left: 24px;">1. Lương Giáo viên & Quản nhiệm Trực tiếp (Click xem chi tiết) <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 11px;"></i></td>`;
-    revenueDepts.forEach(rd => {
+        <td style="padding-left: 24px;">1. Lương Giáo viên & Quản nhiệm Trực tiếp</td>`;
+    revenueDepts.forEach((rd, idx) => {
+        const isFirstCell = idx === 0;
         salaryDirectHtml += `<td class="text-right">
-            <a href="#" class="audit-link" onclick="openDirectSalaryAuditModal('${rd.id}'); return false;" style="color: var(--success); text-decoration: underline;">
+            <a href="#" class="audit-link" onclick="openDirectSalaryAuditModal('${rd.id}'); return false;" style="color: var(--success); text-decoration: underline; position: relative;">
                 ${formatCurrency(data.directSalary?.[rd.id] || 0)}
+                ${isFirstCell ? '<i class="fa-solid fa-magnifying-glass pulse-magnifier" style="font-size: 0.7rem; margin-left: 3px; color: var(--success); font-weight: 900;" title="Nhấp vào bất kỳ số có gạch chân nào để xem giải trình"></i>' : ''}
             </a>
         </td>`;
     });
@@ -2132,7 +2134,7 @@ function renderDashboard() {
 
     // Row I.2: Lương gián tiếp phân bổ
     let salaryIndirectHtml = `<tr>
-        <td style="padding-left: 24px;">2. Lương Gián tiếp Phân bổ (Click xem chi tiết) <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 11px;"></i></td>`;
+        <td style="padding-left: 24px;">2. Lương Gián tiếp Phân bổ</td>`;
     revenueDepts.forEach(rd => {
         const val = data.totalIndirectSalaryAllocated?.[rd.id] || 0;
         salaryIndirectHtml += `<td class="text-right">
@@ -2174,7 +2176,7 @@ function renderDashboard() {
 
     // Row II.2: Mặt bằng gián tiếp phân bổ
     let rentIndirectHtml = `<tr>
-        <td style="padding-left: 24px;">2. Tiền thuê Mặt bằng Gián tiếp Phân bổ (Click xem chi tiết) <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 11px;"></i></td>`;
+        <td style="padding-left: 24px;">2. Tiền thuê Mặt bằng Gián tiếp Phân bổ</td>`;
     revenueDepts.forEach(rd => {
         const val = data.totalIndirectRentAllocated?.[rd.id] || 0;
         rentIndirectHtml += `<td class="text-right">
@@ -2205,7 +2207,7 @@ function renderDashboard() {
 
     // Row III.1: Chi phí Điện
     let electHtml = `<tr>
-        <td style="padding-left: 24px;">1. Chi phí Điện phân bổ (Theo sỹ số thực tế) <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 11px;"></i></td>`;
+        <td style="padding-left: 24px;">1. Chi phí Điện phân bổ (Theo sỹ số thực tế)</td>`;
     revenueDepts.forEach(rd => {
         const val = data.allocatedUtilityCosts?.[rd.id]?.["dept_dien"] || 0;
         electHtml += `<td class="text-right">
@@ -2220,7 +2222,7 @@ function renderDashboard() {
 
     // Row III.2: Chi phí Nước
     let waterHtml = `<tr>
-        <td style="padding-left: 24px;">2. Chi phí Nước phân bổ (Theo sỹ số thực tế) <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 11px;"></i></td>`;
+        <td style="padding-left: 24px;">2. Chi phí Nước phân bổ (Theo sỹ số thực tế)</td>`;
     revenueDepts.forEach(rd => {
         const val = data.allocatedUtilityCosts?.[rd.id]?.["dept_nuoc"] || 0;
         waterHtml += `<td class="text-right">
@@ -4918,6 +4920,24 @@ function formatCurrency(val) {
 
 function initApp() {
     loadState();
+    
+    // Inject dynamic style block for pulsating onboarding magnifier
+    if (!document.getElementById("pulse_magnifier_style")) {
+        const style = document.createElement('style');
+        style.id = "pulse_magnifier_style";
+        style.innerHTML = `
+            @keyframes pulseMagnifier {
+                0% { transform: scale(0.9); opacity: 0.6; }
+                100% { transform: scale(1.3); opacity: 1; }
+            }
+            .pulse-magnifier {
+                animation: pulseMagnifier 1.2s infinite alternate;
+                display: inline-block;
+                text-shadow: 0 0 4px rgba(52, 199, 89, 0.4);
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     // Auto-reconnect to Firebase Cloud Sync if code exists
     const savedCloudCode = localStorage.getItem("XTD_CLOUD_PROJECT_CODE");
