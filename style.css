@@ -1304,4 +1304,15 @@ html {
     transform: translate(-50%, -4px);
 }
 
+/* Scoped styles to hide Chrome/Safari/Firefox spinner arrows for the luxurious ratio inputs */
+input.ratio-pct-input::-webkit-outer-spin-button,
+input.ratio-pct-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input.ratio-pct-input {
+    -moz-appearance: textfield;
+}
+
+
 

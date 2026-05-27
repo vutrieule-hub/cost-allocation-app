@@ -2961,10 +2961,10 @@ function renderCustomRatiosHtml(dept, revenueDepts) {
         const shortName = rd.name.replace("Khối ", "").replace("Ban ", "");
         
         cardsHtml += `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: ${theme.bg}; border: 1px solid ${theme.border}; border-radius: 8px; transition: all 0.2s;">
-                <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${rd.name}">${shortName}</span>
-                <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 44px; justify-content: center; height: 22px;">
-                    <input type="number" min="0" max="100" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 24px; text-align: center; outline: none; padding: 0; font-family: inherit; -moz-appearance: textfield;" 
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: ${theme.bg}; border: 1px solid ${theme.border}; border-radius: 8px; transition: all 0.2s; min-width: 0;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex-grow: 1; margin-right: 4px;" title="${rd.name}">${shortName}</span>
+                <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0;">
+                    <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
                       value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
                     <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
                 </div>
