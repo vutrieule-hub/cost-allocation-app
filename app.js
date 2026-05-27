@@ -2376,7 +2376,52 @@ function renderDashboardChart(revenueDepts, data) {
                     }
                 }
             }
-        }
+        },
+        plugins: [
+            {
+                id: 'custom_datalabels',
+                afterDatasetsDraw: function(chart, args, options) {
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = "bold 11px Outfit, sans-serif";
+                    ctx.textAlign = "center";
+                    
+                    const datasetIndex = 2; // Line dataset (index 2)
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    if (!meta || meta.hidden) return;
+                    
+                    meta.data.forEach((element, index) => {
+                        const val = chart.data.datasets[datasetIndex].data[index];
+                        const formattedVal = (val / 1000000).toFixed(0) + 'M';
+                        const text = val >= 0 ? '+' + formattedVal : formattedVal;
+                        
+                        // Background pill dimensions
+                        const paddingX = 6;
+                        const paddingY = 3;
+                        const textWidth = ctx.measureText(text).width;
+                        const rectWidth = textWidth + paddingX * 2;
+                        const rectHeight = 16;
+                        const rectX = element.x - rectWidth / 2;
+                        const rectY = element.y - 24; // Float above the line point
+                        
+                        // Draw rounded rect pill
+                        ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)';
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 4);
+                        } else {
+                            ctx.rect(rectX, rectY, rectWidth, rectHeight);
+                        }
+                        ctx.fill();
+                        
+                        // Draw text inside the pill
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillText(text, element.x, rectY + 12);
+                    });
+                    ctx.restore();
+                }
+            }
+        ]
     });
 
     // Populate the detailed legend under the chart
