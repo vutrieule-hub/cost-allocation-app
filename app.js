@@ -3814,6 +3814,15 @@ function renderEmployees() {
         });
         deptSelectHtml += `</select>`;
 
+        // Bảng màu cho các Khối học của nhân viên
+        const getDeptTheme = (name) => {
+            const lower = name.toLowerCase();
+            if (lower.includes("tiểu học")) return { color: "#007AFF" };
+            if (lower.includes("thcs")) return { color: "#34C759" };
+            if (lower.includes("thpt")) return { color: "#AF52DE" };
+            return { color: "#FF9500" };
+        };
+
         let breakdownText = "";
         if (emp.isMultiLevel) {
             let totalEmpPct = 0;
@@ -3832,27 +3841,90 @@ function renderEmployees() {
                 empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalEmpPct}% (Thừa ${totalEmpPct - 100}%)</span>`;
             }
 
+            // 1. Tạo Thanh phân bổ tỷ lệ trực quan cho nhân sự (Segmented Progress Bar) siêu sang trọng (Dày 4px thanh lịch)
+            let progressBarHtml = `<div style="display: flex; height: 4px; width: 100%; border-radius: 2px; overflow: hidden; background: #EAEAEF; margin-top: 5px; margin-bottom: 6px; box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,0.05);">`;
+            nonUtilityDepts.forEach(d => {
+                const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
+                if (val > 0) {
+                    const theme = getDeptTheme(d.name);
+                    progressBarHtml += `<div style="width: ${val}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${val}%"></div>`;
+                }
+            });
+            progressBarHtml += `</div>`;
+
+            // 2. Tạo danh sách các phòng ban phân bổ ĐANG HOẠT ĐỘNG (Tỷ lệ > 0) để tóm tắt cực thoáng mắt
+            let activeTagsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center;">`;
+            let activeCount = 0;
+            nonUtilityDepts.forEach(d => {
+                const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
+                if (val > 0) {
+                    activeCount++;
+                    const theme = getDeptTheme(d.name);
+                    const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
+                    activeTagsHtml += `
+                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
+                            ${shortName}: <strong style="color: ${theme.color}">${val}%</strong>
+                        </span>
+                    `;
+                }
+            });
+            if (activeCount === 0) {
+                activeTagsHtml += `<span style="font-size: 0.68rem; color: var(--text-muted); font-style: italic;">Chưa phân bổ tỷ lệ</span>`;
+            }
+            activeTagsHtml += `</div>`;
+
+            // 3. Tạo nút thiết lập collapsible & lưới nhập liệu ẩn tinh gọn
+            const configBtnHtml = `
+                <button id="ratio_grid_btn_${emp.id}" class="btn" style="padding: 2.5px 7px; font-size: 0.68rem; margin-top: 6px; background: rgba(0, 122, 255, 0.06); color: var(--info); border: 1px solid rgba(0, 122, 255, 0.12); border-radius: 4px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="toggleEmployeeRatioGrid('${emp.id}')">
+                    <i class="fa-solid fa-sliders"></i> Cấu hình tỷ lệ
+                </button>
+            `;
+
+            // 4. Lưới nhập liệu tỷ lệ của 17 bộ phận (Chỉ hiển thị khi mở rộng - accordion)
             let ratiosGridHtml = `
+                <div id="ratio_grid_container_${emp.id}" style="display: none; padding: 10px; background: #FAFBFD; border: 1px solid rgba(0,0,0,0.05); border-radius: var(--radius-md); margin-top: 8px; flex-direction: column; gap: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.015);">
+                    <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Điều chỉnh tỷ lệ phân bổ kiêm nhiệm:</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%;">`;
+            
+            nonUtilityDepts.forEach(d => {
+                const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
+                const theme = getDeptTheme(d.name);
+                const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
+                ratiosGridHtml += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 5px; transition: all 0.2s; min-width: 0;" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
+                        <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
+                            <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 4px; flex-shrink: 0;"></span>
+                            <span style="font-size: 0.68rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${d.name}">${shortName}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 4px; padding: 1px 4px; width: 42px; justify-content: space-between; height: 18px; flex-shrink: 0;">
+                            <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.7rem; font-weight: 700; color: var(--text-primary); width: 22px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                              value="${val}" onchange="updateEmployeeRatio('${emp.id}', '${d.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
+                            <span style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); user-select: none;">%</span>
+                        </div>
+                    </div>
+                `;
+            });
+            ratiosGridHtml += `
+                    </div>
+                </div>
+            `;
+
+            breakdownText = `
                 <div style="display:flex; align-items:center; margin-top:6px; gap:4px; flex-wrap: wrap;">
                     <span style="font-size:0.75rem; font-weight:600; color:var(--text-primary);">Tỷ lệ phân bổ kiêm nhiệm:</span>
                     ${empBadgeHtml}
                 </div>
-                <div class="ratios-grid" style="padding: 4px; grid-template-columns: repeat(4, 1fr); gap: 4px; background: rgba(0,0,0,0.015); border: 1px dashed var(--border-color); margin-top: 4px;">`;
-            
-            nonUtilityDepts.forEach(d => {
-                const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
-                ratiosGridHtml += `
-                    <div class="ratio-input-wrapper">
-                        <label style="font-size:0.6rem; color: var(--text-secondary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; display:block;">
-                            ${d.name.replace("Khối ", "").replace("Ban ", "")} (%)
-                        </label>
-                        <input type="number" min="0" max="100" class="base-select-dropdown" style="padding: 2px; font-size: 0.7rem; width: 100%;" 
-                          value="${val}" onchange="updateEmployeeRatio('${emp.id}', '${d.id}', this.value)">
-                    </div>
-                `;
-            });
-            ratiosGridHtml += `</div>`;
-            breakdownText = ratiosGridHtml;
+                <div id="emp_ratio_summary_container_${emp.id}">
+                    ${progressBarHtml}
+                    ${activeTagsHtml}
+                </div>
+                ${configBtnHtml}
+                ${ratiosGridHtml}
+            `;
         } else {
             breakdownText = `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top:4px;"><i class="fa-solid fa-circle-info"></i> Lương phân bổ 100% cho ban quản lý chính</div>`;
         }
@@ -4039,6 +4111,7 @@ function updateEmployeeRatio(empId, deptId, value) {
         saveState();
         renderDashboard(); // Update calculations in the background without losing input cursor focus!
         updateEmpBadgeInDOM(empId);
+        updateEmpActiveTagsAndProgress(empId);
     }
 }
 
@@ -4085,6 +4158,74 @@ function updateEmpBadgeInDOM(empId) {
     }
 }
 
+// Hàm mở rộng/thu gọn ô nhập tỷ lệ phân bổ kiêm nhiệm của nhân sự
+function toggleEmployeeRatioGrid(empId) {
+    const container = document.getElementById(`ratio_grid_container_${empId}`);
+    const btn = document.getElementById(`ratio_grid_btn_${empId}`);
+    if (container && btn) {
+        const isHidden = container.style.display === "none";
+        container.style.display = isHidden ? "flex" : "none";
+        btn.innerHTML = isHidden 
+            ? `<i class="fa-solid fa-chevron-up"></i> Thu gọn ô nhập` 
+            : `<i class="fa-solid fa-sliders"></i> Cấu hình tỷ lệ`;
+        btn.style.background = isHidden ? "rgba(255, 94, 0, 0.08)" : "rgba(0, 122, 255, 0.06)";
+        btn.style.color = isHidden ? "#FF5E00" : "var(--info)";
+        btn.style.borderColor = isHidden ? "rgba(255, 94, 0, 0.15)" : "rgba(0, 122, 255, 0.12)";
+    }
+}
+
+// Cập nhật động danh sách các badge phòng ban gánh lương & thanh Segmented Progress Bar khi đang gõ
+function updateEmpActiveTagsAndProgress(empId) {
+    const emp = appState.employees.find(e => e.id === empId);
+    if (!emp) return;
+    const container = document.getElementById(`emp_ratio_summary_container_${empId}`);
+    if (!container) return;
+
+    const nonUtilityDepts = appState.departments.filter(d => !d.isUtility);
+    const getDeptTheme = (name) => {
+        const lower = name.toLowerCase();
+        if (lower.includes("tiểu học")) return { color: "#007AFF" };
+        if (lower.includes("thcs")) return { color: "#34C759" };
+        if (lower.includes("thpt")) return { color: "#AF52DE" };
+        return { color: "#FF9500" };
+    };
+
+    // Segmented Progress Bar
+    let progressBarHtml = `<div style="display: flex; height: 4px; width: 100%; border-radius: 2px; overflow: hidden; background: #EAEAEF; margin-top: 5px; margin-bottom: 6px; box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,0.05);">`;
+    nonUtilityDepts.forEach(d => {
+        const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
+        if (val > 0) {
+            const theme = getDeptTheme(d.name);
+            progressBarHtml += `<div style="width: ${val}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${val}%"></div>`;
+        }
+    });
+    progressBarHtml += `</div>`;
+
+    // Active tags
+    let activeTagsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center;">`;
+    let activeCount = 0;
+    nonUtilityDepts.forEach(d => {
+        const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
+        if (val > 0) {
+            activeCount++;
+            const theme = getDeptTheme(d.name);
+            const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
+            activeTagsHtml += `
+                <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
+                    ${shortName}: <strong style="color: ${theme.color}">${val}%</strong>
+                </span>
+            `;
+        }
+    });
+    if (activeCount === 0) {
+        activeTagsHtml += `<span style="font-size: 0.68rem; color: var(--text-muted); font-style: italic;">Chưa phân bổ tỷ lệ</span>`;
+    }
+    activeTagsHtml += `</div>`;
+
+    container.innerHTML = progressBarHtml + activeTagsHtml;
+}
+
 function toggleMultiLevelInputs() {
     const isMulti = document.getElementById("emp_add_multilevel").checked;
     const ratioWrapper = document.getElementById("emp_add_ratios_wrapper");
@@ -4093,13 +4234,31 @@ function toggleMultiLevelInputs() {
         ratioWrapper.style.display = "block";
         const grid = ratioWrapper.querySelector(".ratios-grid");
         grid.innerHTML = "";
+        
+        // Bảng màu cho Add Employee ratios
+        const getDeptTheme = (name) => {
+            const lower = name.toLowerCase();
+            if (lower.includes("tiểu học")) return { color: "#007AFF" };
+            if (lower.includes("thcs")) return { color: "#34C759" };
+            if (lower.includes("thpt")) return { color: "#AF52DE" };
+            return { color: "#FF9500" };
+        };
+
         appState.departments.filter(dept => !dept.isUtility).forEach(dept => {
+            const theme = getDeptTheme(dept.name);
+            const shortName = dept.name.replace("Khối ", "").replace("Ban ", "");
+            const val = dept.id === document.getElementById("emp_add_dept").value ? 100 : 0;
             grid.innerHTML += `
-                <div class="ratio-input-wrapper">
-                    <label class="priority-container" style="font-size:0.75rem;">
-                        ${dept.name} (%) <span class="priority-dot priority-dot-blue" title="Nhập tỷ lệ (%) lương phân bổ về bộ phận này"></span>
-                    </label>
-                    <input type="number" min="0" max="100" class="emp-add-ratio-val" data-dept-id="${dept.id}" value="0">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
+                    <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
+                        <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 5px; flex-shrink: 0;"></span>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${dept.name}">${shortName}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
+                        <input type="number" min="0" max="100" class="emp-add-ratio-val ratio-pct-input" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                          value="${val}">
+                        <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
+                    </div>
                 </div>
             `;
         });
