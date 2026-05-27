@@ -2318,13 +2318,13 @@ function renderDashboardChart(revenueDepts, data) {
                     label: 'Lợi Nhuận / (Lỗ) Thuần',
                     data: profitLossData,
                     type: 'line',
-                    borderColor: '#3B82F6',
-                    backgroundColor: '#3B82F6',
-                    borderWidth: 3,
+                    borderColor: 'transparent',
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
                     fill: false,
                     tension: 0.3,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
                     order: 1
                 }
             ]
@@ -2402,7 +2402,7 @@ function renderDashboardChart(revenueDepts, data) {
                         const rectWidth = textWidth + paddingX * 2;
                         const rectHeight = 16;
                         const rectX = element.x - rectWidth / 2;
-                        const rectY = element.y - 24; // Float above the line point
+                        const rectY = element.y - 8; // Float right at the value level
                         
                         // Draw rounded rect pill
                         ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)';
@@ -2423,38 +2423,6 @@ function renderDashboardChart(revenueDepts, data) {
             }
         ]
     });
-
-    // Populate the detailed legend under the chart
-    const legendEl = document.getElementById("chart_summary_legend");
-    if (legendEl) {
-        legendEl.innerHTML = `
-            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-calculator" style="color: var(--primary);"></i>
-                CHI TIẾT CHÊNH LỆCH LỢI NHUẬN THUẦN (LÃI / LỖ):
-            </div>
-        `;
-        revenueDepts.forEach((rd, i) => {
-            const diff = profitLossData[i];
-            const isLoss = diff < 0;
-            const badgeBg = isLoss ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)';
-            const badgeColor = isLoss ? '#EF4444' : '#10B981';
-            const icon = isLoss ? 'fa-circle-down' : 'fa-circle-up';
-            const statusText = isLoss ? 'LỖ' : 'LÃI';
-            
-            legendEl.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px;">
-                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${isLoss ? '#EF4444' : '#10B981'};"></span>
-                        ${rd.name}
-                    </span>
-                    <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
-                        <i class="fa-solid ${icon}"></i>
-                        ${statusText}: ${formatCurrency(diff)}
-                    </span>
-                </div>
-            `;
-        });
-    }
 }
 
 function openAuditModal(rdId, sdId) {
