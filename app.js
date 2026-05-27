@@ -2910,6 +2910,79 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove("open");
 }
 
+// Helper to render luxurious manual ratios with visually segmented progress bar and Apple-style cards
+function renderCustomRatiosHtml(dept, revenueDepts) {
+    let totalPct = 0;
+    revenueDepts.forEach(rd => {
+        const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
+            ? appState.drivers.custom_percent[dept.id][rd.id]
+            : 25;
+        totalPct += val;
+    });
+
+    let badgeHtml = "";
+    if (totalPct === 100) {
+        badgeHtml = `<span id="dept_badge_${dept.id}" class="badge badge-revenue" style="font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-check"></i> Đủ 100%</span>`;
+    } else if (totalPct < 100) {
+        badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalPct}% (Thiếu ${100 - totalPct}%)</span>`;
+    } else {
+        badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalPct}% (Thừa ${totalPct - 100}%)</span>`;
+    }
+
+    // Định nghĩa bảng màu thương hiệu sang trọng cho các Khối học
+    const getDeptTheme = (name) => {
+        const lower = name.toLowerCase();
+        if (lower.includes("tiểu học")) return { color: "#007AFF", bg: "rgba(0,122,255,0.04)", border: "rgba(0,122,255,0.15)" };
+        if (lower.includes("thcs")) return { color: "#34C759", bg: "rgba(52,199,89,0.04)", border: "rgba(52,199,89,0.15)" };
+        if (lower.includes("thpt")) return { color: "#5856D6", bg: "rgba(88,86,214,0.04)", border: "rgba(88,86,214,0.15)" };
+        return { color: "#FF9500", bg: "rgba(255,149,0,0.04)", border: "rgba(255,149,0,0.15)" }; // Nội trú
+    };
+
+    // 1. Tạo Thanh phân bổ tỷ lệ trực quan (Segmented Progress Bar) siêu sang trọng
+    let progressBarHtml = `<div style="display: flex; height: 6px; width: 100%; border-radius: 3px; overflow: hidden; background: #E5E5EA; margin-top: 6px; margin-bottom: 8px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);">`;
+    revenueDepts.forEach(rd => {
+        const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
+            ? appState.drivers.custom_percent[dept.id][rd.id]
+            : 25;
+        if (val > 0) {
+            const theme = getDeptTheme(rd.name);
+            progressBarHtml += `<div style="width: ${val}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${rd.name}: ${val}%"></div>`;
+        }
+    });
+    progressBarHtml += `</div>`;
+
+    // 2. Tạo lưới nhập liệu Card/Pill hiện đại
+    let cardsHtml = `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; width: 100%;">`;
+    revenueDepts.forEach(rd => {
+        const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
+            ? appState.drivers.custom_percent[dept.id][rd.id]
+            : 25;
+        const theme = getDeptTheme(rd.name);
+        const shortName = rd.name.replace("Khối ", "").replace("Ban ", "");
+        
+        cardsHtml += `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: ${theme.bg}; border: 1px solid ${theme.border}; border-radius: 8px; transition: all 0.2s;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${rd.name}">${shortName}</span>
+                <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 44px; justify-content: center; height: 22px;">
+                    <input type="number" min="0" max="100" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 24px; text-align: center; outline: none; padding: 0; font-family: inherit; -moz-appearance: textfield;" 
+                      value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
+                    <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
+                </div>
+            </div>
+        `;
+    });
+    cardsHtml += `</div>`;
+
+    return `
+        <div style="display: flex; flex-direction: column; width: 100%;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                ${badgeHtml}
+            </div>
+            ${progressBarHtml}
+            ${cardsHtml}
+        </div>
+    `;
+}
 
 // 3.2 RENDERING VIEW: DEPARTMENTS (CRUD)
 function renderDepartments() {
@@ -3042,47 +3115,7 @@ function renderDepartments() {
                 </div>
             `;
         } else {
-            // manual pct
-            let totalPct = 0;
-            revenueDepts.forEach(rd => {
-                const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-                    ? appState.drivers.custom_percent[dept.id][rd.id]
-                    : 25;
-                totalPct += val;
-            });
-
-            let badgeHtml = "";
-            if (totalPct === 100) {
-                badgeHtml = `<span id="dept_badge_${dept.id}" class="badge badge-revenue" style="font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-check"></i> Đủ 100%</span>`;
-            } else if (totalPct < 100) {
-                badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalPct}% (Thiếu ${100 - totalPct}%)</span>`;
-            } else {
-                badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalPct}% (Thừa ${totalPct - 100}%)</span>`;
-            }
-
-            let inputsHtml = `<div class="ratios-grid" style="padding: 6px; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.015); border: 1px dashed var(--border-color); border-radius: 4px; margin-top: 6px;">`;
-            revenueDepts.forEach(rd => {
-                const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-                    ? appState.drivers.custom_percent[dept.id][rd.id]
-                    : 25;
-                inputsHtml += `
-                    <div class="ratio-input-wrapper">
-                        <label style="font-size:0.65rem; color: var(--text-secondary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
-                            ${rd.name.replace("Khối ", "").replace("Ban ", "")} (%)
-                        </label>
-                        <input type="number" min="0" max="100" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.75rem; width: 100%; display: block;" 
-                          value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)">
-                    </div>
-                `;
-            });
-            inputsHtml += `</div>`;
-
-            mainAllocationHtml = `
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    ${badgeHtml}
-                </div>
-                ${inputsHtml}
-            `;
+            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts);
         }
 
         const rowHtml = `
@@ -3179,48 +3212,7 @@ function renderDepartments() {
                     <span>Tự động theo định biên nhân sự (${listText})</span>
                 </div>
             `;
-        } else {
-            // manual pct
-            let totalPct = 0;
-            revenueDepts.forEach(rd => {
-                const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-                    ? appState.drivers.custom_percent[dept.id][rd.id]
-                    : 25;
-                totalPct += val;
-            });
-
-            let badgeHtml = "";
-            if (totalPct === 100) {
-                badgeHtml = `<span id="dept_badge_${dept.id}" class="badge badge-revenue" style="font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-check"></i> Đủ 100%</span>`;
-            } else if (totalPct < 100) {
-                badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalPct}% (Thiếu ${100 - totalPct}%)</span>`;
-            } else {
-                badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalPct}% (Thừa ${totalPct - 100}%)</span>`;
-            }
-
-            let inputsHtml = `<div class="ratios-grid" style="padding: 6px; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.015); border: 1px dashed var(--border-color); border-radius: 4px; margin-top: 6px;">`;
-            revenueDepts.forEach(rd => {
-                const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-                    ? appState.drivers.custom_percent[dept.id][rd.id]
-                    : 25;
-                inputsHtml += `
-                    <div class="ratio-input-wrapper">
-                        <label style="font-size:0.65rem; color: var(--text-secondary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
-                            ${rd.name.replace("Khối ", "").replace("Ban ", "")} (%)
-                        </label>
-                        <input type="number" min="0" max="100" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.75rem; width: 100%; display: block;" 
-                          value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)">
-                    </div>
-                `;
-            });
-            inputsHtml += `</div>`;
-
-            mainAllocationHtml = `
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    ${badgeHtml}
-                </div>
-                ${inputsHtml}
-            `;
+            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts);
         }
 
         const rowHtml = `
