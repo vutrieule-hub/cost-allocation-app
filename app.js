@@ -4937,13 +4937,14 @@ function connectCloudSync(projectCode) {
 
     if (!firebaseDb) {
         const firebaseConfig = {
-            apiKey: "AIzaSyAs-XTdCostAllocationEngine2026",
-            authDomain: "xanh-tue-duc-cost.firebaseapp.com",
-            databaseURL: "https://xanh-tue-duc-cost-default-rtdb.firebaseio.com",
-            projectId: "xanh-tue-duc-cost",
-            storageBucket: "xanh-tue-duc-cost.appspot.com",
-            messagingSenderId: "38924610578",
-            appId: "1:38924610578:web:b125439a8cde167c"
+            apiKey: "AIzaSyBqUnifWKaPeZ03q9cLMCgQNQbQm6mmX5M",
+            authDomain: "xanh-tue-duc-apps.firebaseapp.com",
+            databaseURL: "https://xanh-tue-duc-apps-default-rtdb.firebaseio.com",
+            projectId: "xanh-tue-duc-apps",
+            storageBucket: "xanh-tue-duc-apps.firebasestorage.app",
+            messagingSenderId: "955600480894",
+            appId: "1:955600480894:web:97f9594fddecf3bec6062f",
+            measurementId: "G-D60GTXYFS0"
         };
         try {
             firebase.initializeApp(firebaseConfig);
