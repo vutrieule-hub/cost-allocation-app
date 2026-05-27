@@ -909,8 +909,25 @@
                 <form id="room_split_edit_form" onsubmit="updateRoomSplits(event)">
                     <input type="hidden" id="edit_room_id">
                     
+                    <!-- Lựa chọn phương thức phân bổ -->
+                    <div style="margin-bottom: 18px; display: flex; gap: 20px; align-items: center; background: rgba(0, 122, 255, 0.05); padding: 10px 14px; border-radius: 8px; border: 1px dashed rgba(0, 122, 255, 0.25);">
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary);">Phương thức phân bổ:</span>
+                        <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 500;">
+                            <input type="radio" name="room_allocation_method" value="manual" checked onchange="toggleRoomAllocationUI()" style="cursor: pointer;"> ✍️ Thủ công (%)
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 500;">
+                            <input type="radio" name="room_allocation_method" value="student" onchange="toggleRoomAllocationUI()" style="cursor: pointer;"> 📊 Theo sỹ số HS
+                        </label>
+                    </div>
+                    
+                    <!-- Container cho Phân bổ Thủ công (%) -->
                     <div id="room_split_inputs_container" class="ratios-grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
                         <!-- Rendered dynamically by JS -->
+                    </div>
+
+                    <!-- Container cho Phân bổ theo Sỹ số học sinh -->
+                    <div id="room_split_student_container" style="display: none; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: rgba(250,250,250,0.5); max-height: 250px; overflow-y: auto;">
+                        <!-- Rendered dynamically by JS (danh sách checkbox + preview tỷ lệ) -->
                     </div>
 
                     <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">

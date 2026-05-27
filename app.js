@@ -1836,9 +1836,39 @@ function runAllocation() {
         const roomCount = blockRoomCounts[block.id] || 1;
         const roomRent = block.totalRent / roomCount; // Divided equally within the block!
 
+        // Tự động tính toán tỷ lệ gánh chi phí dựa trên sỹ số học sinh thực tế nếu được cấu hình
+        let splitsToUse = {};
+        if (room.allocationMethod === "student") {
+            const selectedDepts = room.selectedDepts || [];
+            let totalStudents = 0;
+            selectedDepts.forEach(did => {
+                const dept = appState.departments.find(d => d.id === did);
+                if (dept && dept.type === "revenue") {
+                    totalStudents += (dept.students || 0);
+                }
+            });
+            if (totalStudents > 0) {
+                selectedDepts.forEach(did => {
+                    const dept = appState.departments.find(d => d.id === did);
+                    if (dept) {
+                        splitsToUse[did] = ((dept.students || 0) / totalStudents) * 100;
+                    }
+                });
+            } else if (selectedDepts.length > 0) {
+                // Chia đều nếu chưa có học sinh nào nhập vào
+                selectedDepts.forEach(did => {
+                    splitsToUse[did] = 100 / selectedDepts.length;
+                });
+            }
+            // Cập nhật lại splits của room để hiển thị đồng bộ trên UI
+            room.splits = splitsToUse;
+        } else {
+            splitsToUse = room.splits || {};
+        }
+
         // Distribute room rent to departments according to split ratios
-        Object.keys(room.splits).forEach(deptId => {
-            const ratio = room.splits[deptId];
+        Object.keys(splitsToUse).forEach(deptId => {
+            const ratio = splitsToUse[deptId];
             if (ratio > 0) {
                 const allocatedRent = roomRent * (ratio / 100.0);
                 const dept = appState.departments.find(d => d.id === deptId);
@@ -4019,6 +4049,46 @@ function deleteEmployee(empId) {
 }
 
 
+// Hàm phụ trợ sinh mã HTML hiển thị tỷ lệ phân bổ của phòng học (Hỗ trợ phân bổ theo Sỹ số học sinh)
+function getRoomSplitsHTML(room) {
+    const splitsArray = [];
+    Object.keys(room.splits).forEach(did => {
+        const ratio = room.splits[did];
+        if (ratio > 0) {
+            const dName = appState.departments.find(d => d.id === did)?.name || did;
+            let badgeClass = "badge-dept-tag";
+            if (did === "dept_tieuhoc") badgeClass += " badge-dept-tieuhoc";
+            else if (did === "dept_thcs") badgeClass += " badge-dept-thcs";
+            else if (did === "dept_thpt") badgeClass += " badge-dept-thpt";
+            else if (did === "dept_noitru") badgeClass += " badge-dept-noitru";
+            else badgeClass += " badge-dept-support";
+            
+            splitsArray.push(`<span class="${badgeClass}">${dName}: ${ratio.toFixed(1)}%</span>`);
+        }
+    });
+    
+    let splitsText = splitsArray.length > 0 ? splitsArray.join(" ") : '<span class="badge-dept-tag badge-dept-support">Chưa gán chi phí</span>';
+    
+    if (room.allocationMethod === "student") {
+        splitsText = `
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                <div style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; color: #34C759; background: rgba(52, 199, 89, 0.1); padding: 2px 6px; border-radius: 4px; font-weight: 600; border: 1px solid rgba(52, 199, 89, 0.2);">
+                    <i class="fa-solid fa-graduation-cap"></i> Phân bổ theo sỹ số HS
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px;">${splitsText}</div>
+            </div>
+        `;
+    }
+    
+    return splitsText + `
+        <div style="margin-top: 6px;">
+            <button class="btn btn-secondary btn-sm" onclick="openRoomSplitEditModal('${room.id}')" style="padding: 2px 6px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px;">
+                <i class="fa-solid fa-pen-to-square"></i> Sửa tỷ lệ %
+            </button>
+        </div>
+    `;
+}
+
 // 3.4 RENDERING VIEW: RENT BLOCKS & DETAILED ROOMS (ADVANCED CRUD)
 function renderFacilities() {
     // 1. Render Rent Blocks (Dãy nhà)
@@ -4118,30 +4188,8 @@ function renderFacilities() {
                 const countInBlock = blockRoomCounts[room.blockId] || 1;
                 const calculatedRoomCost = blk ? blk.totalRent / countInBlock : 0;
 
-                // Render splits text as beautiful badges/chips
-                const splitsArray = [];
-                Object.keys(room.splits).forEach(did => {
-                    const ratio = room.splits[did];
-                    if (ratio > 0) {
-                        const dName = appState.departments.find(d => d.id === did)?.name || did;
-                        let badgeClass = "badge-dept-tag";
-                        if (did === "dept_tieuhoc") badgeClass += " badge-dept-tieuhoc";
-                        else if (did === "dept_thcs") badgeClass += " badge-dept-thcs";
-                        else if (did === "dept_thpt") badgeClass += " badge-dept-thpt";
-                        else if (did === "dept_noitru") badgeClass += " badge-dept-noitru";
-                        else badgeClass += " badge-dept-support";
-                        
-                        splitsArray.push(`<span class="${badgeClass}">${dName}: ${ratio}%</span>`);
-                    }
-                });
-                let splitsText = splitsArray.length > 0 ? splitsArray.join(" ") : '<span class="badge-dept-tag badge-dept-support">Chưa gán chi phí</span>';
-                splitsText += `
-                    <div style="margin-top: 6px;">
-                        <button class="btn btn-secondary btn-sm" onclick="openRoomSplitEditModal('${room.id}')" style="padding: 2px 6px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px;">
-                            <i class="fa-solid fa-pen-to-square"></i> Sửa tỷ lệ %
-                        </button>
-                    </div>
-                `;
+                // Render splits text as beautiful badges/chips using the helper function
+                const splitsText = getRoomSplitsHTML(room);
 
                 let typeLabel = "";
                 if (room.type === "classroom") typeLabel = "Lớp học";
@@ -4201,29 +4249,7 @@ function renderFacilities() {
         `;
 
         orphanRooms.forEach(room => {
-            const splitsArray = [];
-            Object.keys(room.splits).forEach(did => {
-                const ratio = room.splits[did];
-                if (ratio > 0) {
-                    const dName = appState.departments.find(d => d.id === did)?.name || did;
-                    let badgeClass = "badge-dept-tag";
-                    if (did === "dept_tieuhoc") badgeClass += " badge-dept-tieuhoc";
-                    else if (did === "dept_thcs") badgeClass += " badge-dept-thcs";
-                    else if (did === "dept_thpt") badgeClass += " badge-dept-thpt";
-                    else if (did === "dept_noitru") badgeClass += " badge-dept-noitru";
-                    else badgeClass += " badge-dept-support";
-                    
-                    splitsArray.push(`<span class="${badgeClass}">${dName}: ${ratio}%</span>`);
-                }
-            });
-            let splitsText = splitsArray.length > 0 ? splitsArray.join(" ") : '<span class="badge-dept-tag badge-dept-support">Chưa gán chi phí</span>';
-            splitsText += `
-                <div style="margin-top: 6px;">
-                    <button class="btn btn-secondary btn-sm" onclick="openRoomSplitEditModal('${room.id}')" style="padding: 2px 6px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px;">
-                        <i class="fa-solid fa-pen-to-square"></i> Sửa tỷ lệ %
-                    </button>
-                </div>
-            `;
+            const splitsText = getRoomSplitsHTML(room);
 
             let typeLabel = "";
             if (room.type === "classroom") typeLabel = "Lớp học";
@@ -4383,17 +4409,42 @@ function updateRoomStatus(roomId, newStatus) {
 
 
 // Hàm mở Modal chỉnh sửa tỷ lệ % phân bổ cho phòng học
+function toggleRoomAllocationUI() {
+    const method = document.querySelector('input[name="room_allocation_method"]:checked')?.value || "manual";
+    const manualContainer = document.getElementById("room_split_inputs_container");
+    const studentContainer = document.getElementById("room_split_student_container");
+    
+    if (method === "manual") {
+        manualContainer.style.display = "grid";
+        studentContainer.style.display = "none";
+    } else {
+        manualContainer.style.display = "none";
+        studentContainer.style.display = "block";
+    }
+    updateRoomSplitTotalLive();
+}
+
 function openRoomSplitEditModal(roomId) {
     const room = appState.rooms.find(r => r.id === roomId);
     if (!room) return;
 
     document.getElementById("edit_room_id").value = roomId;
     document.getElementById("room_split_modal_desc").innerHTML = 
-        `Cài đặt tỷ lệ phần trăm (%) gán chi phí thuê dãy nhà của phòng học <strong>${room.name}</strong> cho các khối trực tiếp hoặc bộ phận gián tiếp sử dụng.`;
+        `Cài đặt phương thức và tỷ lệ phần trăm (%) gán chi phí thuê dãy nhà của phòng học <strong>${room.name}</strong> cho các khối trực tiếp hoặc bộ phận sử dụng.`;
 
+    // Cài đặt trạng thái Radio button
+    const method = room.allocationMethod || "manual";
+    const radioManual = document.querySelector('input[name="room_allocation_method"][value="manual"]');
+    const radioStudent = document.querySelector('input[name="room_allocation_method"][value="student"]');
+    if (method === "manual") {
+        if (radioManual) radioManual.checked = true;
+    } else {
+        if (radioStudent) radioStudent.checked = true;
+    }
+
+    // 1. Tạo input gán thủ công %
     const container = document.getElementById("room_split_inputs_container");
     container.innerHTML = "";
-
     appState.departments.forEach(dept => {
         const ratio = room.splits[dept.id] || 0;
         container.innerHTML += `
@@ -4406,30 +4457,106 @@ function openRoomSplitEditModal(roomId) {
         `;
     });
 
-    document.getElementById("room_split_modal").classList.add("open");
-    updateRoomSplitTotalLive();
-}
-
-// Cập nhật tổng % thời gian thực
-function updateRoomSplitTotalLive() {
-    const inputs = document.querySelectorAll(".room-edit-ratio-val");
-    let total = 0;
-    inputs.forEach(input => {
-        total += parseFloat(input.value) || 0;
+    // 2. Tạo checkbox gán theo sỹ số HS
+    const studentContainer = document.getElementById("room_split_student_container");
+    studentContainer.innerHTML = `
+        <div style="font-size: 0.78rem; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">
+            Tích chọn các phòng ban sử dụng phòng học để tự động phân bổ theo sỹ số học sinh:
+        </div>
+    `;
+    const selectedDepts = room.selectedDepts || Object.keys(room.splits).filter(k => room.splits[k] > 0) || [];
+    
+    appState.departments.filter(d => d.type === "revenue").forEach(dept => {
+        const isChecked = selectedDepts.includes(dept.id);
+        studentContainer.innerHTML += `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.04);">
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer; color: var(--text-primary); font-weight: 500; margin-bottom: 0;">
+                    <input type="checkbox" class="room-edit-student-dept-checkbox" data-dept-id="${dept.id}" ${isChecked ? 'checked' : ''} onchange="updateRoomSplitTotalLive()" style="cursor: pointer;">
+                    ${dept.name} <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: normal;">(${dept.students || 0} HS)</span>
+                </label>
+                <span id="preview_ratio_${dept.id}" class="badge" style="font-size: 0.72rem; font-weight: 600; padding: 2px 6px;">0.0%</span>
+            </div>
+        `;
     });
 
+    document.getElementById("room_split_modal").classList.add("open");
+    toggleRoomAllocationUI();
+}
+
+// Cập nhật tổng % hoặc preview sỹ số thời gian thực
+function updateRoomSplitTotalLive() {
+    const method = document.querySelector('input[name="room_allocation_method"]:checked')?.value || "manual";
     const badge = document.getElementById("room_split_total_badge");
-    badge.innerText = `Tổng cộng: ${total}%`;
     
-    // Reset classes
-    badge.className = "badge"; 
-    
-    if (Math.abs(total - 100) < 0.1) {
-        badge.style.backgroundColor = "var(--success)";
-        badge.style.color = "#FFF";
+    if (method === "manual") {
+        const inputs = document.querySelectorAll(".room-edit-ratio-val");
+        let total = 0;
+        inputs.forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+
+        badge.innerText = `Tổng cộng: ${total}%`;
+        badge.className = "badge"; 
+        
+        if (Math.abs(total - 100) < 0.1) {
+            badge.style.backgroundColor = "var(--success)";
+            badge.style.color = "#FFF";
+        } else {
+            badge.style.backgroundColor = "var(--danger)";
+            badge.style.color = "#FFF";
+        }
     } else {
-        badge.style.backgroundColor = "var(--danger)";
-        badge.style.color = "#FFF";
+        // Chế độ Student sỹ số HS
+        const checkboxes = document.querySelectorAll(".room-edit-student-dept-checkbox:checked");
+        const selectedDepts = Array.from(checkboxes).map(cb => cb.getAttribute("data-dept-id"));
+        
+        let totalStudents = 0;
+        selectedDepts.forEach(did => {
+            const dept = appState.departments.find(d => d.id === did);
+            if (dept) {
+                totalStudents += (dept.students || 0);
+            }
+        });
+        
+        // Cập nhật preview tỷ lệ bên cạnh checkbox
+        const allCheckboxes = document.querySelectorAll(".room-edit-student-dept-checkbox");
+        allCheckboxes.forEach(cb => {
+            const did = cb.getAttribute("data-dept-id");
+            const isChecked = cb.checked;
+            const previewSpan = document.getElementById(`preview_ratio_${did}`);
+            
+            if (isChecked) {
+                const dept = appState.departments.find(d => d.id === did);
+                let ratio = 0;
+                if (totalStudents > 0) {
+                    ratio = ((dept?.students || 0) / totalStudents) * 100;
+                } else {
+                    ratio = 100 / selectedDepts.length; // Chia đều nếu sỹ số bằng 0
+                }
+                if (previewSpan) {
+                    previewSpan.innerText = `${ratio.toFixed(1)}%`;
+                    previewSpan.style.backgroundColor = "rgba(52, 199, 89, 0.12)";
+                    previewSpan.style.color = "#34C759";
+                }
+            } else {
+                if (previewSpan) {
+                    previewSpan.innerText = "0.0%";
+                    previewSpan.style.backgroundColor = "rgba(0,0,0,0.05)";
+                    previewSpan.style.color = "var(--text-secondary)";
+                }
+            }
+        });
+        
+        badge.className = "badge";
+        if (selectedDepts.length > 0) {
+            badge.innerText = `Chọn ${selectedDepts.length} khối (Tổng ${totalStudents} HS - Sẵn sàng 100%)`;
+            badge.style.backgroundColor = "var(--success)";
+            badge.style.color = "#FFF";
+        } else {
+            badge.innerText = `Chưa chọn khối nào (0%)`;
+            badge.style.backgroundColor = "var(--danger)";
+            badge.style.color = "#FFF";
+        }
     }
 }
 
@@ -4440,25 +4567,67 @@ function updateRoomSplits(event) {
     const room = appState.rooms.find(r => r.id === roomId);
     if (!room) return;
 
-    const inputs = document.querySelectorAll(".room-edit-ratio-val");
-    let total = 0;
-    const newSplits = {};
+    const method = document.querySelector('input[name="room_allocation_method"]:checked')?.value || "manual";
     
-    inputs.forEach(input => {
-        const deptId = input.getAttribute("data-dept-id");
-        const val = parseFloat(input.value) || 0;
-        if (val > 0) {
-            newSplits[deptId] = val;
-            total += val;
-        }
-    });
+    if (method === "manual") {
+        const inputs = document.querySelectorAll(".room-edit-ratio-val");
+        let total = 0;
+        const newSplits = {};
+        
+        inputs.forEach(input => {
+            const deptId = input.getAttribute("data-dept-id");
+            const val = parseFloat(input.value) || 0;
+            if (val > 0) {
+                newSplits[deptId] = val;
+                total += val;
+            }
+        });
 
-    if (Math.abs(total - 100) > 0.1) {
-        alert(`Tổng tỷ lệ phần trăm phân bổ phải bằng đúng 100% để đảm bảo chi phí phòng học được phân bổ trọn vẹn. Hiện tại đang là ${total}%.`);
-        return;
+        if (Math.abs(total - 100) > 0.1) {
+            alert(`Tổng tỷ lệ phần trăm phân bổ phải bằng đúng 100% để đảm bảo chi phí phòng học được phân bổ trọn vẹn. Hiện tại đang là ${total}%.`);
+            return;
+        }
+
+        room.allocationMethod = "manual";
+        room.splits = newSplits;
+        room.selectedDepts = [];
+    } else {
+        const checkboxes = document.querySelectorAll(".room-edit-student-dept-checkbox:checked");
+        const selectedDepts = Array.from(checkboxes).map(cb => cb.getAttribute("data-dept-id"));
+        
+        if (selectedDepts.length === 0) {
+            alert("Vui lòng tích chọn ít nhất 1 phòng ban gánh chi phí theo sỹ số học sinh.");
+            return;
+        }
+        
+        room.allocationMethod = "student";
+        room.selectedDepts = selectedDepts;
+        
+        // Tính toán splits ngay lập tức để đồng bộ hóa
+        let totalStudents = 0;
+        selectedDepts.forEach(did => {
+            const dept = appState.departments.find(d => d.id === did);
+            if (dept) {
+                totalStudents += (dept.students || 0);
+            }
+        });
+        
+        const newSplits = {};
+        if (totalStudents > 0) {
+            selectedDepts.forEach(did => {
+                const dept = appState.departments.find(d => d.id === did);
+                if (dept) {
+                    newSplits[did] = ((dept.students || 0) / totalStudents) * 100;
+                }
+            });
+        } else {
+            selectedDepts.forEach(did => {
+                newSplits[did] = 100 / selectedDepts.length;
+            });
+        }
+        room.splits = newSplits;
     }
 
-    room.splits = newSplits;
     saveState();
     runAllocation();
     renderFacilities();
