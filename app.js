@@ -2293,6 +2293,7 @@ function renderDashboardChart(revenueDepts, data) {
         const utility = Object.values(data.allocatedUtilityCosts?.[rd.id] || {}).reduce((a, b) => a + b, 0);
         return direct + indirect + utility;
     });
+    const profitLossData = (revenueDepts || []).map((rd, i) => revenueData[i] - costData[i]);
 
     dashboardChart = new Chart(ctx, {
         type: 'bar',
@@ -2303,13 +2304,28 @@ function renderDashboardChart(revenueDepts, data) {
                     label: 'Doanh Thu',
                     data: revenueData,
                     backgroundColor: '#10B981',
-                    borderRadius: 6
+                    borderRadius: 6,
+                    order: 2
                 },
                 {
                     label: 'Tổng Chi Phí (Trực tiếp + Phân bổ)',
                     data: costData,
                     backgroundColor: '#EF4444',
-                    borderRadius: 6
+                    borderRadius: 6,
+                    order: 2
+                },
+                {
+                    label: 'Lợi Nhuận / (Lỗ) Thuần',
+                    data: profitLossData,
+                    type: 'line',
+                    borderColor: '#3B82F6',
+                    backgroundColor: '#3B82F6',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    order: 1
                 }
             ]
         },
@@ -2319,6 +2335,29 @@ function renderDashboardChart(revenueDepts, data) {
             plugins: {
                 legend: {
                     labels: { color: '#9CA3AF', font: { family: 'Outfit' } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += formatCurrency(context.parsed.y);
+                            }
+                            return label;
+                        },
+                        footer: function(tooltipItems) {
+                            const index = tooltipItems[0].dataIndex;
+                            const diff = profitLossData[index];
+                            if (diff >= 0) {
+                                return `\n➔ KẾT QUẢ: LÃI +${formatCurrency(diff)}`;
+                            } else {
+                                return `\n➔ KẾT QUẢ: LỖ ${formatCurrency(diff)}`;
+                            }
+                        }
+                    }
                 }
             },
             scales: {
@@ -2339,6 +2378,38 @@ function renderDashboardChart(revenueDepts, data) {
             }
         }
     });
+
+    // Populate the detailed legend under the chart
+    const legendEl = document.getElementById("chart_summary_legend");
+    if (legendEl) {
+        legendEl.innerHTML = `
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-calculator" style="color: var(--primary);"></i>
+                CHI TIẾT CHÊNH LỆCH LỢI NHUẬN THUẦN (LÃI / LỖ):
+            </div>
+        `;
+        revenueDepts.forEach((rd, i) => {
+            const diff = profitLossData[i];
+            const isLoss = diff < 0;
+            const badgeBg = isLoss ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)';
+            const badgeColor = isLoss ? '#EF4444' : '#10B981';
+            const icon = isLoss ? 'fa-circle-down' : 'fa-circle-up';
+            const statusText = isLoss ? 'LỖ' : 'LÃI';
+            
+            legendEl.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px;">
+                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${isLoss ? '#EF4444' : '#10B981'};"></span>
+                        ${rd.name}
+                    </span>
+                    <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid ${icon}"></i>
+                        ${statusText}: ${formatCurrency(diff)}
+                    </span>
+                </div>
+            `;
+        });
+    }
 }
 
 function openAuditModal(rdId, sdId) {
