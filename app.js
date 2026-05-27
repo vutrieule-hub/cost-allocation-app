@@ -2334,7 +2334,13 @@ function renderDashboardChart(revenueDepts, data) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    labels: { color: '#9CA3AF', font: { family: 'Outfit' } }
+                    labels: { 
+                        color: '#9CA3AF', 
+                        font: { family: 'Outfit' },
+                        filter: function(item, chart) {
+                            return item.text !== 'Lợi Nhuận / (Lỗ) Thuần';
+                        }
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -2396,31 +2402,44 @@ function renderDashboardChart(revenueDepts, data) {
                         const text = val >= 0 ? '+' + formattedVal : formattedVal;
                         
                         // Background pill dimensions
-                        const paddingX = 6;
-                        const paddingY = 3;
+                        const paddingX = 8;
+                        const paddingY = 4;
                         const textWidth = ctx.measureText(text).width;
                         const rectWidth = textWidth + paddingX * 2;
-                        const rectHeight = 16;
+                        const rectHeight = 18;
                         const rectX = element.x - rectWidth / 2;
                         
                         // Find the height of the tallest bar in this category group to float above it
                         const maxVal = Math.max(revenueData[index], costData[index]);
                         const barTopY = chart.scales.y.getPixelForValue(maxVal);
-                        const rectY = barTopY - 22; // Float elegantly 22px above the tallest bar
+                        const rectY = barTopY - 26; // Float elegantly 26px above the tallest bar
+                        
+                        // Draw shadow for premium floating glow
+                        ctx.shadowColor = val >= 0 ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 3;
                         
                         // Draw rounded rect pill
-                        ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)';
+                        ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.98)' : 'rgba(239, 68, 68, 0.98)';
                         ctx.beginPath();
                         if (ctx.roundRect) {
-                            ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 4);
+                            ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 5);
                         } else {
                             ctx.rect(rectX, rectY, rectWidth, rectHeight);
                         }
                         ctx.fill();
                         
+                        // Clean border setup (reset shadow for border)
+                        ctx.shadowBlur = 0;
+                        ctx.shadowOffsetY = 0;
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        
                         // Draw text inside the pill
                         ctx.fillStyle = '#FFFFFF';
-                        ctx.fillText(text, element.x, rectY + 12);
+                        ctx.fillText(text, element.x, rectY + 13);
                     });
                     ctx.restore();
                 }
