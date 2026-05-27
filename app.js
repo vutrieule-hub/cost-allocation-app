@@ -2911,7 +2911,7 @@ function closeModal(modalId) {
 }
 
 // Helper to render luxurious manual ratios with visually segmented progress bar and Apple-style cards
-function renderCustomRatiosHtml(dept, revenueDepts) {
+function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
     let totalPct = 0;
     revenueDepts.forEach(rd => {
         const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
@@ -2953,20 +2953,25 @@ function renderCustomRatiosHtml(dept, revenueDepts) {
 
     // 2. Tạo lưới nhập liệu Card/Pill hiện đại
     let cardsHtml = `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; width: 100%;">`;
-    revenueDepts.forEach(rd => {
+    revenueDepts.forEach((rd, rdIndex) => {
         const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
             ? appState.drivers.custom_percent[dept.id][rd.id]
             : 25;
         const theme = getDeptTheme(rd.name);
         const shortName = rd.name.replace("Khối ", "").replace("Ban ", "");
         
+        const dotHtml = (showOnboardingDot && rdIndex === 0)
+            ? `<span class="ratio-onboarding-dot" title="Nhấp vào ô này để điều chỉnh tỷ lệ phân bổ thủ công"></span>`
+            : "";
+        
         cardsHtml += `
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: ${theme.bg}; border: 1px solid ${theme.border}; border-radius: 8px; transition: all 0.2s; min-width: 0;">
                 <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex-grow: 1; margin-right: 4px;" title="${rd.name}">${shortName}</span>
-                <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
                     <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
                       value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
                     <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
+                    ${dotHtml}
                 </div>
             </div>
         `;
@@ -2989,6 +2994,8 @@ function renderDepartments() {
     const listRevenue = document.getElementById("dept_list_revenue");
     const listSupport = document.getElementById("dept_list_support");
     const listUtility = document.getElementById("dept_list_utility");
+    
+    let firstManualRendered = false;
     
     if (listRevenue) listRevenue.innerHTML = "";
     if (listSupport) listSupport.innerHTML = "";
@@ -3115,7 +3122,12 @@ function renderDepartments() {
                 </div>
             `;
         } else {
-            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts);
+            let showOnboarding = false;
+            if (!firstManualRendered) {
+                showOnboarding = true;
+                firstManualRendered = true;
+            }
+            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts, showOnboarding);
         }
 
         const rowHtml = `
