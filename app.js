@@ -1929,28 +1929,46 @@ function runAllocation() {
     // ==========================================
     appState.employees.forEach(emp => {
         if (emp.isMultiLevel && emp.ratios) {
-            // Calculate total ratios for weight calculation (bulletproof math!)
-            let totalRatio = 0;
-            Object.keys(emp.ratios).forEach(deptId => {
-                totalRatio += emp.ratios[deptId] || 0;
-            });
-
-            // Allocate multi-level/kiêm nhiệm employee salary across any departments based on weights
-            Object.keys(emp.ratios).forEach(deptId => {
-                const ratioVal = emp.ratios[deptId] || 0;
-                if (ratioVal > 0 && totalRatio > 0) {
-                    const ratio = ratioVal / totalRatio;
-                    const allocatedSalary = emp.salary * ratio;
-                    const dept = appState.departments.find(d => d.id === deptId);
-                    if (dept) {
-                        if (dept.type === "revenue") {
-                            result.directSalary[deptId] += allocatedSalary;
-                        } else {
-                            result.indirectSalary[deptId] += allocatedSalary;
+            const isAmountMode = emp.allocationMode === "amount";
+            if (isAmountMode) {
+                // Direct amount allocation in VND
+                Object.keys(emp.ratios).forEach(deptId => {
+                    const allocatedSalary = emp.ratios[deptId] || 0;
+                    if (allocatedSalary > 0) {
+                        const dept = appState.departments.find(d => d.id === deptId);
+                        if (dept) {
+                            if (dept.type === "revenue") {
+                                result.directSalary[deptId] += allocatedSalary;
+                            } else {
+                                result.indirectSalary[deptId] += allocatedSalary;
+                            }
                         }
                     }
-                }
-            });
+                });
+            } else {
+                // Calculate total ratios for weight calculation (bulletproof math!)
+                let totalRatio = 0;
+                Object.keys(emp.ratios).forEach(deptId => {
+                    totalRatio += emp.ratios[deptId] || 0;
+                });
+
+                // Allocate multi-level/kiêm nhiệm employee salary across any departments based on weights
+                Object.keys(emp.ratios).forEach(deptId => {
+                    const ratioVal = emp.ratios[deptId] || 0;
+                    if (ratioVal > 0 && totalRatio > 0) {
+                        const ratio = ratioVal / totalRatio;
+                        const allocatedSalary = emp.salary * ratio;
+                        const dept = appState.departments.find(d => d.id === deptId);
+                        if (dept) {
+                            if (dept.type === "revenue") {
+                                result.directSalary[deptId] += allocatedSalary;
+                            } else {
+                                result.indirectSalary[deptId] += allocatedSalary;
+                            }
+                        }
+                    }
+                });
+            }
         } else {
             // Single-department employee
             const dept = appState.departments.find(d => d.id === emp.deptId);
@@ -4071,13 +4089,27 @@ function renderEmployees() {
                 totalEmpPct += val;
             });
 
+            const isAmountMode = emp.allocationMode === "amount";
+
             let empBadgeHtml = "";
-            if (totalEmpPct === 100) {
-                empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge badge-revenue" style="font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> Đủ 100%</span>`;
-            } else if (totalEmpPct < 100) {
-                empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalEmpPct}% (Thiếu ${100 - totalEmpPct}%)</span>`;
+            if (isAmountMode) {
+                const totalAlloc = totalEmpPct;
+                const diff = emp.salary - totalAlloc;
+                if (diff === 0) {
+                    empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge badge-revenue" style="font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> Khớp 100% lương</span>`;
+                } else if (diff > 0) {
+                    empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${formatCurrency(totalAlloc)} (Thiếu ${formatCurrency(diff)})</span>`;
+                } else {
+                    empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${formatCurrency(totalAlloc)} (Thừa ${formatCurrency(-diff)})</span>`;
+                }
             } else {
-                empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalEmpPct}% (Thừa ${totalEmpPct - 100}%)</span>`;
+                if (totalEmpPct === 100) {
+                    empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge badge-revenue" style="font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> Đủ 100%</span>`;
+                } else if (totalEmpPct < 100) {
+                    empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalEmpPct}% (Thiếu ${100 - totalEmpPct}%)</span>`;
+                } else {
+                    empBadgeHtml = `<span id="emp_badge_${emp.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.65rem; padding: 1px 4px; display:inline-block; margin-left:6px;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalEmpPct}% (Thừa ${totalEmpPct - 100}%)</span>`;
+                }
             }
 
             // 1. Tạo Thanh phân bổ tỷ lệ trực quan cho nhân sự (Segmented Progress Bar) siêu sang trọng (Dày 4px thanh lịch)
@@ -4086,7 +4118,8 @@ function renderEmployees() {
                 const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
                 if (val > 0) {
                     const theme = getDeptTheme(d.name);
-                    progressBarHtml += `<div style="width: ${val}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${val}%"></div>`;
+                    const widthPct = isAmountMode ? Math.min(100, val / emp.salary * 100) : val;
+                    progressBarHtml += `<div style="width: ${widthPct}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${isAmountMode ? formatCurrency(val) : (val + '%')}"></div>`;
                 }
             });
             progressBarHtml += `</div>`;
@@ -4103,7 +4136,7 @@ function renderEmployees() {
                     activeTagsHtml += `
                         <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                             <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
-                            ${shortName}: <strong style="color: ${theme.color}">${val}%</strong>
+                            ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>
                         </span>
                     `;
                 }
@@ -4123,9 +4156,15 @@ function renderEmployees() {
             // 4. Lưới nhập liệu tỷ lệ của 17 bộ phận (Chỉ hiển thị khi mở rộng - accordion)
             let ratiosGridHtml = `
                 <div id="ratio_grid_container_${emp.id}" style="display: none; padding: 10px; background: #FAFBFD; border: 1px solid rgba(0,0,0,0.05); border-radius: var(--radius-md); margin-top: 8px; flex-direction: column; gap: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.015);">
-                    <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                        <i class="fa-solid fa-sliders"></i>
-                        <span>Điều chỉnh tỷ lệ phân bổ kiêm nhiệm:</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 6px;">
+                        <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span>Điều chỉnh phân bổ kiêm nhiệm:</span>
+                        </div>
+                        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); padding: 1px; border-radius: 5px; width: fit-content; align-items: center;">
+                            <button class="btn btn-sm" style="padding: 1.5px 6px; font-size: 0.62rem; border-radius: 4px; border: none; background: ${!isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${!isAmountMode ? '700' : '500'}; box-shadow: ${!isAmountMode ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'}; cursor: pointer; color: ${!isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'percentage')">% Tỷ lệ</button>
+                            <button class="btn btn-sm" style="padding: 1.5px 6px; font-size: 0.62rem; border-radius: 4px; border: none; background: ${isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${isAmountMode ? '700' : '500'}; box-shadow: ${isAmountMode ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'}; cursor: pointer; color: ${isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'amount')">VND Số tiền</button>
+                        </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%;">`;
             
@@ -4139,10 +4178,12 @@ function renderEmployees() {
                             <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 4px; flex-shrink: 0;"></span>
                             <span style="font-size: 0.68rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${d.name}">${shortName}</span>
                         </div>
-                        <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 4px; padding: 1px 4px; width: 42px; justify-content: space-between; height: 18px; flex-shrink: 0;">
-                            <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.7rem; font-weight: 700; color: var(--text-primary); width: 22px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
-                              value="${val}" onchange="updateEmployeeRatio('${emp.id}', '${d.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
-                            <span style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); user-select: none;">%</span>
+                        <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 4px; padding: 1px 4px; width: ${isAmountMode ? '75px' : '42px'}; justify-content: space-between; height: 18px; flex-shrink: 0;">
+                            <input type="${isAmountMode ? 'text' : 'number'}" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.68rem; font-weight: 700; color: var(--text-primary); width: ${isAmountMode ? '55px' : '22px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                              value="${isAmountMode ? formatNumberWithDots(val) : val}" 
+                              oninput="${isAmountMode ? 'handleMoneyInput(this)' : ''}"
+                              onchange="updateEmployeeRatio('${emp.id}', '${d.id}', ${isAmountMode ? 'parseMoneyValue(this.value)' : 'this.value'})">
+                            <span style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); user-select: none;">${isAmountMode ? 'đ' : '%'}</span>
                         </div>
                     </div>
                 `;
@@ -4154,7 +4195,7 @@ function renderEmployees() {
 
             breakdownText = `
                 <div style="display:flex; align-items:center; margin-top:6px; gap:4px; flex-wrap: wrap;">
-                    <span style="font-size:0.75rem; font-weight:600; color:var(--text-primary);">Tỷ lệ phân bổ kiêm nhiệm:</span>
+                    <span style="font-size:0.75rem; font-weight:600; color:var(--text-primary);">Phân bổ kiêm nhiệm:</span>
                     ${empBadgeHtml}
                 </div>
                 <div id="emp_ratio_summary_container_${emp.id}">
@@ -4257,12 +4298,21 @@ function renderPayrollMatrix() {
                 }
             } else {
                 const ratios = emp.ratios || {};
-                let totalRatio = 0;
-                Object.values(ratios).forEach(r => totalRatio += r);
-                if (totalRatio > 0 && ratios[d.id] > 0) {
-                    const pct = ratios[d.id];
-                    cellVal = emp.salary * (pct / totalRatio);
-                    cellText = `<span style="font-weight: 500; color: var(--primary);">${formatCurrency(cellVal)}</span> <small class="text-muted">(${pct}%)</small>`;
+                const isAmountMode = emp.allocationMode === "amount";
+                if (isAmountMode) {
+                    if (ratios[d.id] > 0) {
+                        cellVal = ratios[d.id];
+                        const pct = emp.salary > 0 ? (cellVal / emp.salary * 100).toFixed(0) : 0;
+                        cellText = `<span style="font-weight: 500; color: var(--primary);">${formatCurrency(cellVal)}</span> <small class="text-muted">(${pct}%)</small>`;
+                    }
+                } else {
+                    let totalRatio = 0;
+                    Object.values(ratios).forEach(r => totalRatio += r);
+                    if (totalRatio > 0 && ratios[d.id] > 0) {
+                        const pct = ratios[d.id];
+                        cellVal = emp.salary * (pct / totalRatio);
+                        cellText = `<span style="font-weight: 500; color: var(--primary);">${formatCurrency(cellVal)}</span> <small class="text-muted">(${pct}%)</small>`;
+                    }
                 }
             }
 
@@ -4354,6 +4404,53 @@ function updateEmployeeRatio(empId, deptId, value) {
     }
 }
 
+function updateEmployeeAllocationMode(empId, mode) {
+    const emp = appState.employees.find(e => e.id === empId);
+    if (emp) {
+        emp.allocationMode = mode;
+        emp.ratios = {}; // Reset to prevent garbage weights between modes
+        saveState();
+        renderEmployees();
+        renderDashboard();
+    }
+}
+
+let currentEmpAddAllocationMode = "percentage";
+
+function setEmpAddAllocationMode(mode) {
+    currentEmpAddAllocationMode = mode;
+    
+    const btnPct = document.getElementById("btn_emp_add_mode_pct");
+    const btnAmt = document.getElementById("btn_emp_add_mode_amt");
+    const titleEl = document.getElementById("emp_add_ratios_title");
+    
+    if (btnPct && btnAmt) {
+        if (mode === "percentage") {
+            btnPct.style.background = "#FFFFFF";
+            btnPct.style.fontWeight = "700";
+            btnPct.style.color = "var(--text-primary)";
+            btnAmt.style.background = "transparent";
+            btnAmt.style.fontWeight = "500";
+            btnAmt.style.color = "var(--text-secondary)";
+            if (titleEl) {
+                titleEl.innerHTML = `<i class="fa-solid fa-calculator"></i> Nhập tỷ lệ (%) phân bổ lương. Tổng tỷ lệ bắt buộc phải bằng 100%:`;
+            }
+        } else {
+            btnAmt.style.background = "#FFFFFF";
+            btnAmt.style.fontWeight = "700";
+            btnAmt.style.color = "var(--text-primary)";
+            btnPct.style.background = "transparent";
+            btnPct.style.fontWeight = "500";
+            btnPct.style.color = "var(--text-secondary)";
+            if (titleEl) {
+                titleEl.innerHTML = `<i class="fa-solid fa-calculator"></i> Nhập số tiền (VNĐ) phân bổ trực tiếp. Tổng số tiền phải khớp với lương gốc:`;
+            }
+        }
+    }
+    
+    toggleMultiLevelInputs();
+}
+
 function updateEmpBadgeInDOM(empId) {
     const emp = appState.employees.find(e => e.id === empId);
     if (!emp) return;
@@ -4367,33 +4464,67 @@ function updateEmpBadgeInDOM(empId) {
         totalEmpPct += val;
     });
 
-    if (totalEmpPct === 100) {
-        badgeEl.className = "badge badge-revenue";
-        badgeEl.style.backgroundColor = "rgba(52, 199, 89, 0.08)";
-        badgeEl.style.color = "var(--success)";
-        badgeEl.style.fontSize = "0.65rem";
-        badgeEl.style.padding = "1px 4px";
-        badgeEl.style.display = "inline-block";
-        badgeEl.style.marginLeft = "6px";
-        badgeEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đủ 100%`;
-    } else if (totalEmpPct < 100) {
-        badgeEl.className = "badge";
-        badgeEl.style.backgroundColor = "rgba(255, 149, 0, 0.08)";
-        badgeEl.style.color = "var(--warning)";
-        badgeEl.style.fontSize = "0.65rem";
-        badgeEl.style.padding = "1px 4px";
-        badgeEl.style.display = "inline-block";
-        badgeEl.style.marginLeft = "6px";
-        badgeEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalEmpPct}% (Thiếu ${100 - totalEmpPct}%)`;
+    const isAmountMode = emp.allocationMode === "amount";
+    if (isAmountMode) {
+        const totalAlloc = totalEmpPct;
+        const diff = emp.salary - totalAlloc;
+        if (diff === 0) {
+            badgeEl.className = "badge badge-revenue";
+            badgeEl.style.backgroundColor = "rgba(52, 199, 89, 0.08)";
+            badgeEl.style.color = "var(--success)";
+            badgeEl.style.fontSize = "0.65rem";
+            badgeEl.style.padding = "1px 4px";
+            badgeEl.style.display = "inline-block";
+            badgeEl.style.marginLeft = "6px";
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Khớp 100% lương`;
+        } else if (diff > 0) {
+            badgeEl.className = "badge";
+            badgeEl.style.backgroundColor = "rgba(255, 149, 0, 0.08)";
+            badgeEl.style.color = "var(--warning)";
+            badgeEl.style.fontSize = "0.65rem";
+            badgeEl.style.padding = "1px 4px";
+            badgeEl.style.display = "inline-block";
+            badgeEl.style.marginLeft = "6px";
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Tổng: ${formatCurrency(totalAlloc)} (Thiếu ${formatCurrency(diff)})`;
+        } else {
+            badgeEl.className = "badge";
+            badgeEl.style.backgroundColor = "rgba(255, 59, 48, 0.08)";
+            badgeEl.style.color = "#FF3B30";
+            badgeEl.style.fontSize = "0.65rem";
+            badgeEl.style.padding = "1px 4px";
+            badgeEl.style.display = "inline-block";
+            badgeEl.style.marginLeft = "6px";
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Tổng: ${formatCurrency(totalAlloc)} (Thừa ${formatCurrency(-diff)})`;
+        }
     } else {
-        badgeEl.className = "badge";
-        badgeEl.style.backgroundColor = "rgba(255, 59, 48, 0.08)";
-        badgeEl.style.color = "#FF3B30";
-        badgeEl.style.fontSize = "0.65rem";
-        badgeEl.style.padding = "1px 4px";
-        badgeEl.style.display = "inline-block";
-        badgeEl.style.marginLeft = "6px";
-        badgeEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalEmpPct}% (Thừa ${totalEmpPct - 100}%)`;
+        if (totalEmpPct === 100) {
+            badgeEl.className = "badge badge-revenue";
+            badgeEl.style.backgroundColor = "rgba(52, 199, 89, 0.08)";
+            badgeEl.style.color = "var(--success)";
+            badgeEl.style.fontSize = "0.65rem";
+            badgeEl.style.padding = "1px 4px";
+            badgeEl.style.display = "inline-block";
+            badgeEl.style.marginLeft = "6px";
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đủ 100%`;
+        } else if (totalEmpPct < 100) {
+            badgeEl.className = "badge";
+            badgeEl.style.backgroundColor = "rgba(255, 149, 0, 0.08)";
+            badgeEl.style.color = "var(--warning)";
+            badgeEl.style.fontSize = "0.65rem";
+            badgeEl.style.padding = "1px 4px";
+            badgeEl.style.display = "inline-block";
+            badgeEl.style.marginLeft = "6px";
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalEmpPct}% (Thiếu ${100 - totalEmpPct}%)`;
+        } else {
+            badgeEl.className = "badge";
+            badgeEl.style.backgroundColor = "rgba(255, 59, 48, 0.08)";
+            badgeEl.style.color = "#FF3B30";
+            badgeEl.style.fontSize = "0.65rem";
+            badgeEl.style.padding = "1px 4px";
+            badgeEl.style.display = "inline-block";
+            badgeEl.style.marginLeft = "6px";
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalEmpPct}% (Thừa ${totalEmpPct - 100}%)`;
+        }
     }
 }
 
@@ -4429,13 +4560,16 @@ function updateEmpActiveTagsAndProgress(empId) {
         return { color: "#FF9500" };
     };
 
+    const isAmountMode = emp.allocationMode === "amount";
+
     // Segmented Progress Bar
     let progressBarHtml = `<div style="display: flex; height: 4px; width: 100%; border-radius: 2px; overflow: hidden; background: #EAEAEF; margin-top: 5px; margin-bottom: 6px; box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,0.05);">`;
     nonUtilityDepts.forEach(d => {
         const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
         if (val > 0) {
             const theme = getDeptTheme(d.name);
-            progressBarHtml += `<div style="width: ${val}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${val}%"></div>`;
+            const widthPct = isAmountMode ? Math.min(100, val / emp.salary * 100) : val;
+            progressBarHtml += `<div style="width: ${widthPct}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${isAmountMode ? formatCurrency(val) : (val + '%')}"></div>`;
         }
     });
     progressBarHtml += `</div>`;
@@ -4452,7 +4586,7 @@ function updateEmpActiveTagsAndProgress(empId) {
             activeTagsHtml += `
                 <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
-                    ${shortName}: <strong style="color: ${theme.color}">${val}%</strong>
+                    ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>
                 </span>
             `;
         }
@@ -4486,17 +4620,22 @@ function toggleMultiLevelInputs() {
         appState.departments.filter(dept => !dept.isUtility).forEach(dept => {
             const theme = getDeptTheme(dept.name);
             const shortName = dept.name.replace("Khối ", "").replace("Ban ", "");
-            const val = dept.id === document.getElementById("emp_add_dept").value ? 100 : 0;
+            
+            const isAmountMode = currentEmpAddAllocationMode === "amount";
+            const empSalary = parseMoneyValue(document.getElementById("emp_add_salary").value) || 0;
+            const defaultVal = dept.id === document.getElementById("emp_add_dept").value ? (isAmountMode ? empSalary : 100) : 0;
+            
             grid.innerHTML += `
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);" onmouseover="this.style.borderColor='rgba(0,0,0,0.18)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.08)'">
                     <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 6px;">
                         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: ${theme.color}; margin-right: 6px; flex-shrink: 0;"></span>
                         <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);" title="${dept.name}">${shortName}</span>
                     </div>
-                    <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
-                        <input type="number" min="0" max="100" class="emp-add-ratio-val ratio-pct-input" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
-                          value="${val}" oninput="updateEmpAddRatiosSummary()">
-                        <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
+                    <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: ${isAmountMode ? '80px' : '50px'}; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
+                        <input type="${isAmountMode ? 'text' : 'number'}" ${isAmountMode ? '' : 'min="0" max="100"'} class="emp-add-ratio-val ${isAmountMode ? 'money-input' : 'ratio-pct-input'}" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: ${isAmountMode ? '60px' : '28px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                          value="${isAmountMode ? formatNumberWithDots(defaultVal) : defaultVal}" 
+                          oninput="${isAmountMode ? 'handleMoneyInput(this); updateEmpAddRatiosSummary();' : 'updateEmpAddRatiosSummary();'}">
+                        <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">${isAmountMode ? 'đ' : '%'}</span>
                     </div>
                 </div>
             `;
@@ -4508,9 +4647,13 @@ function toggleMultiLevelInputs() {
 }
 
 function updateEmpAddRatiosSummary() {
+    const isAmountMode = currentEmpAddAllocationMode === "amount";
+    const empSalary = parseMoneyValue(document.getElementById("emp_add_salary").value) || 0;
+    
     let total = 0;
     document.querySelectorAll(".emp-add-ratio-val").forEach(input => {
-        total += parseFloat(input.value) || 0;
+        const val = isAmountMode ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
+        total += val;
     });
 
     const totalEl = document.getElementById("emp_add_total_pct");
@@ -4518,25 +4661,47 @@ function updateEmpAddRatiosSummary() {
     const summaryBox = document.getElementById("emp_add_ratios_summary");
 
     if (totalEl && msgEl && summaryBox) {
-        totalEl.textContent = total + "%";
-        
-        if (Math.abs(total - 100) < 0.1) {
-            totalEl.style.color = "var(--success)";
-            msgEl.innerHTML = `<span style="color: var(--success);"><i class="fa-solid fa-circle-check"></i> Đã đủ 100% (Hợp lệ)</span>`;
-            summaryBox.style.borderColor = "rgba(52, 199, 89, 0.35)";
-            summaryBox.style.background = "rgba(52, 199, 89, 0.04)";
-        } else if (total < 100) {
-            totalEl.style.color = "var(--warning)";
-            const diff = (100 - total).toFixed(0);
-            msgEl.innerHTML = `<span style="color: var(--warning);"><i class="fa-solid fa-circle-exclamation"></i> Chưa đủ 100% (Thiếu ${diff}%)</span>`;
-            summaryBox.style.borderColor = "rgba(255, 149, 0, 0.35)";
-            summaryBox.style.background = "rgba(255, 149, 0, 0.04)";
+        if (isAmountMode) {
+            totalEl.textContent = formatCurrency(total);
+            const diff = empSalary - total;
+            
+            if (diff === 0) {
+                totalEl.style.color = "var(--success)";
+                msgEl.innerHTML = `<span style="color: var(--success);"><i class="fa-solid fa-circle-check"></i> Khớp 100% lương gốc</span>`;
+                summaryBox.style.borderColor = "rgba(52, 199, 89, 0.35)";
+                summaryBox.style.background = "rgba(52, 199, 89, 0.04)";
+            } else if (diff > 0) {
+                totalEl.style.color = "var(--warning)";
+                msgEl.innerHTML = `<span style="color: var(--warning);"><i class="fa-solid fa-circle-exclamation"></i> Chưa khớp (Thiếu ${formatCurrency(diff)})</span>`;
+                summaryBox.style.borderColor = "rgba(255, 149, 0, 0.35)";
+                summaryBox.style.background = "rgba(255, 149, 0, 0.04)";
+            } else {
+                totalEl.style.color = "var(--danger)";
+                msgEl.innerHTML = `<span style="color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Vượt quá (Thừa ${formatCurrency(-diff)})</span>`;
+                summaryBox.style.borderColor = "rgba(255, 59, 48, 0.35)";
+                summaryBox.style.background = "rgba(255, 59, 48, 0.04)";
+            }
         } else {
-            totalEl.style.color = "var(--danger)";
-            const diff = (total - 100).toFixed(0);
-            msgEl.innerHTML = `<span style="color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Vượt quá 100% (Thừa ${diff}%)</span>`;
-            summaryBox.style.borderColor = "rgba(255, 59, 48, 0.35)";
-            summaryBox.style.background = "rgba(255, 59, 48, 0.04)";
+            totalEl.textContent = total + "%";
+            
+            if (Math.abs(total - 100) < 0.1) {
+                totalEl.style.color = "var(--success)";
+                msgEl.innerHTML = `<span style="color: var(--success);"><i class="fa-solid fa-circle-check"></i> Đã đủ 100% (Hợp lệ)</span>`;
+                summaryBox.style.borderColor = "rgba(52, 199, 89, 0.35)";
+                summaryBox.style.background = "rgba(52, 199, 89, 0.04)";
+            } else if (total < 100) {
+                totalEl.style.color = "var(--warning)";
+                const diff = (100 - total).toFixed(0);
+                msgEl.innerHTML = `<span style="color: var(--warning);"><i class="fa-solid fa-circle-exclamation"></i> Chưa đủ 100% (Thiếu ${diff}%)</span>`;
+                summaryBox.style.borderColor = "rgba(255, 149, 0, 0.35)";
+                summaryBox.style.background = "rgba(255, 149, 0, 0.04)";
+            } else {
+                totalEl.style.color = "var(--danger)";
+                const diff = (total - 100).toFixed(0);
+                msgEl.innerHTML = `<span style="color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Vượt quá 100% (Thừa ${diff}%)</span>`;
+                summaryBox.style.borderColor = "rgba(255, 59, 48, 0.35)";
+                summaryBox.style.background = "rgba(255, 59, 48, 0.04)";
+            }
         }
     }
 }
@@ -4564,20 +4729,29 @@ function addEmployee(event) {
     if (isMultiLevel) {
         const ratios = {};
         let totalRatio = 0;
+        const isAmountMode = currentEmpAddAllocationMode === "amount";
         document.querySelectorAll(".emp-add-ratio-val").forEach(input => {
             const dId = input.getAttribute("data-dept-id");
-            const rVal = parseFloat(input.value) || 0;
+            const rVal = isAmountMode ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
             if (rVal > 0) {
                 ratios[dId] = rVal;
                 totalRatio += rVal;
             }
         });
 
-        if (totalRatio !== 100) {
-            alert(`Tổng tỷ lệ phân bổ nhân sự kiêm nhiệm phải bằng 100%! Hiện tại là: ${totalRatio}%`);
-            return;
+        if (isAmountMode) {
+            if (totalRatio !== salary) {
+                alert(`Tổng số tiền phân bổ nhân sự kiêm nhiệm phải bằng đúng lương gốc (${formatCurrency(salary)})! Hiện tại đang là: ${formatCurrency(totalRatio)}`);
+                return;
+            }
+        } else {
+            if (totalRatio !== 100) {
+                alert(`Tổng tỷ lệ phân bổ nhân sự kiêm nhiệm phải bằng 100%! Hiện tại là: ${totalRatio}%`);
+                return;
+            }
         }
         newEmp.ratios = ratios;
+        newEmp.allocationMode = currentEmpAddAllocationMode;
     }
 
     appState.employees.push(newEmp);

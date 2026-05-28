@@ -1357,6 +1357,26 @@ input.ratio-pct-input {
     100% { transform: scale(3); opacity: 0; }
 }
 
+/* Striped rows and row highlighting for wide Excel-like tables */
+.pl-table tbody tr:nth-child(even) td {
+    background-color: rgba(0, 0, 0, 0.012) !important;
+}
+
+.pl-table tbody tr:hover td {
+    background-color: rgba(52, 199, 89, 0.04) !important;
+    transition: background-color 0.15s ease;
+}
+
+/* Compact layout for Payroll Matrix */
+#matrix_table td, #matrix_table th {
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+}
+
+#matrix_table th {
+    font-weight: 700 !important;
+}
+
 
 
 
