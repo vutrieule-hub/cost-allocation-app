@@ -1734,7 +1734,7 @@ function getActiveStudentCounts() {
             };
         }
         appState.rooms.forEach(room => {
-            if (room.status === "active") {
+            if (room.status === "active" && room.type !== "functional") {
                 Object.keys(room.splits).forEach(did => {
                     if (studentCounts[did] !== undefined && room.splits[did] > 0) {
                         const targetFillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
@@ -5735,7 +5735,7 @@ function updateSimulationUI() {
         let roomCount = 0;
         
         appState.rooms.forEach(room => {
-            if (room.status === "active" && room.splits[did] > 0) {
+            if (room.status === "active" && room.type !== "functional" && room.splits[did] > 0) {
                 const ratio = room.splits[did] / 100;
                 maxCapacity += room.capacity * ratio;
                 roomCount += ratio;
@@ -5911,7 +5911,8 @@ function openSimDeptRoomsModal(deptId) {
     if (descEl) {
         descEl.innerHTML = `
             Dưới đây là danh sách các phòng học có phân bổ cho <strong>${info.name}</strong> đang hoạt động. 
-            Mô hình giả lập đang áp dụng tỷ lệ lấp đầy mục tiêu là <strong style="color:${info.color}; font-size: 1rem;">${fillRate}%</strong> cho khối này.
+            Các <strong>phòng học thường</strong> được áp dụng tỷ lệ lấp đầy mục tiêu là <strong style="color:${info.color}; font-size: 1rem;">${fillRate}%</strong>.
+            Các <strong>phòng chức năng/dùng chung</strong> chỉ nhận phân bổ chi phí thuê, không tham gia giả lập sỹ số doanh thu.
         `;
     }
     
@@ -5938,20 +5939,53 @@ function openSimDeptRoomsModal(deptId) {
         blockRooms.forEach((room, idx) => {
             const splitRatio = room.splits[deptId] || 0;
             const roomFraction = splitRatio / 100;
-            const shareMaxCapacity = room.capacity * roomFraction;
-            const shareSimStudents = shareMaxCapacity * (fillRate / 100);
+            
+            const isFunctional = (room.type === "functional");
+            
+            // Nếu là phòng chức năng, sức chứa giả lập và sức chứa quy đổi của khối để tính doanh thu = 0
+            const shareMaxCapacity = isFunctional ? 0 : (room.capacity * roomFraction);
+            const shareSimStudents = isFunctional ? 0 : (shareMaxCapacity * (fillRate / 100));
             
             totalMaxCap += shareMaxCapacity;
             totalSimStudents += shareSimStudents;
-            totalRoomFraction += roomFraction;
+            
+            // Chỉ cộng dồn quy mô phòng học thường/nội trú vào tổng quy mô lấp đầy doanh thu
+            if (!isFunctional) {
+                totalRoomFraction += roomFraction;
+            }
             
             const roundedSim = Math.round(shareSimStudents);
             const roundedMax = Math.round(shareMaxCapacity);
             
+            // Visual Column for Simulated Fill Rate
+            let fillProgressHtml = "";
+            if (isFunctional) {
+                fillProgressHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span class="badge" style="background: rgba(142, 142, 147, 0.08); color: #8E8E93; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content; text-align: center;">
+                            <i class="fa-solid fa-cubes"></i> Phòng chức năng
+                        </span>
+                        <span style="font-size: 0.62rem; color: var(--text-secondary); font-style: italic;">Chỉ bổ chi phí, không tính sỹ số</span>
+                    </div>
+                `;
+            } else {
+                fillProgressHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 700;">
+                            <span style="color: ${info.color};"><i class="fa-solid fa-user-check"></i> ${roundedSim} HS</span>
+                            <span style="color: var(--text-secondary);">${fillRate}%</span>
+                        </div>
+                        <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
+                            <div style="width: ${fillRate}%; height: 100%; background: ${info.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
             rowsHtml += `
-                <tr style="border-bottom: 1px solid rgba(0,0,0,0.04); transition: background 0.2s;">
+                <tr style="border-bottom: 1px solid rgba(0,0,0,0.04); transition: background 0.2s; ${isFunctional ? 'background: rgba(142,142,147,0.02);' : ''}">
                     <td style="padding: 12px 10px; font-weight: 700; font-size: 0.82rem; color: var(--text-primary);">
-                        <i class="fa-solid fa-school" style="color: var(--text-secondary); margin-right: 6px; font-size: 0.75rem;"></i>
+                        <i class="fa-solid ${isFunctional ? 'fa-cubes' : 'fa-school'}" style="color: var(--text-secondary); margin-right: 6px; font-size: 0.75rem;"></i>
                         ${room.name}
                     </td>
                     <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 700; color: #555;">
@@ -5960,19 +5994,11 @@ function openSimDeptRoomsModal(deptId) {
                     <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">
                         ${room.capacity} HS
                     </td>
-                    <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text-primary);">
-                        ${roundedMax} HS
+                    <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 700; color: ${isFunctional ? '#8E8E93' : 'var(--text-primary)'};">
+                        ${isFunctional ? '-' : (roundedMax + ' HS')}
                     </td>
-                    <td style="padding: 12px 10px; width: 160px;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 700;">
-                                <span style="color: ${info.color};"><i class="fa-solid fa-user-check"></i> ${roundedSim} HS</span>
-                                <span style="color: var(--text-secondary);">${fillRate}%</span>
-                            </div>
-                            <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
-                                <div style="width: ${fillRate}%; height: 100%; background: ${info.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
-                            </div>
-                        </div>
+                    <td style="padding: 12px 10px; width: 180px;">
+                        ${fillProgressHtml}
                     </td>
                 </tr>
             `;
@@ -5998,7 +6024,7 @@ function openSimDeptRoomsModal(deptId) {
                 <tfoot>
                     <tr style="background: rgba(0,0,0,0.02); font-weight: 800; border-top: 2px solid rgba(0,0,0,0.06);">
                         <td style="padding: 14px 10px; font-size: 0.8rem; color: var(--text-primary);">
-                            Tổng hợp quy mô: <strong style="color: ${info.color}; font-size: 0.85rem;">${totalRoomFraction.toFixed(1)} phòng</strong>
+                            Quy mô học đường: <strong style="color: ${info.color}; font-size: 0.85rem;">${totalRoomFraction.toFixed(1)} phòng thường</strong>
                         </td>
                         <td style="padding: 14px 10px; text-align: center;">-</td>
                         <td style="padding: 14px 10px; text-align: center;">-</td>
