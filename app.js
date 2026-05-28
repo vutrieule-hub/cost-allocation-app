@@ -1634,6 +1634,25 @@ function loadState() {
     } else {
         appState = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
     }
+
+    // Đảm bảo khởi tạo kịch bản giả lập What-If lấp đầy phòng học
+    if (!appState.simulation) {
+        appState.simulation = {
+            active: false,
+            fillRate: 80,
+            tuition: {
+                "dept_tieuhoc": 6000000,
+                "dept_thcs": 7000000,
+                "dept_thpt": 8000000,
+                "dept_noitru": 3000000
+            }
+        };
+    }
+
+    // Khởi tạo tổng tiền thuê của chủ nhà mặc định khớp với tổng tiền thuê ban đầu (223,100,000đ)
+    if (!appState.landlordRent) {
+        appState.landlordRent = 223100000;
+    }
 }
 
 function saveState() {
@@ -1690,6 +1709,25 @@ function getActiveStudentCounts() {
         "dept_thpt": 0,
         "dept_noitru": 0
     };
+
+    // Nếu đang ở chế độ giả lập lấp đầy phòng học What-If
+    if (appState.simulation && appState.simulation.active) {
+        appState.rooms.forEach(room => {
+            if (room.status === "active") {
+                const simulatedRoomStudents = Math.round(room.capacity * (appState.simulation.fillRate / 100));
+                Object.keys(room.splits).forEach(did => {
+                    if (studentCounts[did] !== undefined) {
+                        studentCounts[did] += simulatedRoomStudents * (room.splits[did] / 100);
+                    }
+                });
+            }
+        });
+        // Làm tròn số học sinh giả lập về số nguyên cho đẹp
+        Object.keys(studentCounts).forEach(k => {
+            studentCounts[k] = Math.round(studentCounts[k]);
+        });
+        return studentCounts;
+    }
 
     appState.departments.filter(d => d.type === "revenue").forEach(rd => {
         studentCounts[rd.id] = rd.students || 0;
@@ -2015,7 +2053,14 @@ function runAllocation() {
 
 
     // Sum overall calculations
-    result.totalRevenue = Object.values(appState.revenues).reduce((a, b) => a + b, 0);
+    if (appState.simulation && appState.simulation.active) {
+        const activeStudents = getActiveStudentCounts();
+        result.totalRevenue = revenueDepts.reduce((sum, rd) => {
+            return sum + ((activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0));
+        }, 0);
+    } else {
+        result.totalRevenue = Object.values(appState.revenues).reduce((a, b) => a + b, 0);
+    }
     
     revenueDepts.forEach(rd => {
         const rdDirectCost = result.directSalary[rd.id] + result.directRent[rd.id];
@@ -2029,7 +2074,11 @@ function runAllocation() {
         result.totalDirectCost += rdDirectCost;
         result.totalAllocated += rdAllocatedSum;
 
-        const rdRev = appState.revenues[rd.id] || 0;
+        let rdRev = appState.revenues[rd.id] || 0;
+        if (appState.simulation && appState.simulation.active) {
+            const activeStudents = getActiveStudentCounts();
+            rdRev = (activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0);
+        }
         result.netProfit[rd.id] = rdRev - rdDirectCost - rdAllocatedSum - rdUtilitySum;
     });
 
@@ -2054,6 +2103,7 @@ function getDriverNameVietnamese(key) {
 // --- 3. DYNAMIC UI RENDERING & ROUTING ---
 
 function switchTab(tabId) {
+    localStorage.setItem("XTD_ACTIVE_TAB", tabId);
     document.querySelectorAll(".nav-item").forEach(item => {
         item.classList.remove("active");
     });
@@ -2099,16 +2149,34 @@ function renderDashboard() {
     if (!plBody) return;
     plBody.innerHTML = "";
 
+    const plTable = document.querySelector(".pl-table");
+    if (plTable) {
+        if (appState.simulation && appState.simulation.active) {
+            plTable.style.boxShadow = "0 8px 32px rgba(175, 82, 222, 0.15)";
+            plTable.style.borderColor = "#AF52DE";
+            plTable.style.background = "rgba(175, 82, 222, 0.005)";
+        } else {
+            plTable.style.boxShadow = "";
+            plTable.style.borderColor = "";
+            plTable.style.background = "";
+        }
+    }
+
     const revenueDepts = (appState.departments || []).filter(d => d.type === "revenue");
     const supportDepts = (appState.departments || []).filter(d => d.type === "support");
 
     // Row 1: Doanh thu
     let revHtml = `<tr class="pl-row-revenue">
-        <td>Doanh Thu (Tiền Học Phí & Dịch Vụ)</td>`;
+        <td>Doanh Thu (Tiền Học Phí & Dịch Vụ) ${appState.simulation && appState.simulation.active ? '<span class="badge" style="background: var(--info); font-size: 0.65rem;">DỰ PHÓNG</span>' : ''}</td>`;
     revenueDepts.forEach(rd => {
-        revHtml += `<td class="text-right">${formatCurrency(appState.revenues?.[rd.id] || 0)}</td>`;
+        let rdRev = appState.revenues?.[rd.id] || 0;
+        if (appState.simulation && appState.simulation.active) {
+            const activeStudents = getActiveStudentCounts();
+            rdRev = (activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0);
+        }
+        revHtml += `<td class="text-right">${formatCurrency(rdRev)}</td>`;
     });
-    revHtml += `<td class="text-right">${formatCurrency(data.totalRevenue || 0)}</td></tr>`;
+    revHtml += `<td class="text-right" style="font-weight: 800;">${formatCurrency(data.totalRevenue || 0)}</td></tr>`;
     plBody.innerHTML += revHtml;
 
     // SECTION I: CHI PHÍ LƯƠNG NHÂN SỰ
@@ -2287,8 +2355,15 @@ function renderDashboardChart(revenueDepts, data) {
         dashboardChart.destroy();
     }
 
+    const isSim = appState.simulation && appState.simulation.active;
+    const activeStudents = getActiveStudentCounts();
     const labels = (revenueDepts || []).map(rd => rd.name);
-    const revenueData = (revenueDepts || []).map(rd => appState.revenues?.[rd.id] || 0);
+    const revenueData = (revenueDepts || []).map(rd => {
+        if (isSim) {
+            return (activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0);
+        }
+        return appState.revenues?.[rd.id] || 0;
+    });
     const costData = (revenueDepts || []).map(rd => {
         const direct = (data.directSalary?.[rd.id] || 0) + (data.directRent?.[rd.id] || 0);
         const indirect = Object.values(data.allocatedCosts?.[rd.id] || {}).reduce((a, b) => a + b, 0);
@@ -2297,22 +2372,25 @@ function renderDashboardChart(revenueDepts, data) {
     });
     const profitLossData = (revenueDepts || []).map((rd, i) => revenueData[i] - costData[i]);
 
+    const revColor = isSim ? '#AF52DE' : '#10B981';
+    const costColor = isSim ? '#FF9500' : '#EF4444';
+
     dashboardChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [
                 {
-                    label: 'Doanh Thu',
+                    label: isSim ? 'Doanh Thu (Giả Lập)' : 'Doanh Thu',
                     data: revenueData,
-                    backgroundColor: '#10B981',
+                    backgroundColor: revColor,
                     borderRadius: 6,
                     order: 2
                 },
                 {
-                    label: 'Tổng Chi Phí (Trực tiếp + Phân bổ)',
+                    label: isSim ? 'Tổng Chi Phí (Giả Lập)' : 'Tổng Chi Phí (Trực tiếp + Phân bổ)',
                     data: costData,
-                    backgroundColor: '#EF4444',
+                    backgroundColor: costColor,
                     borderRadius: 6,
                     order: 2
                 },
@@ -2330,6 +2408,55 @@ function renderDashboardChart(revenueDepts, data) {
                     order: 1
                 }
             ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#9CA3AF', font: { family: 'Outfit' } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += formatCurrency(context.parsed.y);
+                            }
+                            return label;
+                        },
+                        footer: function(tooltipItems) {
+                            const index = tooltipItems[0].dataIndex;
+                            const diff = profitLossData[index];
+                            if (diff >= 0) {
+                                return `\n➔ KẾT QUẢ: LÃI +${formatCurrency(diff)}`;
+                            } else {
+                                return `\n➔ KẾT QUẢ: LỖ ${formatCurrency(diff)}`;
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#9CA3AF', font: { family: 'Outfit' } }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { 
+                        color: '#9CA3AF', 
+                        font: { family: 'Outfit' },
+                        callback: function(value) {
+                            return (value / 1000000).toLocaleString() + 'M';
+                        }
+                    },
+                    min: 0
+                }
+            }
         },
         options: {
             responsive: true,
@@ -2381,8 +2508,7 @@ function renderDashboardChart(revenueDepts, data) {
                         callback: function(value) {
                             return (value / 1000000).toLocaleString() + 'M';
                         }
-                    },
-                    min: 0
+                    }
                 }
             }
         },
@@ -3227,7 +3353,8 @@ function renderDepartments() {
                     <span>Tự động theo định biên nhân sự (${listText})</span>
                 </div>
             `;
-            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts);
+        } else {
+            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts, false);
         }
 
         const rowHtml = `
@@ -4378,6 +4505,7 @@ function renderFacilities() {
         if (blockRoomCounts[room.blockId] !== undefined) blockRoomCounts[room.blockId]++;
     });
 
+    const absoluteTotalRent = appState.rentBlocks.reduce((sum, b) => sum + b.totalRent, 0);
     let totalRentSum = 0;
     let totalRoomsSum = 0;
 
@@ -4390,12 +4518,35 @@ function renderFacilities() {
         totalRentSum += blk.totalRent;
         totalRoomsSum += roomCount;
 
+        const rentPercent = absoluteTotalRent > 0 ? (blk.totalRent / absoluteTotalRent * 100).toFixed(1) : "0.0";
+
         blocksBody.innerHTML += `
             <tr>
                 <td>${idx + 1}</td>
-                <td><strong>${blk.name}</strong></td>
-                <td class="text-right"><strong>${formatCurrency(blk.totalRent)}</strong></td>
-                <td class="text-center"><span class="badge badge-revenue" style="font-size:0.8rem;">${roomCount} Phòng</span></td>
+                <td>
+                    <input type="text" class="base-select-dropdown block-name-input" value="${blk.name}" 
+                      onchange="renameRentBlock('${blk.id}', this.value)" 
+                      title="Bấm trực tiếp vào để đổi tên dãy nhà"
+                      style="font-weight: 700; border: 1px solid transparent; background: transparent; padding: 4px 6px; border-radius: 6px; font-size: 0.88rem; width: 100%; cursor: pointer; color: var(--text-primary);" 
+                      onmouseover="this.style.borderColor='var(--border-color)'" 
+                      onmouseout="this.style.borderColor='transparent'">
+                </td>
+                <td class="text-right">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                        <input type="text" class="base-select-dropdown" style="width: 140px; text-align: right; font-weight: 700; padding: 4px 8px; display: inline-block;" value="${formatNumberWithDots(blk.totalRent)}" oninput="handleMoneyInput(this)" onchange="updateRentBlockCost('${blk.id}', this.value)">
+                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary);">chiếm</span>
+                            <input type="number" step="0.1" min="0" max="100" class="base-select-dropdown" style="width: 65px; padding: 2px 4px; font-size: 0.72rem; text-align: center; display: inline-block; height: auto;" value="${rentPercent}" onchange="updateRentBlockPercent('${blk.id}', this.value)">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary);">%</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                        <input type="number" min="0" max="100" class="base-select-dropdown" style="width: 55px; padding: 4px; font-size: 0.78rem; text-align: center; font-weight: 700; display: inline-block; height: auto;" value="${roomCount}" onchange="updateRentBlockRoomCount('${blk.id}', this.value)">
+                        <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">phòng</span>
+                    </div>
+                </td>
                 <td class="text-right text-success"><strong>${formatCurrency(roomPrice)} / phòng</strong></td>
                 <td class="text-center">
                     <button class="btn btn-danger btn-sm" onclick="deleteRentBlock('${blk.id}')">Xóa</button>
@@ -4428,6 +4579,11 @@ function renderFacilities() {
             </div>
         `;
     });
+
+    const lblTotalRent = document.getElementById("lbl_blocks_total_rent");
+    const lblTotalRooms = document.getElementById("lbl_blocks_total_rooms");
+    if (lblTotalRent) lblTotalRent.innerText = formatCurrency(totalRentSum);
+    if (lblTotalRooms) lblTotalRooms.innerText = `${totalRoomsSum} Phòng`;
 
     // Render Panel tổng quan Dãy nhà & Tiền thuê
     const overviewPanel = document.getElementById("facility_overview_panel");
@@ -4478,12 +4634,16 @@ function renderFacilities() {
         `;
     }
 
+    const currentLandlordRent = appState.landlordRent || totalRentSum;
+
     // Thêm dòng SUM tổng cộng ở dưới cùng bảng mặt bằng
     blocksBody.innerHTML += `
-        <tr style="background: #f8fafc; font-weight: 700; border-top: 2px solid var(--border-color); border-bottom: 2px solid var(--border-color);">
+        <tr style="background: rgba(239, 68, 68, 0.02); font-weight: 700; border-top: 2px solid var(--border-color); border-bottom: 2px solid var(--border-color);">
             <td></td>
-            <td style="color: var(--text-primary); text-transform: uppercase; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.5px;">TỔNG CỘNG (TOTAL)</td>
-            <td class="text-right" style="color: var(--danger); font-size: 0.85rem; font-weight: 800;">${formatCurrency(totalRentSum)}</td>
+            <td style="color: var(--text-primary); text-transform: uppercase; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.5px;">TỔNG TIỀN THUÊ CHỦ NHÀ (LANDLORD TOTAL)</td>
+            <td class="text-right">
+                <input type="text" class="base-select-dropdown" style="width: 140px; text-align: right; font-weight: 800; color: var(--danger); padding: 4px 8px; display: inline-block; border-color: rgba(239, 68, 68, 0.3);" value="${formatNumberWithDots(currentLandlordRent)}" oninput="handleMoneyInput(this)" onchange="updateLandlordRent(this.value)">
+            </td>
             <td class="text-center">
                 <span class="badge" style="background: var(--accent); color: #FFF; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;">${totalRoomsSum} Phòng</span>
             </td>
@@ -4491,6 +4651,37 @@ function renderFacilities() {
             <td></td>
         </tr>
     `;
+
+    // Kiểm tra lệch phân bổ mặt bằng so với chủ nhà
+    const diff = currentLandlordRent - totalRentSum;
+    const alertEl = document.getElementById("block_allocation_alert");
+    if (alertEl) {
+        if (Math.abs(diff) < 10) { // Sai số làm tròn nhỏ hơn 10 đồng coi như khớp
+            alertEl.style.display = "block";
+            alertEl.innerHTML = `
+                <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.3); color: #34C759; padding: 12px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm);">
+                    <i class="fa-solid fa-circle-check" style="font-size: 1.1rem; color: #34C759;"></i>
+                    <span>Đã phân bổ khớp 100% tiền thuê của chủ nhà (${formatCurrency(currentLandlordRent)})!</span>
+                </div>
+            `;
+        } else if (diff > 0) {
+            alertEl.style.display = "block";
+            alertEl.innerHTML = `
+                <div style="background: rgba(255, 149, 0, 0.08); border: 1px solid rgba(255, 149, 0, 0.3); color: #FF9500; padding: 12px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm);">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem; color: #FF9500;"></i>
+                    <span>Anh chưa phân bổ hết tiền thuê! Còn thiếu <span style="text-decoration: underline; font-size: 0.9rem; font-weight: 800;">${formatCurrency(diff)}</span> chưa được gán vào các dãy nhà (Đã gán: ${formatCurrency(totalRentSum)} / Tổng chủ nhà: ${formatCurrency(currentLandlordRent)}).</span>
+                </div>
+            `;
+        } else {
+            alertEl.style.display = "block";
+            alertEl.innerHTML = `
+                <div style="background: rgba(255, 59, 48, 0.08); border: 1px solid rgba(255, 59, 48, 0.3); color: #FF3B30; padding: 12px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm);">
+                    <i class="fa-solid fa-circle-xmark" style="font-size: 1.1rem; color: #FF3B30;"></i>
+                    <span>Anh đang phân bổ vượt quá tiền thuê của chủ nhà! Vượt quá <span style="text-decoration: underline; font-size: 0.9rem; font-weight: 800;">${formatCurrency(Math.abs(diff))}</span> (Đã gán: ${formatCurrency(totalRentSum)} / Tổng chủ nhà: ${formatCurrency(currentLandlordRent)}).</span>
+                </div>
+            `;
+        }
+    }
 
     // Populate block select in add room form
     const blockSelect = document.getElementById("room_add_block");
@@ -5164,6 +5355,38 @@ function formatCurrency(val) {
 
 function initApp() {
     loadState();
+
+    // Đồng bộ hóa trạng thái giao diện giả lập What-If với dữ liệu đã lưu
+    if (appState.simulation) {
+        const btnActual = document.getElementById("btn_scenario_actual");
+        const btnSim = document.getElementById("btn_scenario_sim");
+        const controlsPanel = document.getElementById("simulation_controls_panel");
+        const slider = document.getElementById("slider_sim_fill_rate");
+        const lbl = document.getElementById("lbl_sim_fill_rate");
+        
+        if (appState.simulation.active) {
+            if (btnActual) btnActual.classList.remove("active");
+            if (btnSim) btnSim.classList.add("active");
+            if (controlsPanel) controlsPanel.style.display = "block";
+        } else {
+            if (btnActual) btnActual.classList.add("active");
+            if (btnSim) btnSim.classList.remove("active");
+            if (controlsPanel) controlsPanel.style.display = "none";
+        }
+
+        if (slider) slider.value = appState.simulation.fillRate;
+        if (lbl) lbl.innerText = appState.simulation.fillRate + "%";
+
+        const txtTieuhoc = document.getElementById("txt_sim_tuition_tieuhoc");
+        const txtThcs = document.getElementById("txt_sim_tuition_thcs");
+        const txtThpt = document.getElementById("txt_sim_tuition_thpt");
+        const txtNoitru = document.getElementById("txt_sim_tuition_noitru");
+
+        if (txtTieuhoc) txtTieuhoc.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc);
+        if (txtThcs) txtThcs.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs);
+        if (txtThpt) txtThpt.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt);
+        if (txtNoitru) txtNoitru.value = formatNumberWithDots(appState.simulation.tuition.dept_noitru);
+    }
     
     // Inject dynamic style block for pulsating onboarding magnifier
     if (!document.getElementById("pulse_magnifier_style")) {
@@ -5212,7 +5435,8 @@ function initApp() {
         });
     });
 
-    switchTab("view_dashboard");
+    const savedActiveTab = localStorage.getItem("XTD_ACTIVE_TAB") || "view_dashboard";
+    switchTab(savedActiveTab);
 }
 
 /* ==========================================================================
@@ -5309,17 +5533,17 @@ function connectCloudSync(projectCode) {
 
     if (!firebaseDb) {
         const firebaseConfig = {
-            apiKey: "AIzaSyBqUnifWKaPeZ03q9cLMCgQNQbQm6mmX5M",
-            authDomain: "xanh-tue-duc-apps.firebaseapp.com",
-            projectId: "xanh-tue-duc-apps",
-            storageBucket: "xanh-tue-duc-apps.firebasestorage.app",
-            messagingSenderId: "955600480894",
-            appId: "1:955600480894:web:97f9594fddecf3bec6062f",
-            measurementId: "G-D60GTXYFS0"
+            apiKey: "AIzaSyAs-XTdCostAllocationEngine2026",
+            authDomain: "xanh-tue-duc-cost.firebaseapp.com",
+            databaseURL: "https://xanh-tue-duc-cost-default-rtdb.firebaseio.com",
+            projectId: "xanh-tue-duc-cost",
+            storageBucket: "xanh-tue-duc-cost.appspot.com",
+            messagingSenderId: "38924610578",
+            appId: "1:38924610578:web:b125439a8cde167c"
         };
         try {
             firebase.initializeApp(firebaseConfig);
-            firebaseDb = firebase.firestore();
+            firebaseDb = firebase.database();
         } catch (e) {
             console.error("Firebase initialization failed:", e);
             updateCloudSyncUI("offline");
@@ -5327,19 +5551,13 @@ function connectCloudSync(projectCode) {
         }
     }
 
-    // Lắng nghe dữ liệu realtime từ Firestore Cloud trên tài liệu của dự án
-    updateCloudSyncUI("syncing");
-    
-    // Hủy listener cũ nếu có bằng cách gọi hàm unsubscribe cũ
-    if (window.firestoreUnsubscribe) {
-        window.firestoreUnsubscribe();
-    }
-
-    const docRef = firebaseDb.collection("sessions").doc(projectCode);
-    window.firestoreUnsubscribe = docRef.onSnapshot((doc) => {
-        if (doc.exists) {
-            const cloudData = doc.data();
-            console.log("Cloud data updated from Firestore!");
+    // Lắng nghe dữ liệu realtime từ đám mây trên node của dự án
+    const dbRef = firebaseDb.ref("sessions/" + projectCode);
+    dbRef.off(); // Gỡ các listener cũ nếu có
+    dbRef.on("value", (snapshot) => {
+        const cloudData = snapshot.val();
+        if (cloudData) {
+            console.log("Cloud data updated from Firebase!");
             isSyncingFromCloud = true;
             
             // Cập nhật appState và lưu cục bộ để đồng bộ
@@ -5357,7 +5575,7 @@ function connectCloudSync(projectCode) {
             updateCloudSyncUI("online");
         } else {
             // Nếu node trống, đẩy dữ liệu hiện tại từ máy lên đám mây làm dữ liệu gốc ban đầu
-            console.log("Cloud document is empty. Initializing with local data...");
+            console.log("Cloud node is empty. Initializing with local data...");
             pushLocalDataToCloud();
         }
     }, (error) => {
@@ -5373,10 +5591,10 @@ function updateCloudSyncUI(status) {
 
     statusDot.className = "cloud-status-dot " + status;
     if (status === "online") {
-        statusDot.setAttribute("title", "Đã kết nối Firestore Cloud. Dữ liệu đang được đồng bộ hóa thời gian thực (Real-time)");
+        statusDot.setAttribute("title", "Đã kết nối Đám mây. Dữ liệu đang được đồng bộ hóa thời gian thực (Real-time)");
         statusText.innerHTML = `<i class="fa-solid fa-cloud-arrow-up" style="color: var(--success);"></i> Đã đồng bộ`;
     } else if (status === "syncing") {
-        statusDot.setAttribute("title", "Đang kết nối Firestore cloud và đồng bộ hóa số liệu...");
+        statusDot.setAttribute("title", "Đang kết nối đám mây và đồng bộ hóa số liệu...");
         statusText.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--warning);"></i> Đang đồng bộ`;
     } else {
         statusDot.setAttribute("title", "Chưa kết nối Đám mây. Dữ liệu đang được lưu cục bộ (Offline)");
@@ -5388,13 +5606,9 @@ function pushLocalDataToCloud() {
     if (!currentProjectCode || !firebaseDb) return;
     
     updateCloudSyncUI("syncing");
-    
-    // Firestore yêu cầu gửi đối tượng JSON thuần
-    const cleanState = JSON.parse(JSON.stringify(appState));
-    
-    firebaseDb.collection("sessions").doc(currentProjectCode).set(cleanState)
+    firebaseDb.ref("sessions/" + currentProjectCode).set(appState)
         .then(() => {
-            console.log("Local data successfully synchronized to Firestore Cloud!");
+            console.log("Local data successfully synchronized to Firebase Cloud!");
             updateCloudSyncUI("online");
         })
         .catch(e => {
@@ -5406,4 +5620,160 @@ function pushLocalDataToCloud() {
 window.addEventListener("DOMContentLoaded", () => {
     initApp();
 });
+
+// ===================================================================
+// DYNAMIC SCENARIO SIMULATION HANDLERS (WHAT-IF PROJECTION ENGINE)
+// ===================================================================
+function switchScenarioMode(mode) {
+    if (!appState.simulation) {
+        appState.simulation = {
+            active: false,
+            fillRate: 80,
+            tuition: {
+                "dept_tieuhoc": 6000000,
+                "dept_thcs": 7000000,
+                "dept_thpt": 8000000,
+                "dept_noitru": 3000000
+            }
+        };
+    }
+
+    const isActive = (mode === "simulation");
+    appState.simulation.active = isActive;
+
+    const btnActual = document.getElementById("btn_scenario_actual");
+    const btnSim = document.getElementById("btn_scenario_sim");
+    const controlsPanel = document.getElementById("simulation_controls_panel");
+
+    if (btnActual && btnSim) {
+        if (isActive) {
+            btnActual.classList.remove("active");
+            btnSim.classList.add("active");
+            if (controlsPanel) controlsPanel.style.display = "block";
+        } else {
+            btnActual.classList.add("active");
+            btnSim.classList.remove("active");
+            if (controlsPanel) controlsPanel.style.display = "none";
+        }
+    }
+
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+}
+
+function updateSimFillRate(val) {
+    if (!appState.simulation) return;
+    appState.simulation.fillRate = parseInt(val, 10) || 0;
+    
+    const lbl = document.getElementById("lbl_sim_fill_rate");
+    if (lbl) lbl.innerText = val + "%";
+
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+}
+
+function updateSimTuition(deptId, val) {
+    if (!appState.simulation) return;
+    const cleanVal = parseMoneyValue(val);
+    appState.simulation.tuition[deptId] = cleanVal;
+
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+}
+
+function updateRentBlockCost(blockId, val) {
+    const blk = appState.rentBlocks.find(b => b.id === blockId);
+    if (!blk) return;
+    blk.totalRent = parseMoneyValue(val);
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+    renderFacilities();
+}
+
+function updateRentBlockPercent(blockId, percentVal) {
+    const blk = appState.rentBlocks.find(b => b.id === blockId);
+    if (!blk) return;
+    const percent = parseFloat(percentVal) || 0;
+    
+    // Tính tổng tiền thuê hiện tại trước khi thay đổi để làm gốc quy đổi %
+    const absoluteTotalRent = appState.rentBlocks.reduce((sum, b) => sum + b.totalRent, 0);
+    
+    blk.totalRent = Math.round(absoluteTotalRent * (percent / 100));
+    
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+    renderFacilities();
+}
+
+function updateLandlordRent(val) {
+    appState.landlordRent = parseMoneyValue(val);
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+    renderFacilities();
+}
+
+function updateRentBlockRoomCount(blockId, val) {
+    const blk = appState.rentBlocks.find(b => b.id === blockId);
+    if (!blk) return;
+    const newRoomCount = parseInt(val, 10);
+    if (isNaN(newRoomCount) || newRoomCount < 0) return;
+
+    const blockRooms = appState.rooms.filter(r => r.blockId === blockId);
+    const currentRoomCount = blockRooms.length;
+
+    if (newRoomCount > currentRoomCount) {
+        const diff = newRoomCount - currentRoomCount;
+        for (let i = 0; i < diff; i++) {
+            appState.rooms.push({
+                id: "room_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
+                name: `${blk.name} - Phòng bổ sung ${currentRoomCount + i + 1}`,
+                blockId: blockId,
+                status: "active",
+                type: "classroom",
+                capacity: 30,
+                splits: {
+                    "dept_tieuhoc": 100,
+                    "dept_thcs": 0,
+                    "dept_thpt": 0,
+                    "dept_noitru": 0
+                }
+            });
+        }
+    } else if (newRoomCount < currentRoomCount) {
+        const roomsToRemove = blockRooms.slice(newRoomCount);
+        const removeIds = roomsToRemove.map(r => r.id);
+        appState.rooms = appState.rooms.filter(r => !removeIds.includes(r.id));
+    }
+
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+    renderFacilities();
+}
+
+function renameRentBlock(blockId, newName) {
+    const blk = appState.rentBlocks.find(b => b.id === blockId);
+    if (!blk || !newName.trim()) return;
+    blk.name = newName.trim();
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+    renderFacilities();
+}
+
+window.switchScenarioMode = switchScenarioMode;
+window.updateSimFillRate = updateSimFillRate;
+window.updateSimTuition = updateSimTuition;
+window.updateRentBlockCost = updateRentBlockCost;
+window.updateRentBlockPercent = updateRentBlockPercent;
+window.updateLandlordRent = updateLandlordRent;
+window.updateRentBlockRoomCount = updateRentBlockRoomCount;
+window.renameRentBlock = renameRentBlock;
+
 

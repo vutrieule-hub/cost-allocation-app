@@ -51,7 +51,3 @@
 ---
 
 Chúc anh có những trải nghiệm tuyệt vời cùng phần mềm quản trị tài chính thông minh của trường Xanh Tuệ Đức!
-
-# Updated deployment trigger
-
-# Deploy trigger post activation

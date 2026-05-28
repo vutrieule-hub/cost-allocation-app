@@ -16,7 +16,7 @@
 
     <!-- Firebase CDN SDK (v8 Compat for quick and reliable static integration) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -150,6 +150,72 @@
              =================================================================== -->
         <div id="view_dashboard" class="view-section active">
             
+            <!-- Apple-style Segmented Switcher for Actuals vs Simulation -->
+            <div style="display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center;">
+                <div class="facility-segmented-control" style="margin: 0; padding: 3px;">
+                    <button class="facility-subtab-btn active" id="btn_scenario_actual" onclick="switchScenarioMode('actual')">
+                        <i class="fa-solid fa-chart-line"></i> Thực tế Tháng (Actuals)
+                    </button>
+                    <button class="facility-subtab-btn" id="btn_scenario_sim" onclick="switchScenarioMode('simulation')">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Giả lập Lấp đầy (Simulation)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulation Controls Panel (Hidden by default) -->
+            <div id="simulation_controls_panel" class="card" style="display: none; border-left: 4px solid var(--info); background: rgba(0, 122, 255, 0.015); padding: 16px 20px; margin-bottom: 1.5rem; transition: all 0.3s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-sliders" style="color: var(--info);"></i>
+                            BẢNG THIẾT LẬP KỊCH BẢN GIẢ LẬP LẤP ĐẦY (WHAT-IF PARAMETERS)
+                        </h3>
+                        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">
+                            Điều chỉnh tỷ lệ lấp đầy sỹ số của 41 phòng học vật lý và thiết lập học phí kỳ vọng để ước tính doanh thu & lợi nhuận tương lai.
+                        </p>
+                    </div>
+                    <span class="badge" style="background: var(--info); color: #FFF; font-size: 0.7rem; font-weight: 700; padding: 4px 8px; border-radius: 4px;">
+                        <i class="fa-solid fa-circle-info"></i> Chế độ Dự phòng
+                    </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex-wrap: wrap;">
+                    
+                    <!-- Left: Slider for Fill Rate -->
+                    <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; justify-content: center;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);">Tỷ lệ Lấp đầy Phòng học:</span>
+                            <span id="lbl_sim_fill_rate" style="font-size: 0.88rem; font-weight: 800; color: var(--info); background: rgba(0, 122, 255, 0.08); padding: 2px 8px; border-radius: 4px;">80%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                            <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);">0% (Trống)</span>
+                            <input type="range" id="slider_sim_fill_rate" min="0" max="100" value="80" oninput="updateSimFillRate(this.value)" style="flex-grow: 1; accent-color: var(--info); cursor: pointer; height: 6px; border-radius: 3px;">
+                            <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);">100% (Kịch trần)</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Tuition fee inputs per student -->
+                    <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 14px 18px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 700; color: #007AFF; display: block; margin-bottom: 4px;">Học phí Tiểu học (VNĐ/tháng):</label>
+                            <input type="text" id="txt_sim_tuition_tieuhoc" class="base-select-dropdown" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; font-weight: 700;" value="6.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc', this.value)">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 700; color: #34C759; display: block; margin-bottom: 4px;">Học phí THCS (VNĐ/tháng):</label>
+                            <input type="text" id="txt_sim_tuition_thcs" class="base-select-dropdown" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; font-weight: 700;" value="7.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thcs', this.value)">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 700; color: #AF52DE; display: block; margin-bottom: 4px;">Học phí THPT (VNĐ/tháng):</label>
+                            <input type="text" id="txt_sim_tuition_thpt" class="base-select-dropdown" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; font-weight: 700;" value="8.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thpt', this.value)">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 700; color: #FF9500; display: block; margin-bottom: 4px;">Phí bán trú/Nội trú (VNĐ/tháng):</label>
+                            <input type="text" id="txt_sim_tuition_noitru" class="base-select-dropdown" style="width: 100%; padding: 4px 8px; font-size: 0.78rem; font-weight: 700;" value="3.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_noitru', this.value)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="dashboard-grid">
                 
                 <!-- Left Screen: P&L Detailed Table Report -->
@@ -582,49 +648,80 @@
 
             <!-- SUBTAB 2: DÃY NHÀ & KHU VỰC THUÊ LỚN -->
             <div id="subtab_blocks" class="facility-subtab-section" style="display: none;">
-                <div class="dashboard-grid">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
                     
-                    <!-- Accordion Form: Thêm dãy nhà mới -->
-                    <div class="card" style="align-self: start;">
-                        <div class="section-header" onclick="toggleCollapsible('block_add_form_wrapper', 'block_add_arrow_icon')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                            <h2><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Thêm Dãy nhà Mới</h2>
-                            <i class="fa-solid fa-chevron-down text-muted" id="block_add_arrow_icon" style="transition: transform 0.25s ease;"></i>
-                        </div>
+                    <!-- Top Grid: Guide Panel and Add Form side-by-side to save vertical height -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; align-items: stretch;">
                         
-                        <div id="block_add_form_wrapper" style="display: none; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                            <form id="blk_add_form" onsubmit="addRentBlock(event)">
-                                <div class="form-row" style="flex-direction: column; gap: 12px;">
-                                    <div class="form-group" style="width: 100%;">
-                                        <label>Tên Dãy nhà / Khu vực thuê</label>
-                                        <input type="text" id="blk_add_name" placeholder="Ví dụ: Khu 10 phòng, Khu tòa mới L..." required>
-                                    </div>
-                                    <div class="form-group" style="width: 100%;">
-                                        <label class="priority-container">Tiền thuê tháng trần (vnđ) <span class="priority-dot" title="Trường dữ liệu tiền thuê quan trọng bắt buộc để chia đều cho từng phòng và tính P&L mặt bằng"></span></label>
-                                        <input type="text" id="blk_add_rent" placeholder="Ví dụ: 32.200.000" oninput="handleMoneyInput(this)" required>
-                                    </div>
+                        <!-- Premium Guide Panel -->
+                        <div class="card" style="border-left: 4px solid var(--info); background: rgba(0, 122, 255, 0.015); padding: 16px 20px; margin: 0; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+                            <div>
+                                <h3 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-circle-info" style="color: var(--info);"></i>
+                                    NGUYÊN LÝ CHIA TIỀN THUÊ MẶT BẰNG
+                                </h3>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 12px;">
+                                    Tổng tiền mặt bằng trường học được phân rã thành các Dãy nhà. Giá của mỗi phòng được chia đều theo số lượng phòng học thuộc dãy đó.
+                                </p>
+                            </div>
+                            <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.05); border-radius: 6px; padding: 10px; font-size: 0.74rem; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 550;">Tổng tiền thuê toàn trường:</span>
+                                    <span style="font-weight: 800; color: var(--danger); font-size: 0.88rem;" id="lbl_blocks_total_rent">0 ₫</span>
                                 </div>
-                                <button type="submit" class="btn btn-primary" style="margin-top: 15px; width: 100%; justify-content: center;">
-                                    <i class="fa-solid fa-circle-check"></i> Lưu và tạo Dãy nhà
-                                </button>
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 550;">Tổng số phòng hoạt động:</span>
+                                    <span style="font-weight: 800; color: var(--info); font-size: 0.88rem;" id="lbl_blocks_total_rooms">0 Phòng</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form: Thêm dãy nhà mới (Nằm ngang cực kỳ gọn trên laptop) -->
+                        <div class="card" style="padding: 16px 20px; margin: 0; display: flex; flex-direction: column; justify-content: center; box-shadow: var(--shadow-sm);">
+                            <h2 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i>
+                                Thêm Dãy nhà Mới
+                            </h2>
+                            <form id="blk_add_form" onsubmit="addRentBlock(event)">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 130px; gap: 12px; align-items: end;">
+                                    <div class="form-group" style="width: 100%; margin: 0;">
+                                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Tên Dãy nhà / Khu vực thuê</label>
+                                        <input type="text" id="blk_add_name" placeholder="Ví dụ: Khu tòa mới L..." required style="width: 100%; font-size: 0.78rem; padding: 6px 10px;">
+                                    </div>
+                                    <div class="form-group" style="width: 100%; margin: 0;">
+                                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Tiền thuê tháng trần (VNĐ)</label>
+                                        <input type="text" id="blk_add_rent" placeholder="Ví dụ: 32.200.000" oninput="handleMoneyInput(this)" required style="width: 100%; font-size: 0.78rem; padding: 6px 10px;">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 0.78rem; padding: 6px 10px; height: 32px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-plus"></i> Tạo dãy nhà
+                                    </button>
+                                </div>
                             </form>
                         </div>
+
                     </div>
 
-                    <!-- Bảng danh sách Dãy nhà -->
-                    <div class="card">
-                        <div class="section-header">
-                            <h2>Danh sách Dãy nhà & Đơn giá phòng tự động</h2>
+                    <!-- Bottom Section: Spacious Full-Width Table List -->
+                    <div class="card" style="padding: 20px 24px; box-shadow: var(--shadow-sm); margin: 0;">
+                        <div class="section-header" style="margin-bottom: 15px;">
+                            <h2 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-building-user" style="color: var(--info);"></i>
+                                Danh sách Dãy nhà & Đơn giá phòng tự động
+                            </h2>
+                            <p style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 3px;">
+                                Các phòng vật lý thuộc dãy nhà nào sẽ tự động gánh một phần chi phí thuê mặt bằng dựa trên công thức chia đều.
+                            </p>
                         </div>
-                        <div class="table-container">
-                            <table>
+                        <div class="table-container" style="border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; overflow: hidden; background: #FFF;">
+                            <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
-                                    <tr>
-                                        <th style="width: 50px;">STT</th>
-                                        <th>Dãy nhà</th>
-                                        <th class="text-right" style="width: 130px;">Tiền thuê tháng</th>
-                                        <th class="text-center" style="width: 100px;">Quy mô</th>
-                                        <th class="text-right" style="width: 160px;">Giá / Phòng tự động</th>
-                                        <th style="width: 60px;" class="text-center">Xóa</th>
+                                    <tr style="background: rgba(0,0,0,0.015); border-bottom: 1px solid rgba(0,0,0,0.06);">
+                                        <th style="width: 60px; padding: 12px 16px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">STT</th>
+                                        <th style="padding: 12px 16px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; text-align: left;">Dãy nhà</th>
+                                        <th class="text-right" style="width: 180px; padding: 12px 16px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Tiền thuê tháng</th>
+                                        <th class="text-center" style="width: 140px; padding: 12px 16px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Quy mô</th>
+                                        <th class="text-right" style="width: 200px; padding: 12px 16px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Giá / Phòng tự động</th>
+                                        <th style="width: 80px; padding: 12px 16px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;" class="text-center">Xóa</th>
                                     </tr>
                                 </thead>
                                 <tbody id="block_list_body">
@@ -632,6 +729,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="block_allocation_alert" style="margin-top: 15px; border-radius: 8px; transition: all 0.3s ease;"></div>
                     </div>
 
                 </div>
