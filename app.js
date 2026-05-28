@@ -4778,7 +4778,11 @@ function renderFacilities() {
                                   style="font-weight: 600; border: 1px solid transparent; background: transparent; padding: 4px 6px; border-radius: 6px; font-size: 0.88rem; width: 180px; cursor: pointer; color: var(--text-primary);" 
                                   onmouseover="this.style.borderColor='var(--border-color)'" 
                                   onmouseout="this.style.borderColor='transparent'">
-                                <span style="font-size: 0.72rem; color: var(--text-secondary); opacity: 0.8;">(${typeLabel})</span>
+                                <select onchange="updateRoomType('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border-radius: 4px; border-color: rgba(0,0,0,0.1); background: transparent; color: var(--text-secondary); width: auto; height: auto;">
+                                    <option value="classroom" ${room.type === "classroom" ? "selected" : ""}>🏫 Lớp học</option>
+                                    <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
+                                    <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
+                                </select>
                             </div>
                         </td>
                         <td class="text-right"><strong>${formatCurrency(calculatedRoomCost)}</strong></td>
@@ -4838,7 +4842,11 @@ function renderFacilities() {
                               style="font-weight: 600; border: 1px solid transparent; background: transparent; padding: 4px 6px; border-radius: 6px; font-size: 0.88rem; width: 180px; cursor: pointer; color: var(--text-primary);" 
                               onmouseover="this.style.borderColor='var(--border-color)'" 
                               onmouseout="this.style.borderColor='transparent'">
-                            <span style="font-size: 0.72rem; color: var(--text-secondary); opacity: 0.8;">(${typeLabel})</span>
+                            <select onchange="updateRoomType('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border-radius: 4px; border-color: rgba(0,0,0,0.1); background: transparent; color: var(--text-secondary); width: auto; height: auto;">
+                                <option value="classroom" ${room.type === "classroom" ? "selected" : ""}>🏫 Lớp học</option>
+                                <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
+                                <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
+                            </select>
                         </div>
                     </td>
                     <td class="text-right"><strong>0 đ</strong></td>
@@ -4969,6 +4977,17 @@ function updateRoomStatus(roomId, newStatus) {
     const room = appState.rooms.find(r => r.id === roomId);
     if (room) {
         room.status = newStatus;
+        saveState();
+        runAllocation();
+        renderFacilities();
+        renderDashboard();
+    }
+}
+
+function updateRoomType(roomId, newType) {
+    const room = appState.rooms.find(r => r.id === roomId);
+    if (room) {
+        room.type = newType;
         saveState();
         runAllocation();
         renderFacilities();
@@ -6066,6 +6085,7 @@ window.updateSimFillRate = updateSimFillRate;
 window.updateSimDeptFillRate = updateSimDeptFillRate;
 window.updateSimulationUI = updateSimulationUI;
 window.openSimDeptRoomsModal = openSimDeptRoomsModal;
+window.updateRoomType = updateRoomType;
 window.updateSimTuition = updateSimTuition;
 window.updateRentBlockCost = updateRentBlockCost;
 window.updateRentBlockPercent = updateRentBlockPercent;
