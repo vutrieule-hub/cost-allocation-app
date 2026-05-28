@@ -1905,6 +1905,23 @@ function getActiveRoomCounts() {
 let allocationResult = {};
 
 function runAllocation() {
+    // Tự động tổng hợp động sỹ số học sinh của các khối trực tiếp (dept.students) từ các phòng học đang sử dụng
+    if (appState.departments && appState.rooms) {
+        appState.departments.forEach(dept => {
+            if (dept.type === "revenue") {
+                dept.students = appState.rooms.reduce((sum, room) => {
+                    if (room && room.status === "active" && room.type !== "functional" && room.splits) {
+                        const splitRatio = room.splits[dept.id] || 0;
+                        if (splitRatio > 0) {
+                            return sum + Math.round((room.currentStudents || 0) * (splitRatio / 100));
+                        }
+                    }
+                    return sum;
+                }, 0);
+            }
+        });
+    }
+
     // Automatically enforce that Primary/THCS classrooms (without THPT) are Green track and max capacity 25
     if (appState.rooms) {
         appState.rooms.forEach(room => {
@@ -6923,9 +6940,23 @@ function handleRoomDrop(e, targetRoomId) {
         const toIndex = appState.rooms.findIndex(r => r.id === targetRoomId);
         
         if (fromIndex !== -1 && toIndex !== -1) {
+            const draggedRoom = appState.rooms[fromIndex];
+            const targetRoom = appState.rooms[toIndex];
+            if (draggedRoom && targetRoom) {
+                // Cập nhật blockId của phòng kéo thả khớp với dãy nhà của phòng đích
+                draggedRoom.blockId = targetRoom.blockId;
+            }
+            
             // Thay đổi vị trí của phòng trong mảng dữ liệu
-            const [draggedRoom] = appState.rooms.splice(fromIndex, 1);
-            appState.rooms.splice(toIndex, 0, draggedRoom);
+            appState.rooms.splice(fromIndex, 1);
+            
+            // Tìm lại chỉ mục mới của phòng đích vì mảng đã bị thay đổi sau khi cắt bớt
+            const newToIndex = appState.rooms.findIndex(r => r.id === targetRoomId);
+            if (newToIndex !== -1) {
+                appState.rooms.splice(newToIndex, 0, draggedRoom);
+            } else {
+                appState.rooms.push(draggedRoom);
+            }
             
             saveState();
             const result = runAllocation();
