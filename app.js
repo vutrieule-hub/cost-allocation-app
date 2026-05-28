@@ -5407,11 +5407,9 @@ function initApp() {
         document.head.appendChild(style);
     }
     
-    // Auto-reconnect to Firebase Cloud Sync if code exists
-    const savedCloudCode = localStorage.getItem("XTD_CLOUD_PROJECT_CODE");
-    if (savedCloudCode) {
-        connectCloudSync(savedCloudCode);
-    }
+    // Auto-reconnect to Firebase Cloud Sync if code exists (default to THG4XTD)
+    const savedCloudCode = localStorage.getItem("XTD_CLOUD_PROJECT_CODE") || "THG4XTD";
+    connectCloudSync(savedCloudCode);
     
     document.querySelectorAll(".nav-item").forEach(item => {
         item.addEventListener("click", () => {
