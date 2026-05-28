@@ -1647,19 +1647,56 @@ function loadState() {
                 "dept_noitru": 80
             },
             tuition: {
-                "dept_tieuhoc": 6000000,
-                "dept_thcs": 7000000,
-                "dept_thpt": 8000000,
+                "dept_tieuhoc_thuong": 5000000,
+                "dept_tieuhoc_xanh": 7500000,
+                "dept_thcs_thuong": 6000000,
+                "dept_thcs_xanh": 9000000,
+                "dept_thpt_thuong": 7000000,
+                "dept_thpt_xanh": 11000000,
                 "dept_noitru": 3000000
             }
         };
-    } else if (!appState.simulation.fillRates) {
-        appState.simulation.fillRates = {
-            "dept_tieuhoc": appState.simulation.fillRate || 80,
-            "dept_thcs": appState.simulation.fillRate || 80,
-            "dept_thpt": appState.simulation.fillRate || 80,
-            "dept_noitru": appState.simulation.fillRate || 80
-        };
+    } else {
+        if (!appState.simulation.fillRates) {
+            appState.simulation.fillRates = {
+                "dept_tieuhoc": appState.simulation.fillRate || 80,
+                "dept_thcs": appState.simulation.fillRate || 80,
+                "dept_thpt": appState.simulation.fillRate || 80,
+                "dept_noitru": appState.simulation.fillRate || 80
+            };
+        }
+        if (!appState.simulation.tuition || !appState.simulation.tuition.dept_tieuhoc_thuong) {
+            const oldTuition = appState.simulation.tuition || {};
+            appState.simulation.tuition = {
+                "dept_tieuhoc_thuong": oldTuition.dept_tieuhoc ? Math.round(oldTuition.dept_tieuhoc * 0.8) : 5000000,
+                "dept_tieuhoc_xanh": oldTuition.dept_tieuhoc ? Math.round(oldTuition.dept_tieuhoc * 1.2) : 7500000,
+                "dept_thcs_thuong": oldTuition.dept_thcs ? Math.round(oldTuition.dept_thcs * 0.8) : 6000000,
+                "dept_thcs_xanh": oldTuition.dept_thcs ? Math.round(oldTuition.dept_thcs * 1.2) : 9000000,
+                "dept_thpt_thuong": oldTuition.dept_thpt ? Math.round(oldTuition.dept_thpt * 0.8) : 7000000,
+                "dept_thpt_xanh": oldTuition.dept_thpt ? Math.round(oldTuition.dept_thpt * 1.2) : 11000000,
+                "dept_noitru": oldTuition.dept_noitru || 3000000
+            };
+        }
+    }
+
+    // Di trú dữ liệu cho thuộc tính "system" (Hệ đào tạo) của phòng học
+    if (appState.rooms) {
+        appState.rooms.forEach(room => {
+            if (!room.system) {
+                const lowerName = (room.name || "").toLowerCase();
+                if (lowerName.includes("xanh") || lowerName.includes("sáng tạo")) {
+                    room.system = "xanh";
+                    if (!room.capacity || room.capacity === 30 || room.capacity === 22) {
+                        room.capacity = 25; // Gán mặc định cho hệ xanh
+                    }
+                } else {
+                    room.system = "thuong";
+                    if (!room.capacity || room.capacity === 30 || room.capacity === 22) {
+                        room.capacity = 40; // Gán mặc định cho hệ thường
+                    }
+                }
+            }
+        });
     }
 
     // Khởi tạo tổng tiền thuê của chủ nhà mặc định khớp với tổng tiền thuê ban đầu (223,100,000đ)
@@ -1756,6 +1793,37 @@ function getActiveStudentCounts() {
     });
 
     return studentCounts;
+}
+
+function getSimulatedRevenueForDept(deptId) {
+    if (!appState.simulation || !appState.simulation.active) return 0;
+    
+    let totalRevenue = 0;
+    const fillRate = appState.simulation.fillRates?.[deptId] !== undefined 
+        ? appState.simulation.fillRates[deptId] 
+        : (appState.simulation.fillRate || 80);
+        
+    appState.rooms.forEach(room => {
+        if (room.status === "active" && room.type !== "functional") {
+            const splitRatio = room.splits[deptId] || 0;
+            if (splitRatio > 0) {
+                const roomSimStudents = room.capacity * (splitRatio / 100) * (fillRate / 100);
+                
+                // Xác định đơn giá học phí theo hệ đào tạo của phòng học
+                const isXanh = (room.system === "xanh");
+                const tuitionKey = `${deptId}_${isXanh ? 'xanh' : 'thuong'}`;
+                
+                // Fallback nếu không có cấu hình hệ đào tạo riêng (ví dụ: Ban nội trú không phân biệt hệ)
+                const tuitionRate = appState.simulation.tuition[tuitionKey] !== undefined 
+                    ? appState.simulation.tuition[tuitionKey] 
+                    : (appState.simulation.tuition[deptId] || 0);
+                    
+                totalRevenue += roomSimStudents * tuitionRate;
+            }
+        }
+    });
+    
+    return Math.round(totalRevenue);
 }
 
 function getActiveRoomCounts() {
@@ -2076,9 +2144,8 @@ function runAllocation() {
 
     // Sum overall calculations
     if (appState.simulation && appState.simulation.active) {
-        const activeStudents = getActiveStudentCounts();
         result.totalRevenue = revenueDepts.reduce((sum, rd) => {
-            return sum + ((activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0));
+            return sum + getSimulatedRevenueForDept(rd.id);
         }, 0);
     } else {
         result.totalRevenue = Object.values(appState.revenues).reduce((a, b) => a + b, 0);
@@ -2098,8 +2165,7 @@ function runAllocation() {
 
         let rdRev = appState.revenues[rd.id] || 0;
         if (appState.simulation && appState.simulation.active) {
-            const activeStudents = getActiveStudentCounts();
-            rdRev = (activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0);
+            rdRev = getSimulatedRevenueForDept(rd.id);
         }
         result.netProfit[rd.id] = rdRev - rdDirectCost - rdAllocatedSum - rdUtilitySum;
     });
@@ -2193,8 +2259,7 @@ function renderDashboard() {
     revenueDepts.forEach(rd => {
         let rdRev = appState.revenues?.[rd.id] || 0;
         if (appState.simulation && appState.simulation.active) {
-            const activeStudents = getActiveStudentCounts();
-            rdRev = (activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0);
+            rdRev = getSimulatedRevenueForDept(rd.id);
         }
         revHtml += `<td class="text-right">${formatCurrency(rdRev)}</td>`;
     });
@@ -2385,7 +2450,7 @@ function renderDashboardChart(revenueDepts, data) {
     const labels = (revenueDepts || []).map(rd => rd.name);
     const revenueData = (revenueDepts || []).map(rd => {
         if (isSim) {
-            return (activeStudents[rd.id] || 0) * (appState.simulation.tuition[rd.id] || 0);
+            return getSimulatedRevenueForDept(rd.id);
         }
         return appState.revenues?.[rd.id] || 0;
     });
@@ -4793,6 +4858,12 @@ function renderFacilities() {
                                     <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
                                     <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
                                 </select>
+                                ${room.type === 'classroom' ? `
+                                <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
+                                    <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
+                                    <option value="xanh" ${room.system === "xanh" ? "selected" : ""}>🌿 Hệ Xanh (max 25)</option>
+                                </select>
+                                ` : ''}
                             </div>
                         </td>
                         <td class="text-right"><strong>${formatCurrency(calculatedRoomCost)}</strong></td>
@@ -4867,6 +4938,12 @@ function renderFacilities() {
                                 <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
                                 <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
                             </select>
+                            ${room.type === 'classroom' ? `
+                            <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
+                                <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
+                                <option value="xanh" ${room.system === "xanh" ? "selected" : ""}>🌿 Hệ Xanh (max 25)</option>
+                            </select>
+                            ` : ''}
                         </div>
                     </td>
                     <td class="text-right"><strong>0 đ</strong></td>
@@ -4965,9 +5042,37 @@ function filterRoomsList() {
         }
     });
 
+    let thuongRoomsCount = 0;
+    let thuongRoomsCapacity = 0;
+    let xanhRoomsCount = 0;
+    let xanhRoomsCapacity = 0;
+
+    appState.rooms.forEach(room => {
+        if (room.status === "active" && room.type === "classroom") {
+            if (room.system === "xanh") {
+                xanhRoomsCount++;
+                xanhRoomsCapacity += (room.capacity || 25);
+            } else {
+                thuongRoomsCount++;
+                thuongRoomsCapacity += (room.capacity || 40);
+            }
+        }
+    });
+
     const countEl = document.getElementById("filtered_room_count");
     if (countEl) {
-        countEl.innerText = `Hiển thị: ${visibleCount} / ${totalCount} phòng`;
+        countEl.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 0.78rem;">
+                <span class="text-muted" style="font-weight: 600;">Hiển thị: ${visibleCount}/${totalCount} phòng</span>
+                <span style="color: rgba(0,0,0,0.15);">|</span>
+                <span style="background: rgba(0, 122, 255, 0.06); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    🏫 Hệ Thường: ${thuongRoomsCount} phòng (Max ${thuongRoomsCapacity} HS)
+                </span>
+                <span style="background: rgba(52, 199, 89, 0.06); color: var(--success); padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    🌿 Hệ Xanh: ${xanhRoomsCount} phòng (Max ${xanhRoomsCapacity} HS)
+                </span>
+            </div>
+        `;
     }
 }
 
@@ -5008,6 +5113,23 @@ function updateRoomType(roomId, newType) {
     const room = appState.rooms.find(r => r.id === roomId);
     if (room) {
         room.type = newType;
+        saveState();
+        runAllocation();
+        renderFacilities();
+        renderDashboard();
+    }
+}
+
+function updateRoomSystem(roomId, newSystem) {
+    const room = appState.rooms.find(r => r.id === roomId);
+    if (room) {
+        room.system = newSystem;
+        // Tự động gán sỹ số tối đa mặc định
+        if (newSystem === "xanh") {
+            room.capacity = 25;
+        } else {
+            room.capacity = 40;
+        }
         saveState();
         runAllocation();
         renderFacilities();
@@ -5444,14 +5566,20 @@ function initApp() {
         // Cập nhật giá trị và thông tin cho 4 thanh trượt mới của từng khối
         updateSimulationUI();
 
-        const txtTieuhoc = document.getElementById("txt_sim_tuition_tieuhoc");
-        const txtThcs = document.getElementById("txt_sim_tuition_thcs");
-        const txtThpt = document.getElementById("txt_sim_tuition_thpt");
+        const txtTieuhocThuong = document.getElementById("txt_sim_tuition_tieuhoc_thuong");
+        const txtTieuhocXanh = document.getElementById("txt_sim_tuition_tieuhoc_xanh");
+        const txtThcsThuong = document.getElementById("txt_sim_tuition_thcs_thuong");
+        const txtThcsXanh = document.getElementById("txt_sim_tuition_thcs_xanh");
+        const txtThptThuong = document.getElementById("txt_sim_tuition_thpt_thuong");
+        const txtThptXanh = document.getElementById("txt_sim_tuition_thpt_xanh");
         const txtNoitru = document.getElementById("txt_sim_tuition_noitru");
 
-        if (txtTieuhoc) txtTieuhoc.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc);
-        if (txtThcs) txtThcs.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs);
-        if (txtThpt) txtThpt.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt);
+        if (txtTieuhocThuong) txtTieuhocThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc_thuong);
+        if (txtTieuhocXanh) txtTieuhocXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc_xanh);
+        if (txtThcsThuong) txtThcsThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs_thuong);
+        if (txtThcsXanh) txtThcsXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs_xanh);
+        if (txtThptThuong) txtThptThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt_thuong);
+        if (txtThptXanh) txtThptXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt_xanh);
         if (txtNoitru) txtNoitru.value = formatNumberWithDots(appState.simulation.tuition.dept_noitru);
     }
     
@@ -5973,6 +6101,7 @@ function openSimDeptRoomsModal(deptId) {
         let totalMaxCap = 0;
         let totalSimStudents = 0;
         let totalRoomFraction = 0;
+        let totalSimRevenue = 0;
         
         let rowsHtml = "";
         blockRooms.forEach((room, idx) => {
@@ -6021,11 +6150,55 @@ function openSimDeptRoomsModal(deptId) {
                 `;
             }
             
+            let systemBadge = "";
+            let tuitionRevenueHtml = "";
+            
+            if (!isFunctional && room.type === "classroom") {
+                const isXanh = (room.system === "xanh");
+                systemBadge = isXanh 
+                    ? `<span class="badge" style="background: rgba(52, 199, 89, 0.08); color: var(--success); font-size: 0.68rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; margin-left: 6px;">🌿 Hệ Xanh</span>`
+                    : `<span class="badge" style="background: rgba(0, 122, 255, 0.08); color: var(--primary); font-size: 0.68rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; margin-left: 6px;">🏫 Hệ Thường</span>`;
+                
+                const tuitionKey = `${deptId}_${isXanh ? 'xanh' : 'thuong'}`;
+                const tuitionRate = appState.simulation.tuition[tuitionKey] !== undefined 
+                    ? appState.simulation.tuition[tuitionKey] 
+                    : (appState.simulation.tuition[deptId] || 0);
+                    
+                const simulatedRoomRevenue = shareSimStudents * tuitionRate;
+                totalSimRevenue += simulatedRoomRevenue;
+                
+                tuitionRevenueHtml = `
+                    <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 4px; font-weight: 600;">
+                        Đơn giá học phí: <span style="color: var(--success); font-weight: 700;">${formatNumberWithDots(tuitionRate)} đ</span>
+                        <span style="margin: 0 4px; color: #ccc;">|</span>
+                        Doanh thu gán: <span style="color: var(--danger); font-weight: 700;">${formatNumberWithDots(Math.round(simulatedRoomRevenue))} đ</span>
+                    </div>
+                `;
+            } else if (!isFunctional && room.type === "boarding") {
+                // Ban nội trú
+                systemBadge = `<span class="badge" style="background: rgba(255, 149, 0, 0.08); color: #FF9500; font-size: 0.68rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; margin-left: 6px;">🛌 Nội trú</span>`;
+                const tuitionRate = appState.simulation.tuition[deptId] || 0;
+                const simulatedRoomRevenue = shareSimStudents * tuitionRate;
+                totalSimRevenue += simulatedRoomRevenue;
+                
+                tuitionRevenueHtml = `
+                    <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 4px; font-weight: 600;">
+                        Phí nội trú: <span style="color: var(--success); font-weight: 700;">${formatNumberWithDots(tuitionRate)} đ</span>
+                        <span style="margin: 0 4px; color: #ccc;">|</span>
+                        Doanh thu gán: <span style="color: var(--danger); font-weight: 700;">${formatNumberWithDots(Math.round(simulatedRoomRevenue))} đ</span>
+                    </div>
+                `;
+            }
+            
             rowsHtml += `
                 <tr style="border-bottom: 1px solid rgba(0,0,0,0.04); transition: background 0.2s; ${isFunctional ? 'background: rgba(142,142,147,0.02);' : ''}">
                     <td style="padding: 12px 10px; font-weight: 700; font-size: 0.82rem; color: var(--text-primary);">
-                        <i class="fa-solid ${isFunctional ? 'fa-cubes' : 'fa-school'}" style="color: var(--text-secondary); margin-right: 6px; font-size: 0.75rem;"></i>
-                        ${room.name}
+                        <div style="display: flex; align-items: center; gap: 2px; flex-wrap: wrap;">
+                            <i class="fa-solid ${isFunctional ? 'fa-cubes' : (room.type === 'boarding' ? 'fa-hotel' : 'fa-school')}" style="color: var(--text-secondary); margin-right: 4px; font-size: 0.75rem;"></i>
+                            <span>${room.name}</span>
+                            ${systemBadge}
+                        </div>
+                        ${tuitionRevenueHtml}
                     </td>
                     <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 700; color: #555;">
                         <span class="badge" style="background: rgba(0,0,0,0.04); color: #333; padding: 2px 6px; border-radius: 4px;">${splitRatio}%</span>
@@ -6063,7 +6236,10 @@ function openSimDeptRoomsModal(deptId) {
                 <tfoot>
                     <tr style="background: rgba(0,0,0,0.02); font-weight: 800; border-top: 2px solid rgba(0,0,0,0.06);">
                         <td style="padding: 14px 10px; font-size: 0.8rem; color: var(--text-primary);">
-                            Quy mô học đường: <strong style="color: ${info.color}; font-size: 0.85rem;">${totalRoomFraction.toFixed(1)} phòng thường</strong>
+                            Quy mô học đường: <strong style="color: ${info.color}; font-size: 0.85rem;">${totalRoomFraction.toFixed(1)} phòng</strong>
+                            <div style="margin-top: 6px; font-size: 0.76rem; color: var(--text-secondary); font-weight: 550;">
+                                Tổng doanh thu học phí giả lập: <strong style="color: var(--danger); font-size: 0.88rem; font-weight: 800;">${formatCurrency(Math.round(totalSimRevenue))} / tháng</strong>
+                            </div>
                         </td>
                         <td style="padding: 14px 10px; text-align: center;">-</td>
                         <td style="padding: 14px 10px; text-align: center;">-</td>
@@ -6183,6 +6359,7 @@ window.updateSimDeptFillRate = updateSimDeptFillRate;
 window.updateSimulationUI = updateSimulationUI;
 window.openSimDeptRoomsModal = openSimDeptRoomsModal;
 window.updateRoomType = updateRoomType;
+window.updateRoomSystem = updateRoomSystem;
 window.updateSimTuition = updateSimTuition;
 window.updateRentBlockCost = updateRentBlockCost;
 window.updateRentBlockPercent = updateRentBlockPercent;

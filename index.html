@@ -275,18 +275,33 @@
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #007AFF; display: block; margin-bottom: 4px;">Học phí Tiểu học (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_tieuhoc" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="6.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc', this.value)">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #007AFF; display: block; margin-bottom: 4px;">Tiểu học - Thường (VNĐ/tháng):</label>
+                                <input type="text" id="txt_sim_tuition_tieuhoc_thuong" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="5.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc_thuong', this.value)">
                             </div>
                             <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #34C759; display: block; margin-bottom: 4px;">Học phí THCS (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_thcs" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="7.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thcs', this.value)">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #00A2FF; display: block; margin-bottom: 4px;">Tiểu học - Hệ Xanh (VNĐ/tháng):</label>
+                                <input type="text" id="txt_sim_tuition_tieuhoc_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="7.500.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc_xanh', this.value)">
+                            </div>
+                            
+                            <div>
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #34C759; display: block; margin-bottom: 4px;">THCS - Thường (VNĐ/tháng):</label>
+                                <input type="text" id="txt_sim_tuition_thcs_thuong" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="6.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thcs_thuong', this.value)">
                             </div>
                             <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #AF52DE; display: block; margin-bottom: 4px;">Học phí THPT (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_thpt" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="8.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thpt', this.value)">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #30D158; display: block; margin-bottom: 4px;">THCS - Hệ Xanh (VNĐ/tháng):</label>
+                                <input type="text" id="txt_sim_tuition_thcs_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="9.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thcs_xanh', this.value)">
+                            </div>
+                            
+                            <div>
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #AF52DE; display: block; margin-bottom: 4px;">THPT - Thường (VNĐ/tháng):</label>
+                                <input type="text" id="txt_sim_tuition_thpt_thuong" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="7.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thpt_thuong', this.value)">
                             </div>
                             <div>
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #BF5AF2; display: block; margin-bottom: 4px;">THPT - Hệ Xanh (VNĐ/tháng):</label>
+                                <input type="text" id="txt_sim_tuition_thpt_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="11.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thpt_xanh', this.value)">
+                            </div>
+                            
+                            <div style="grid-column: span 2;">
                                 <label style="font-size: 0.68rem; font-weight: 700; color: #FF9500; display: block; margin-bottom: 4px;">Phí bán trú/Nội trú (VNĐ/tháng):</label>
                                 <input type="text" id="txt_sim_tuition_noitru" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="3.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_noitru', this.value)">
                             </div>
