@@ -4155,35 +4155,40 @@ function renderEmployees() {
 
             // 4. Lưới nhập liệu tỷ lệ của 17 bộ phận (Chỉ hiển thị khi mở rộng - accordion)
             let ratiosGridHtml = `
-                <div id="ratio_grid_container_${emp.id}" style="display: none; padding: 10px; background: #FAFBFD; border: 1px solid rgba(0,0,0,0.05); border-radius: var(--radius-md); margin-top: 8px; flex-direction: column; gap: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.015);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 6px;">
-                        <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-sliders"></i>
-                            <span>Điều chỉnh phân bổ kiêm nhiệm:</span>
+                <div id="ratio_grid_container_${emp.id}" style="display: none; padding: 12px 14px; background: #F7F8FA; border: 1px solid rgba(0,0,0,0.06); border-radius: var(--radius-md); margin-top: 8px; flex-direction: column; gap: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.015);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; border-bottom: 1px dashed rgba(0,0,0,0.07); padding-bottom: 8px;">
+                        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-sliders" style="color: var(--info);"></i>
+                            <span>Phân bổ kiêm nhiệm theo từng bộ phận:</span>
                         </div>
-                        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); padding: 1px; border-radius: 5px; width: fit-content; align-items: center;">
-                            <button class="btn btn-sm" style="padding: 1.5px 6px; font-size: 0.62rem; border-radius: 4px; border: none; background: ${!isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${!isAmountMode ? '700' : '500'}; box-shadow: ${!isAmountMode ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'}; cursor: pointer; color: ${!isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'percentage')">% Tỷ lệ</button>
-                            <button class="btn btn-sm" style="padding: 1.5px 6px; font-size: 0.62rem; border-radius: 4px; border: none; background: ${isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${isAmountMode ? '700' : '500'}; box-shadow: ${isAmountMode ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'}; cursor: pointer; color: ${isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'amount')">VND Số tiền</button>
+                        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); padding: 2px; border-radius: 6px; width: fit-content; align-items: center;">
+                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${!isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${!isAmountMode ? '700' : '500'}; box-shadow: ${!isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${!isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'percentage')">% Tỷ lệ</button>
+                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${isAmountMode ? '700' : '500'}; box-shadow: ${isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'amount')">VNĐ Số tiền</button>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%;">`;
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%;">`;
             
             nonUtilityDepts.forEach(d => {
                 const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
                 const theme = getDeptTheme(d.name);
                 const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
+                const pctWidth = isAmountMode
+                    ? (emp.salary > 0 ? Math.min(100, Math.round(val / emp.salary * 100)) : 0)
+                    : Math.min(100, val);
                 ratiosGridHtml += `
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 5px; transition: all 0.2s; min-width: 0;" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
-                        <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
-                            <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 4px; flex-shrink: 0;"></span>
-                            <span style="font-size: 0.68rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${d.name}">${shortName}</span>
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.07); border-left: 3px solid ${theme.color}; border-radius: 7px; transition: box-shadow 0.2s; min-width: 0;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='none'">
+                        <div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0; gap: 3px;">
+                            <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${d.name}">${shortName}</span>
+                            <div style="height: 3px; border-radius: 2px; background: rgba(0,0,0,0.06); overflow: hidden;">
+                                <div style="height: 100%; width: ${pctWidth}%; background: ${theme.color}; border-radius: 2px; transition: width 0.3s;"></div>
+                            </div>
                         </div>
-                        <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 4px; padding: 1px 4px; width: ${isAmountMode ? '75px' : '42px'}; justify-content: space-between; height: 18px; flex-shrink: 0;">
-                            <input type="${isAmountMode ? 'text' : 'number'}" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.68rem; font-weight: 700; color: var(--text-primary); width: ${isAmountMode ? '55px' : '22px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                        <div style="display: flex; align-items: center; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.09); border-radius: 6px; padding: 3px 7px; width: ${isAmountMode ? '90px' : '54px'}; justify-content: flex-end; gap: 2px; flex-shrink: 0; height: 28px;">
+                            <input type="${isAmountMode ? 'text' : 'number'}" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 800; color: ${val > 0 ? theme.color : 'var(--text-secondary)'}; width: ${isAmountMode ? '68px' : '32px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
                               value="${isAmountMode ? formatNumberWithDots(val) : val}" 
                               oninput="${isAmountMode ? 'handleMoneyInput(this)' : ''}"
-                              onchange="updateEmployeeRatio('${emp.id}', '${d.id}', ${isAmountMode ? 'parseMoneyValue(this.value)' : 'this.value'})">
-                            <span style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); user-select: none;">${isAmountMode ? 'đ' : '%'}</span>
+                              onchange="updateEmployeeRatio('${emp.id}', '${d.id}', ${isAmountMode ? 'parseMoneyValue(this.value)' : 'this.value'}); this.style.color = (${isAmountMode ? 'parseMoneyValue(this.value)' : 'parseFloat(this.value)||0'}) > 0 ? '${theme.color}' : 'var(--text-secondary)'">
+                            <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); user-select: none; flex-shrink:0;">${isAmountMode ? 'đ' : '%'}</span>
                         </div>
                     </div>
                 `;
@@ -4617,25 +4622,31 @@ function toggleMultiLevelInputs() {
             return { color: "#FF9500" };
         };
 
+        const isAmountMode = currentEmpAddAllocationMode === "amount";
+        const empSalary = parseMoneyValue(document.getElementById("emp_add_salary").value) || 0;
+
         appState.departments.filter(dept => !dept.isUtility).forEach(dept => {
             const theme = getDeptTheme(dept.name);
             const shortName = dept.name.replace("Khối ", "").replace("Ban ", "");
-            
-            const isAmountMode = currentEmpAddAllocationMode === "amount";
-            const empSalary = parseMoneyValue(document.getElementById("emp_add_salary").value) || 0;
             const defaultVal = dept.id === document.getElementById("emp_add_dept").value ? (isAmountMode ? empSalary : 100) : 0;
-            
+            const pctWidth = 0; // starts empty for new entries
+
             grid.innerHTML += `
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);" onmouseover="this.style.borderColor='rgba(0,0,0,0.18)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.08)'">
-                    <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 6px;">
-                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: ${theme.color}; margin-right: 6px; flex-shrink: 0;"></span>
-                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);" title="${dept.name}">${shortName}</span>
+                <div style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.07); border-left: 3px solid ${theme.color}; border-radius: 8px; transition: box-shadow 0.2s; min-width: 0;" onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,0.07)'" onmouseout="this.style.boxShadow='none'">
+                    <div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0; gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: ${theme.color}; flex-shrink: 0;"></span>
+                            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dept.name}">${shortName}</span>
+                        </div>
+                        <div style="height: 3px; border-radius: 2px; background: rgba(0,0,0,0.06); overflow: hidden;">
+                            <div class="emp-add-bar-${dept.id}" style="height: 100%; width: ${pctWidth}%; background: ${theme.color}; border-radius: 2px; transition: width 0.3s;"></div>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: ${isAmountMode ? '80px' : '50px'}; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
-                        <input type="${isAmountMode ? 'text' : 'number'}" ${isAmountMode ? '' : 'min="0" max="100"'} class="emp-add-ratio-val ${isAmountMode ? 'money-input' : 'ratio-pct-input'}" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: ${isAmountMode ? '60px' : '28px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                    <div style="display: flex; align-items: center; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.09); border-radius: 7px; padding: 4px 8px; width: ${isAmountMode ? '100px' : '64px'}; justify-content: flex-end; gap: 3px; flex-shrink: 0; height: 32px;">
+                        <input type="${isAmountMode ? 'text' : 'number'}" ${isAmountMode ? '' : 'min="0" max="100"'} class="emp-add-ratio-val ${isAmountMode ? 'money-input' : 'ratio-pct-input'}" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.85rem; font-weight: 800; color: ${defaultVal > 0 ? theme.color : 'var(--text-secondary)'}; width: ${isAmountMode ? '76px' : '38px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
                           value="${isAmountMode ? formatNumberWithDots(defaultVal) : defaultVal}" 
                           oninput="${isAmountMode ? 'handleMoneyInput(this); updateEmpAddRatiosSummary();' : 'updateEmpAddRatiosSummary();'}">
-                        <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">${isAmountMode ? 'đ' : '%'}</span>
+                        <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); user-select: none; flex-shrink:0;">${isAmountMode ? 'đ' : '%'}</span>
                     </div>
                 </div>
             `;
