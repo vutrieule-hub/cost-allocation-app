@@ -1783,10 +1783,10 @@ function getActiveStudentCounts() {
     if (appState.simulation && appState.simulation.active) {
         if (!appState.simulation.fillRates) {
             appState.simulation.fillRates = {
-                "dept_tieuhoc": appState.simulation.fillRate || 80,
-                "dept_thcs": appState.simulation.fillRate || 80,
-                "dept_thpt": appState.simulation.fillRate || 80,
-                "dept_noitru": appState.simulation.fillRate || 80
+                "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+                "dept_thcs": getActualFillRateForDept("dept_thcs"),
+                "dept_thpt": getActualFillRateForDept("dept_thpt"),
+                "dept_noitru": getActualFillRateForDept("dept_noitru")
             };
         }
         appState.rooms.forEach(room => {
@@ -1816,17 +1816,36 @@ function getActiveStudentCounts() {
 
 function getActualFillRateForDept(deptId) {
     let maxCapacity = 0;
+    let actualStudents = 0;
+    
+    const dept = appState.departments ? appState.departments.find(d => d.id === deptId) : null;
+    actualStudents = dept ? (dept.students || 0) : 0;
+
     if (appState.rooms) {
         appState.rooms.forEach(room => {
-            if (room.status === "active" && room.type !== "functional" && room.splits && room.splits[deptId] > 0) {
-                const ratio = room.splits[deptId] / 100;
-                maxCapacity += room.capacity * ratio;
+            if (room.status === "active" && room.type !== "functional" && room.splits) {
+                const splitRatio = room.splits[deptId] || 0;
+                if (splitRatio > 0) {
+                    const ratio = splitRatio / 100;
+                    maxCapacity += (room.capacity || 0) * ratio;
+                }
             }
         });
     }
-    const dept = appState.departments ? appState.departments.find(d => d.id === deptId) : null;
-    const actualStudents = dept ? (dept.students || 0) : 0;
-    return maxCapacity > 0 ? Math.max(0, Math.min(100, Math.round((actualStudents / maxCapacity) * 100))) : 80;
+
+    console.log(`[getActualFillRateForDept] dept: ${deptId}, students: ${actualStudents}, maxCapacity: ${maxCapacity}`);
+
+    if (maxCapacity > 0) {
+        return Math.max(0, Math.min(100, Math.round((actualStudents / maxCapacity) * 100)));
+    }
+    
+    // Realistic fallbacks based on original default dataset:
+    if (deptId === "dept_tieuhoc") return 26; // 45 students / 176 capacity
+    if (deptId === "dept_thcs") return 25; // 55 students / 220 capacity
+    if (deptId === "dept_thpt") return 56; // 147 students / 264 capacity
+    if (deptId === "dept_noitru") return 23; // 42 students / 180 capacity
+    
+    return 80;
 }
 
 function getSimulatedRevenueForDept(deptId) {
@@ -6343,10 +6362,10 @@ function switchScenarioMode(mode) {
             active: false,
             fillRate: 80,
             fillRates: {
-                "dept_tieuhoc": 80,
-                "dept_thcs": 80,
-                "dept_thpt": 80,
-                "dept_noitru": 80
+                "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+                "dept_thcs": getActualFillRateForDept("dept_thcs"),
+                "dept_thpt": getActualFillRateForDept("dept_thpt"),
+                "dept_noitru": getActualFillRateForDept("dept_noitru")
             },
             tuition: {
                 "dept_tieuhoc": 6000000,
@@ -6376,6 +6395,8 @@ function switchScenarioMode(mode) {
             btnActual.classList.remove("active");
             btnSim.classList.add("active");
             if (controlsPanel) controlsPanel.style.display = "block";
+            // Ensure simulation UI values and sub-labels are synchronized
+            updateSimulationUI();
         } else {
             btnActual.classList.add("active");
             btnSim.classList.remove("active");
