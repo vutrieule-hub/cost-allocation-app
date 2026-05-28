@@ -191,7 +191,12 @@
                         <!-- 1. Tiểu học Slider -->
                         <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(0,0,0,0.04); padding-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #007AFF;"><i class="fa-solid fa-graduation-cap"></i> Khối Tiểu học:</span>
+                                <span style="font-size: 0.76rem; font-weight: 700; color: #007AFF; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-graduation-cap"></i> Khối Tiểu học:
+                                    <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #007AFF; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_tieuhoc')">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
+                                    </span>
+                                </span>
                                 <span id="lbl_sim_fill_rate_dept_tieuhoc" style="font-size: 0.78rem; font-weight: 800; color: #007AFF; background: rgba(0, 122, 255, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -205,7 +210,12 @@
                         <!-- 2. THCS Slider -->
                         <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(0,0,0,0.04); padding-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #34C759;"><i class="fa-solid fa-graduation-cap"></i> Khối THCS:</span>
+                                <span style="font-size: 0.76rem; font-weight: 700; color: #34C759; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-graduation-cap"></i> Khối THCS:
+                                    <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #34C759; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_thcs')">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
+                                    </span>
+                                </span>
                                 <span id="lbl_sim_fill_rate_dept_thcs" style="font-size: 0.78rem; font-weight: 800; color: #34C759; background: rgba(52, 199, 89, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -219,7 +229,12 @@
                         <!-- 3. THPT Slider -->
                         <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(0,0,0,0.04); padding-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #AF52DE;"><i class="fa-solid fa-graduation-cap"></i> Khối THPT:</span>
+                                <span style="font-size: 0.76rem; font-weight: 700; color: #AF52DE; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-graduation-cap"></i> Khối THPT:
+                                    <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #AF52DE; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_thpt')">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
+                                    </span>
+                                </span>
                                 <span id="lbl_sim_fill_rate_dept_thpt" style="font-size: 0.78rem; font-weight: 800; color: #AF52DE; background: rgba(175, 82, 222, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -233,7 +248,12 @@
                         <!-- 4. Nội trú Slider -->
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #FF9500;"><i class="fa-solid fa-hotel"></i> Khối Nội trú:</span>
+                                <span style="font-size: 0.76rem; font-weight: 700; color: #FF9500; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-hotel"></i> Khối Nội trú:
+                                    <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #FF9500; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_noitru')">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
+                                    </span>
+                                </span>
                                 <span id="lbl_sim_fill_rate_dept_noitru" style="font-size: 0.78rem; font-weight: 800; color: #FF9500; background: rgba(255, 149, 0, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -1139,6 +1159,33 @@
         </div>
     </div>
 
+    <!-- ===================================================================
+         MODAL POPUP: DETAILED CLASSROOM FILL RATES
+         =================================================================== -->
+    <div class="modal-overlay" id="sim_dept_rooms_modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 12px;">
+                <h3 id="sim_dept_rooms_modal_title" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-hotel" style="color: var(--primary);"></i>
+                    Chi Tiết Lấp Đầy Lớp Học Thực Tế
+                </h3>
+                <button class="modal-close" onclick="closeModal('sim_dept_rooms_modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding-top: 15px;">
+                <div id="sim_dept_rooms_modal_desc" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.4; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 6px;">
+                    Danh sách phòng học đang được phân chia và giả lập cho khối học này.
+                </div>
+                
+                <div id="sim_dept_rooms_table_container" style="max-height: 380px; overflow-y: auto;">
+                    <!-- Dynamically populated from JS -->
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 15px; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('sim_dept_rooms_modal')">Đóng lại</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ===================================================================
          INTERACTIVE APPLE SIRI-STYLE HELPER BOT WIDGET

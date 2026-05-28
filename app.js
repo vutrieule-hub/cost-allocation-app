@@ -5886,6 +5886,145 @@ function updateRentBlockRoomCount(blockId, val) {
     renderFacilities();
 }
 
+function openSimDeptRoomsModal(deptId) {
+    const deptMap = {
+        "dept_tieuhoc": { name: "Khối Tiểu học", color: "#007AFF", icon: "fa-graduation-cap" },
+        "dept_thcs": { name: "Khối THCS", color: "#34C759", icon: "fa-graduation-cap" },
+        "dept_thpt": { name: "Khối THPT", color: "#AF52DE", icon: "fa-graduation-cap" },
+        "dept_noitru": { name: "Ban Nội trú", color: "#FF9500", icon: "fa-hotel" }
+    };
+    
+    const info = deptMap[deptId] || { name: "Khối học", color: "var(--primary)", icon: "fa-hotel" };
+    
+    // Set title
+    const titleEl = document.getElementById("sim_dept_rooms_modal_title");
+    if (titleEl) {
+        titleEl.innerHTML = `<i class="fa-solid ${info.icon}" style="color: ${info.color};"></i> Chi Tiết Phòng Học Giả Lập - ${info.name}`;
+    }
+    
+    // Set description
+    const descEl = document.getElementById("sim_dept_rooms_modal_desc");
+    const fillRate = appState.simulation && appState.simulation.fillRates && appState.simulation.fillRates[deptId] !== undefined 
+        ? appState.simulation.fillRates[deptId] 
+        : (appState.simulation ? appState.simulation.fillRate : 80);
+        
+    if (descEl) {
+        descEl.innerHTML = `
+            Dưới đây là danh sách các phòng học có phân bổ cho <strong>${info.name}</strong> đang hoạt động. 
+            Mô hình giả lập đang áp dụng tỷ lệ lấp đầy mục tiêu là <strong style="color:${info.color}; font-size: 1rem;">${fillRate}%</strong> cho khối này.
+        `;
+    }
+    
+    // Generate Table content
+    const container = document.getElementById("sim_dept_rooms_table_container");
+    if (!container) return;
+    
+    const blockRooms = appState.rooms.filter(room => room.status === "active" && room.splits[deptId] > 0);
+    
+    if (blockRooms.length === 0) {
+        container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; color: var(--text-secondary); text-align: center;">
+                <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px;"></i>
+                <p style="font-weight: 600; font-size: 0.85rem;">Không có phòng học hoạt động</p>
+                <p style="font-size: 0.75rem; max-width: 320px;">Vui lòng kiểm tra lại cấu hình phân chia phòng học cho khối này trong tab "Mặt bằng & Phòng học".</p>
+            </div>
+        `;
+    } else {
+        let totalMaxCap = 0;
+        let totalSimStudents = 0;
+        let totalRoomFraction = 0;
+        
+        let rowsHtml = "";
+        blockRooms.forEach((room, idx) => {
+            const splitRatio = room.splits[deptId] || 0;
+            const roomFraction = splitRatio / 100;
+            const shareMaxCapacity = room.capacity * roomFraction;
+            const shareSimStudents = shareMaxCapacity * (fillRate / 100);
+            
+            totalMaxCap += shareMaxCapacity;
+            totalSimStudents += shareSimStudents;
+            totalRoomFraction += roomFraction;
+            
+            const roundedSim = Math.round(shareSimStudents);
+            const roundedMax = Math.round(shareMaxCapacity);
+            
+            rowsHtml += `
+                <tr style="border-bottom: 1px solid rgba(0,0,0,0.04); transition: background 0.2s;">
+                    <td style="padding: 12px 10px; font-weight: 700; font-size: 0.82rem; color: var(--text-primary);">
+                        <i class="fa-solid fa-school" style="color: var(--text-secondary); margin-right: 6px; font-size: 0.75rem;"></i>
+                        ${room.name}
+                    </td>
+                    <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 700; color: #555;">
+                        <span class="badge" style="background: rgba(0,0,0,0.04); color: #333; padding: 2px 6px; border-radius: 4px;">${splitRatio}%</span>
+                    </td>
+                    <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">
+                        ${room.capacity} HS
+                    </td>
+                    <td style="padding: 12px 10px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text-primary);">
+                        ${roundedMax} HS
+                    </td>
+                    <td style="padding: 12px 10px; width: 160px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 700;">
+                                <span style="color: ${info.color};"><i class="fa-solid fa-user-check"></i> ${roundedSim} HS</span>
+                                <span style="color: var(--text-secondary);">${fillRate}%</span>
+                            </div>
+                            <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${fillRate}%; height: 100%; background: ${info.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        const roundedTotalMax = Math.round(totalMaxCap);
+        const roundedTotalSim = Math.round(totalSimStudents);
+        
+        container.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 2px solid rgba(0,0,0,0.06); background: rgba(0,0,0,0.01);">
+                        <th style="padding: 10px; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Phòng học</th>
+                        <th style="padding: 10px; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; text-align: center;">Tỉ lệ của khối</th>
+                        <th style="padding: 10px; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; text-align: center;">Sức chứa phòng</th>
+                        <th style="padding: 10px; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; text-align: center;">Sức chứa cho khối</th>
+                        <th style="padding: 10px; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Giả lập lấp đầy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+                <tfoot>
+                    <tr style="background: rgba(0,0,0,0.02); font-weight: 800; border-top: 2px solid rgba(0,0,0,0.06);">
+                        <td style="padding: 14px 10px; font-size: 0.8rem; color: var(--text-primary);">
+                            Tổng hợp quy mô: <strong style="color: ${info.color}; font-size: 0.85rem;">${totalRoomFraction.toFixed(1)} phòng</strong>
+                        </td>
+                        <td style="padding: 14px 10px; text-align: center;">-</td>
+                        <td style="padding: 14px 10px; text-align: center;">-</td>
+                        <td style="padding: 14px 10px; text-align: center; font-size: 0.8rem; color: var(--text-primary);">
+                            ${roundedTotalMax} HS
+                        </td>
+                        <td style="padding: 14px 10px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800;">
+                                    <span style="color: ${info.color};"><i class="fa-solid fa-circle-check"></i> ${roundedTotalSim} HS</span>
+                                    <span style="color: var(--text-secondary);">${fillRate}%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden;">
+                                    <div style="width: ${fillRate}%; height: 100%; background: ${info.color}; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+    }
+    
+    document.getElementById("sim_dept_rooms_modal").classList.add("open");
+}
+
 function renameRentBlock(blockId, newName) {
     const blk = appState.rentBlocks.find(b => b.id === blockId);
     if (!blk || !newName.trim()) return;
@@ -5900,6 +6039,7 @@ window.switchScenarioMode = switchScenarioMode;
 window.updateSimFillRate = updateSimFillRate;
 window.updateSimDeptFillRate = updateSimDeptFillRate;
 window.updateSimulationUI = updateSimulationUI;
+window.openSimDeptRoomsModal = openSimDeptRoomsModal;
 window.updateSimTuition = updateSimTuition;
 window.updateRentBlockCost = updateRentBlockCost;
 window.updateRentBlockPercent = updateRentBlockPercent;
