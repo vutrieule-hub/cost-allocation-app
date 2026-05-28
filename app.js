@@ -1790,7 +1790,7 @@ function getActiveStudentCounts() {
             };
         }
         appState.rooms.forEach(room => {
-            if (room.status === "active" && room.type !== "functional") {
+            if (room.status === "active" && room.type !== "functional" && room.splits) {
                 Object.keys(room.splits).forEach(did => {
                     if (studentCounts[did] !== undefined && room.splits[did] > 0) {
                         const targetFillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
@@ -1870,7 +1870,7 @@ function getActiveRoomCounts() {
     });
 
     appState.rooms.forEach(room => {
-        if (room.status === "active") {
+        if (room.status === "active" && room.splits) {
             Object.keys(room.splits).forEach(did => {
                 if (roomCounts[did] !== undefined) {
                     roomCounts[did] += (room.splits[did] || 0) / 100;
@@ -6413,7 +6413,7 @@ function updateSimulationUI() {
         let roomCount = 0;
         
         appState.rooms.forEach(room => {
-            if (room.status === "active" && room.type !== "functional" && room.splits[did] > 0) {
+            if (room.status === "active" && room.type !== "functional" && room.splits && room.splits[did] > 0) {
                 const ratio = room.splits[did] / 100;
                 maxCapacity += room.capacity * ratio;
                 roomCount += ratio;
