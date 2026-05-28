@@ -537,6 +537,12 @@
                         <p class="text-muted" style="font-size:0.85rem; margin-bottom:8px;">
                             <i class="fa-solid fa-calculator"></i> Nhập tỷ lệ (%) phân bổ lương / thời gian làm việc. Tổng tỷ lệ bắt buộc phải bằng 100%:
                         </p>
+                        <div id="emp_add_ratios_summary" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; background: rgba(255, 149, 0, 0.04); display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255, 149, 0, 0.3); transition: all 0.25s ease;">
+                            <div>Tổng tỷ lệ phân bổ: <span id="emp_add_total_pct" style="font-size: 0.95rem; font-weight: 800; color: var(--warning); transition: color 0.2s;">0%</span></div>
+                            <div id="emp_add_status_msg" style="color: var(--text-secondary); font-weight: 700; transition: color 0.2s;">
+                                <span style="color: var(--warning);"><i class="fa-solid fa-circle-exclamation"></i> Chưa đủ 100% (Thiếu 100%)</span>
+                            </div>
+                        </div>
                         <div class="ratios-grid">
                             <!-- Dynamic Ratio inputs built by JS -->
                         </div>

@@ -4495,14 +4495,49 @@ function toggleMultiLevelInputs() {
                     </div>
                     <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
                         <input type="number" min="0" max="100" class="emp-add-ratio-val ratio-pct-input" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
-                          value="${val}">
+                          value="${val}" oninput="updateEmpAddRatiosSummary()">
                         <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
                     </div>
                 </div>
             `;
         });
+        updateEmpAddRatiosSummary();
     } else {
         ratioWrapper.style.display = "none";
+    }
+}
+
+function updateEmpAddRatiosSummary() {
+    let total = 0;
+    document.querySelectorAll(".emp-add-ratio-val").forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+
+    const totalEl = document.getElementById("emp_add_total_pct");
+    const msgEl = document.getElementById("emp_add_status_msg");
+    const summaryBox = document.getElementById("emp_add_ratios_summary");
+
+    if (totalEl && msgEl && summaryBox) {
+        totalEl.textContent = total + "%";
+        
+        if (Math.abs(total - 100) < 0.1) {
+            totalEl.style.color = "var(--success)";
+            msgEl.innerHTML = `<span style="color: var(--success);"><i class="fa-solid fa-circle-check"></i> Đã đủ 100% (Hợp lệ)</span>`;
+            summaryBox.style.borderColor = "rgba(52, 199, 89, 0.35)";
+            summaryBox.style.background = "rgba(52, 199, 89, 0.04)";
+        } else if (total < 100) {
+            totalEl.style.color = "var(--warning)";
+            const diff = (100 - total).toFixed(0);
+            msgEl.innerHTML = `<span style="color: var(--warning);"><i class="fa-solid fa-circle-exclamation"></i> Chưa đủ 100% (Thiếu ${diff}%)</span>`;
+            summaryBox.style.borderColor = "rgba(255, 149, 0, 0.35)";
+            summaryBox.style.background = "rgba(255, 149, 0, 0.04)";
+        } else {
+            totalEl.style.color = "var(--danger)";
+            const diff = (total - 100).toFixed(0);
+            msgEl.innerHTML = `<span style="color: var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Vượt quá 100% (Thừa ${diff}%)</span>`;
+            summaryBox.style.borderColor = "rgba(255, 59, 48, 0.35)";
+            summaryBox.style.background = "rgba(255, 59, 48, 0.04)";
+        }
     }
 }
 
@@ -6397,5 +6432,6 @@ window.handleRoomDragOver = handleRoomDragOver;
 window.handleRoomDragLeave = handleRoomDragLeave;
 window.handleRoomDrop = handleRoomDrop;
 window.handleRoomDragEnd = handleRoomDragEnd;
+window.updateEmpAddRatiosSummary = updateEmpAddRatiosSummary;
 
 
