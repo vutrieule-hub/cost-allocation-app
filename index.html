@@ -697,16 +697,28 @@
 
                 <!-- Bảng danh sách chi tiết phòng học -->
                 <div class="card">
-                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem;">
-                        <div>
-                            <h2>Bảng Phân bổ chi tiết & Quản lý sỹ số học sinh từng phòng</h2>
-                            <p style="font-size:0.82rem; color: var(--text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span>Xem chi tiết giá thuê quy đổi của từng phòng và các khối học tương ứng gánh chịu chi phí.</span>
-                                <span style="background: rgba(0, 122, 255, 0.05); border: 1px solid rgba(0, 122, 255, 0.15); color: var(--primary); padding: 3px 10px; border-radius: 6px; font-size: 0.74rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm);">
-                                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
-                                    <strong>Nguyên lý giả lập:</strong> Phòng phân loại Dùng chung chỉ dùng để gánh chi phí thuê (không tạo doanh thu) | Phòng Lớp học & Nội trú sẽ dùng để giả lập doanh thu dựa trên số lượng học sinh lấp đầy.
-                                </span>
-                            </p>
+                    <div class="section-header" style="margin-bottom: 1.2rem;">
+                        <h2>Bảng Phân bổ chi tiết & Quản lý sỹ số học sinh từng phòng</h2>
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                            Xem chi tiết giá thuê quy đổi của từng phòng và các khối học tương ứng gánh chịu chi phí.
+                        </p>
+                    </div>
+
+                    <!-- Premium Explanation Callout Box -->
+                    <div style="background: rgba(0, 122, 255, 0.04); border: 1px solid rgba(0, 122, 255, 0.12); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px; box-shadow: var(--shadow-sm);">
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: rgba(0, 122, 255, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+                            <i class="fa-solid fa-circle-info" style="color: var(--primary); font-size: 0.9rem;"></i>
+                        </div>
+                        <div style="flex-grow: 1; font-size: 0.82rem; line-height: 1.6; color: var(--text-secondary);">
+                            <strong style="color: var(--primary); font-size: 0.88rem; display: block; margin-bottom: 6px; font-weight: 700;">💡 Nguyên Lý Vận Hành Giả Lập Lấp Đầy (What-If Analysis)</strong>
+                            <ul style="margin: 0; padding-left: 18px; list-style-type: disc; display: flex; flex-direction: column; gap: 4px;">
+                                <li>
+                                    <strong>Phòng Dùng chung (Phòng chức năng):</strong> Sẽ chỉ dùng để gánh chi phí thuê mặt bằng phân bổ từ các dãy nhà, hoàn toàn <span style="color: var(--danger); font-weight: 700; text-decoration: underline;">không</span> tạo ra doanh thu học phí giả lập và không tham gia tính toán tỷ lệ lấp đầy.
+                                </li>
+                                <li>
+                                    <strong>Phòng Lớp học & Phòng Nội trú:</strong> Được dùng trực tiếp để giả lập doanh thu học phí và phí nội trú dựa trên số lượng học sinh thực tế có thể lấp đầy (được tính theo sức chứa chuẩn của từng Hệ đào tạo và tỷ lệ lấp đầy mục tiêu của khối).
+                                </li>
+                            </ul>
                         </div>
                     </div>
 
