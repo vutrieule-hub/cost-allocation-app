@@ -2309,6 +2309,9 @@ let dashboardChart = null;
 function renderDashboard() {
     const data = runAllocation() || {};
 
+    // Đồng bộ giao diện giả lập What-If để luôn hiển thị khớp với appState thực tế (kể cả khi đồng bộ đám mây)
+    updateSimulationUI();
+
     // Render KPI Values
     const totalSalary = (appState.employees || []).reduce((acc, curr) => acc + (curr.salary || 0), 0);
     const totalRent = (appState.rentBlocks || []).reduce((acc, curr) => acc + (curr.totalRent || 0), 0);
@@ -6461,7 +6464,8 @@ function updateSimulationUI() {
         const lblRate = document.getElementById(`lbl_sim_fill_rate_dept_${did}`);
         const lblInfo = document.getElementById(`lbl_sim_info_dept_${did}`);
         
-        if (slider) {
+        // Chỉ cập nhật giá trị nếu người dùng không đang trực tiếp kéo/tương tác với slider đó
+        if (slider && document.activeElement !== slider) {
             slider.value = fillRate;
             slider.setAttribute("data-max-capacity", maxCapacity);
         }
@@ -6477,6 +6481,31 @@ function updateSimulationUI() {
             `;
         }
     });
+
+    // Cập nhật giá trị đơn giá học phí giả lập trong UI nếu người dùng không đang nhập liệu vào đó (tránh nhảy con trỏ chuột)
+    if (appState.simulation.tuition) {
+        const txtTieuhocXanh = document.getElementById("txt_sim_tuition_tieuhoc_xanh");
+        const txtThcsXanh = document.getElementById("txt_sim_tuition_thcs_xanh");
+        const txtThptThuong = document.getElementById("txt_sim_tuition_thpt_thuong");
+        const txtThptXanh = document.getElementById("txt_sim_tuition_thpt_xanh");
+        const txtNoitru = document.getElementById("txt_sim_tuition_noitru");
+
+        if (txtTieuhocXanh && document.activeElement !== txtTieuhocXanh) {
+            txtTieuhocXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc_xanh);
+        }
+        if (txtThcsXanh && document.activeElement !== txtThcsXanh) {
+            txtThcsXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs_xanh);
+        }
+        if (txtThptThuong && document.activeElement !== txtThptThuong) {
+            txtThptThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt_thuong);
+        }
+        if (txtThptXanh && document.activeElement !== txtThptXanh) {
+            txtThptXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt_xanh);
+        }
+        if (txtNoitru && document.activeElement !== txtNoitru) {
+            txtNoitru.value = formatNumberWithDots(appState.simulation.tuition.dept_noitru);
+        }
+    }
 }
 
 function updateSimDeptFillRateVisual(deptId, val) {
