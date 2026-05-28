@@ -1659,10 +1659,10 @@ function loadState() {
     } else {
         if (!appState.simulation.fillRates) {
             appState.simulation.fillRates = {
-                "dept_tieuhoc": appState.simulation.fillRate || 80,
-                "dept_thcs": appState.simulation.fillRate || 80,
-                "dept_thpt": appState.simulation.fillRate || 80,
-                "dept_noitru": appState.simulation.fillRate || 80
+                "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+                "dept_thcs": getActualFillRateForDept("dept_thcs"),
+                "dept_thpt": getActualFillRateForDept("dept_thpt"),
+                "dept_noitru": getActualFillRateForDept("dept_noitru")
             };
         }
         if (!appState.simulation.tuition || !appState.simulation.tuition.dept_tieuhoc_thuong) {
@@ -1803,6 +1803,21 @@ function getActiveStudentCounts() {
     return studentCounts;
 }
 
+function getActualFillRateForDept(deptId) {
+    let maxCapacity = 0;
+    if (appState.rooms) {
+        appState.rooms.forEach(room => {
+            if (room.status === "active" && room.type !== "functional" && room.splits && room.splits[deptId] > 0) {
+                const ratio = room.splits[deptId] / 100;
+                maxCapacity += room.capacity * ratio;
+            }
+        });
+    }
+    const dept = appState.departments ? appState.departments.find(d => d.id === deptId) : null;
+    const actualStudents = dept ? (dept.students || 0) : 0;
+    return maxCapacity > 0 ? Math.max(0, Math.min(100, Math.round((actualStudents / maxCapacity) * 100))) : 80;
+}
+
 function getSimulatedRevenueForDept(deptId) {
     if (!appState.simulation || !appState.simulation.active) return 0;
     
@@ -1818,7 +1833,10 @@ function getSimulatedRevenueForDept(deptId) {
                 const roomSimStudents = room.capacity * (splitRatio / 100) * (fillRate / 100);
                 
                 // Xác định đơn giá học phí theo hệ đào tạo của phòng học
-                const isXanh = (room.system === "xanh");
+                let isXanh = (room.system === "xanh");
+                if (deptId === "dept_tieuhoc" || deptId === "dept_thcs") {
+                    isXanh = true; // Chỉ có hệ xanh cho Tiểu học & THCS
+                }
                 const tuitionKey = `${deptId}_${isXanh ? 'xanh' : 'thuong'}`;
                 
                 // Fallback nếu không có cấu hình hệ đào tạo riêng (ví dụ: Ban nội trú không phân biệt hệ)
@@ -6328,10 +6346,10 @@ function switchScenarioMode(mode) {
         };
     } else if (!appState.simulation.fillRates) {
         appState.simulation.fillRates = {
-            "dept_tieuhoc": appState.simulation.fillRate || 80,
-            "dept_thcs": appState.simulation.fillRate || 80,
-            "dept_thpt": appState.simulation.fillRate || 80,
-            "dept_noitru": appState.simulation.fillRate || 80
+            "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+            "dept_thcs": getActualFillRateForDept("dept_thcs"),
+            "dept_thpt": getActualFillRateForDept("dept_thpt"),
+            "dept_noitru": getActualFillRateForDept("dept_noitru")
         };
     }
 
@@ -6364,10 +6382,10 @@ function updateSimulationUI() {
     
     if (!appState.simulation.fillRates) {
         appState.simulation.fillRates = {
-            "dept_tieuhoc": appState.simulation.fillRate || 80,
-            "dept_thcs": appState.simulation.fillRate || 80,
-            "dept_thpt": appState.simulation.fillRate || 80,
-            "dept_noitru": appState.simulation.fillRate || 80
+            "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+            "dept_thcs": getActualFillRateForDept("dept_thcs"),
+            "dept_thpt": getActualFillRateForDept("dept_thpt"),
+            "dept_noitru": getActualFillRateForDept("dept_noitru")
         };
     }
     
@@ -6395,6 +6413,10 @@ function updateSimulationUI() {
         const fillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
         const simulatedStudents = Math.round(maxCapacity * (fillRate / 100));
         
+        const deptObj = appState.departments.find(d => d.id === did);
+        const actualStudents = deptObj ? (deptObj.students || 0) : 0;
+        const actualFillRate = maxCapacity > 0 ? Math.round((actualStudents / maxCapacity) * 100) : 0;
+        
         const slider = document.getElementById(`slider_sim_fill_rate_dept_${did}`);
         const lblRate = document.getElementById(`lbl_sim_fill_rate_dept_${did}`);
         const lblInfo = document.getElementById(`lbl_sim_info_dept_${did}`);
@@ -6403,10 +6425,11 @@ function updateSimulationUI() {
         if (lblRate) lblRate.innerText = fillRate + "%";
         if (lblInfo) {
             lblInfo.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px; background: #F8F9FA; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px; background: #F8F9FA; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.03); flex-wrap: wrap; gap: 8px;">
                     <span><i class="fa-solid fa-calculator" style="margin-right: 4px; color: var(--text-secondary);"></i>Quy mô: <strong>${roomCount.toFixed(1)} phòng</strong></span>
                     <span>Sức chứa: <strong>${maxCapacity} HS</strong></span>
-                    <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-user-check" style="margin-right: 4px;"></i>Giả lập: <strong>${simulatedStudents} HS</strong></span>
+                    <span>Thực tế: <strong style="color: var(--success);">${actualStudents} HS (${actualFillRate}%)</strong></span>
+                    <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-user-check" style="margin-right: 4px;"></i>Giả lập: <strong>${simulatedStudents} HS (${fillRate}%)</strong></span>
                 </div>
             `;
         }
@@ -6417,10 +6440,10 @@ function updateSimDeptFillRate(deptId, val) {
     if (!appState.simulation) return;
     if (!appState.simulation.fillRates) {
         appState.simulation.fillRates = {
-            "dept_tieuhoc": appState.simulation.fillRate || 80,
-            "dept_thcs": appState.simulation.fillRate || 80,
-            "dept_thpt": appState.simulation.fillRate || 80,
-            "dept_noitru": appState.simulation.fillRate || 80
+            "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+            "dept_thcs": getActualFillRateForDept("dept_thcs"),
+            "dept_thpt": getActualFillRateForDept("dept_thpt"),
+            "dept_noitru": getActualFillRateForDept("dept_noitru")
         };
     }
     const intVal = parseInt(val, 10) || 0;
