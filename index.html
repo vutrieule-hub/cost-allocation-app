@@ -700,7 +700,13 @@
                     <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem;">
                         <div>
                             <h2>Bảng Phân bổ chi tiết & Quản lý sỹ số học sinh từng phòng</h2>
-                            <p style="font-size:0.82rem; color: var(--text-secondary); margin-top: 4px;">Xem chi tiết giá thuê quy đổi của từng phòng và các khối học tương ứng gánh chịu chi phí</p>
+                            <p style="font-size:0.82rem; color: var(--text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span>Xem chi tiết giá thuê quy đổi của từng phòng và các khối học tương ứng gánh chịu chi phí.</span>
+                                <span style="background: rgba(0, 122, 255, 0.05); border: 1px solid rgba(0, 122, 255, 0.15); color: var(--primary); padding: 3px 10px; border-radius: 6px; font-size: 0.74rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm);">
+                                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
+                                    <strong>Nguyên lý giả lập:</strong> Lớp học & Nội trú tham gia tính doanh thu lấp đầy | Dùng chung chỉ gánh chi phí thuê, không tạo doanh thu.
+                                </span>
+                            </p>
                         </div>
                     </div>
 
@@ -725,22 +731,9 @@
                                     <th style="width: 50px;">STT</th>
                                     <th style="min-width: 200px; position: relative;">
                                         Phòng vật lý / Lớp học 
-                                        <span class="hover-opacity" style="cursor: help; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-left: 4px; background: rgba(0, 122, 255, 0.08); width: 17px; height: 17px; border-radius: 50%; position: relative; overflow: visible;" 
-                                              onmouseenter="const box = this.querySelector('.custom-tooltip-box'); if (box) { box.style.visibility='visible'; box.style.opacity='1'; }" 
-                                              onmouseleave="const box = this.querySelector('.custom-tooltip-box'); if (box) { box.style.visibility='hidden'; box.style.opacity='0'; }"
-                                              onclick="event.stopPropagation();">
+                                        <span class="hover-opacity" style="cursor: help; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-left: 4px; background: rgba(0, 122, 255, 0.08); width: 17px; height: 17px; border-radius: 50%;" 
+                                              title="Giải thích phân loại phòng học:&#10;&#10;- 🏫 Lớp học / 🛌 Nội trú: Tham gia giả lập sỹ số & tạo doanh thu học phí theo Hệ đào tạo trong kịch bản lấp đầy What-If.&#10;- 🛠 Dùng chung: Là các phòng chức năng chỉ gánh bổ chi phí mặt bằng của trường, hoàn toàn KHÔNG gán doanh thu giả lập hay sỹ số trong kịch bản.">
                                             <i class="fa-solid fa-circle-question" style="color: var(--primary); font-size: 0.76rem;"></i>
-                                            <!-- Custom Instant SaaS Tooltip Box -->
-                                            <div class="custom-tooltip-box" style="visibility: hidden; opacity: 0; width: 300px; background: rgba(28, 28, 30, 0.96); color: #FFF; text-align: left; border-radius: 8px; padding: 12px 14px; position: absolute; z-index: 999999; bottom: 130%; left: 50%; transform: translateX(-50%); box-shadow: 0 8px 30px rgba(0,0,0,0.25); transition: opacity 0.15s ease, visibility 0.15s ease; font-size: 0.74rem; font-weight: normal; line-height: 1.55; border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); pointer-events: none; white-space: normal;">
-                                                <strong style="color: #0A84FF; font-size: 0.78rem; display: block; margin-bottom: 6px; font-weight: 700;"><i class="fa-solid fa-circle-info"></i> NGUYÊN LÝ PHÂN LOẠI PHÒNG HỌC</strong>
-                                                <div style="margin-bottom: 8px; color: rgba(255,255,255,0.9);">
-                                                    <span style="color: #30D158; font-weight: bold;">🏫 Lớp học / 🛌 Nội trú:</span> Tham gia giả lập sỹ số & tạo doanh thu học phí theo Hệ đào tạo trong kịch bản What-If.
-                                                </div>
-                                                <div style="color: rgba(255,255,255,0.9);">
-                                                    <span style="color: #BF5AF2; font-weight: bold;">🛠 Dùng chung:</span> Là phòng chức năng, chỉ nhận phân bổ chi phí mặt bằng chung, <span style="text-decoration: underline; font-weight: bold;">không</span> tạo doanh thu hay gán sỹ số.
-                                                </div>
-                                                <div style="position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: rgba(28, 28, 30, 0.96) transparent transparent transparent;"></div>
-                                            </div>
                                         </span>
                                         <br>
                                         <span style="font-size: 0.72rem; font-weight: normal; opacity: 0.75; color: var(--text-secondary);">(Bấm trực tiếp để sửa tên)</span>
