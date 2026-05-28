@@ -1588,56 +1588,48 @@ const DEFAULT_TEMPLATE = {
 
 let appState = {};
 
-// Load state from local storage or default template
-function loadState() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-        try {
-            appState = JSON.parse(saved);
-            
-            // Một lần duy nhất cập nhật danh sách lương 65 nhân sự chính thức tháng 4 từ Excel
-            if (!appState.aprilSalaryUpdated) {
-                appState.employees = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.employees));
-                appState.aprilSalaryUpdated = true;
-                saveState();
-            }
-            // Backup compatibility checks for new keys
-            if (!appState.rentBlocks) appState.rentBlocks = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.rentBlocks));
-            if (!appState.rooms) appState.rooms = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.rooms));
-            if (!appState.drivers || !appState.drivers.custom_percent) {
-                appState.drivers = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.drivers));
-            }
-            if (!appState.utilityCosts) {
-                appState.utilityCosts = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.utilityCosts));
-            }
-            if (!appState.boardingNotes) {
-                appState.boardingNotes = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.boardingNotes));
-            }
-            // Sync new departments (like utility depts) from template if they don't exist
-            DEFAULT_TEMPLATE.departments.forEach(defaultDept => {
-                const exists = appState.departments.find(d => d.id === defaultDept.id);
-                if (!exists) {
-                    appState.departments.push(JSON.parse(JSON.stringify(defaultDept)));
-                }
-            });
-            // Ensure student counts are sync'd for direct depts
-            appState.departments.forEach(dept => {
-                if (dept.type === "revenue" && dept.students === undefined) {
-                    const defaultDept = DEFAULT_TEMPLATE.departments.find(d => d.id === dept.id);
-                    dept.students = defaultDept ? defaultDept.students : 0;
-                }
-            });
-        } catch (e) {
-            console.error("Failed to parse saved state, resetting...", e);
-            appState = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
-        }
-    } else {
-        appState = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
+// Ensure state has all required keys and schema additions
+function ensureStateCompatibility(state) {
+    if (!state) return;
+    
+    // Một lần duy nhất cập nhật danh sách lương 65 nhân sự chính thức tháng 4 từ Excel
+    if (!state.aprilSalaryUpdated) {
+        state.employees = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.employees));
+        state.aprilSalaryUpdated = true;
     }
+    
+    // Backup compatibility checks for new keys
+    if (!state.rentBlocks) state.rentBlocks = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.rentBlocks));
+    if (!state.rooms) state.rooms = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.rooms));
+    if (!state.drivers || !state.drivers.custom_percent) {
+        state.drivers = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.drivers));
+    }
+    if (!state.utilityCosts) {
+        state.utilityCosts = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.utilityCosts));
+    }
+    if (!state.boardingNotes) {
+        state.boardingNotes = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.boardingNotes));
+    }
+    
+    // Sync new departments (like utility depts) from template if they don't exist
+    DEFAULT_TEMPLATE.departments.forEach(defaultDept => {
+        const exists = state.departments.find(d => d.id === defaultDept.id);
+        if (!exists) {
+            state.departments.push(JSON.parse(JSON.stringify(defaultDept)));
+        }
+    });
+    
+    // Ensure student counts are sync'd for direct depts
+    state.departments.forEach(dept => {
+        if (dept.type === "revenue" && dept.students === undefined) {
+            const defaultDept = DEFAULT_TEMPLATE.departments.find(d => d.id === dept.id);
+            dept.students = defaultDept ? defaultDept.students : 0;
+        }
+    });
 
     // Đảm bảo khởi tạo kịch bản giả lập What-If lấp đầy phòng học
-    if (!appState.simulation) {
-        appState.simulation = {
+    if (!state.simulation) {
+        state.simulation = {
             active: false,
             fillRate: 80,
             fillRates: {
@@ -1657,8 +1649,8 @@ function loadState() {
             }
         };
     } else {
-        if (!appState.simulation.fillRates) {
-            appState.simulation.fillRates = {
+        if (!state.simulation.fillRates) {
+            state.simulation.fillRates = {
                 "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
                 "dept_thcs": getActualFillRateForDept("dept_thcs"),
                 "dept_thpt": getActualFillRateForDept("dept_thpt"),
@@ -1666,9 +1658,9 @@ function loadState() {
             };
         } else {
             // Tự động chuyển đổi nếu tất cả tỷ lệ đang là 80% (mặc định cũ trong localStorage)
-            const allEighty = Object.values(appState.simulation.fillRates).every(v => v === 80);
+            const allEighty = Object.values(state.simulation.fillRates).every(v => v === 80);
             if (allEighty) {
-                appState.simulation.fillRates = {
+                state.simulation.fillRates = {
                     "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
                     "dept_thcs": getActualFillRateForDept("dept_thcs"),
                     "dept_thpt": getActualFillRateForDept("dept_thpt"),
@@ -1676,9 +1668,9 @@ function loadState() {
                 };
             }
         }
-        if (!appState.simulation.tuition || !appState.simulation.tuition.dept_tieuhoc_thuong) {
-            const oldTuition = appState.simulation.tuition || {};
-            appState.simulation.tuition = {
+        if (!state.simulation.tuition || !state.simulation.tuition.dept_tieuhoc_thuong) {
+            const oldTuition = state.simulation.tuition || {};
+            state.simulation.tuition = {
                 "dept_tieuhoc_thuong": oldTuition.dept_tieuhoc ? Math.round(oldTuition.dept_tieuhoc * 0.8) : 5000000,
                 "dept_tieuhoc_xanh": oldTuition.dept_tieuhoc ? Math.round(oldTuition.dept_tieuhoc * 1.2) : 7500000,
                 "dept_thcs_thuong": oldTuition.dept_thcs ? Math.round(oldTuition.dept_thcs * 0.8) : 6000000,
@@ -1691,8 +1683,8 @@ function loadState() {
     }
 
     // Di trú dữ liệu cho thuộc tính "system" (Hệ đào tạo) của phòng học
-    if (appState.rooms) {
-        appState.rooms.forEach(room => {
+    if (state.rooms) {
+        state.rooms.forEach(room => {
             if (room.type === "classroom") {
                 const hasTieuhocOrThcs = room.splits && ((room.splits.dept_tieuhoc || 0) > 0 || (room.splits.dept_thcs || 0) > 0);
                 const hasThpt = room.splits && (room.splits.dept_thpt || 0) > 0;
@@ -1719,9 +1711,29 @@ function loadState() {
     }
 
     // Khởi tạo tổng tiền thuê của chủ nhà mặc định khớp với tổng tiền thuê ban đầu (223,100,000đ)
-    if (!appState.landlordRent) {
-        appState.landlordRent = 223100000;
+    if (!state.landlordRent) {
+        state.landlordRent = 223100000;
     }
+}
+
+// Load state from local storage or default template
+function loadState() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        try {
+            appState = JSON.parse(saved);
+            ensureStateCompatibility(appState);
+            saveStateLocalOnly(); // Lưu lại cấu hình tương thích vừa sửa đổi
+        } catch (e) {
+            console.error("Failed to parse saved state, resetting...", e);
+            appState = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
+            ensureStateCompatibility(appState);
+        }
+    } else {
+        appState = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
+        ensureStateCompatibility(appState);
+    }
+}
 }
 
 function saveState() {
@@ -6310,6 +6322,7 @@ function connectCloudSync(projectCode) {
             
             // Cập nhật appState và lưu cục bộ để đồng bộ
             appState = cloudData;
+            ensureStateCompatibility(appState); // Chạy kiểm tra và bổ sung kịch bản giả lập đầy đủ nếu đám mây bị lệch pha
             saveStateLocalOnly(); 
             
             // Chạy lại toán và làm mới giao diện
