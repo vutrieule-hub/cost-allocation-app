@@ -1915,7 +1915,15 @@ function getActiveStudentCounts() {
                 Object.keys(room.splits).forEach(did => {
                     if (studentCounts[did] !== undefined && room.splits[did] > 0) {
                         const targetFillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
-                        const simulatedRoomStudentsForDept = room.capacity * (room.splits[did] / 100) * (targetFillRate / 100);
+                        const actualFillRate = getActualFillRateForDept(did);
+                        
+                        let roomSimRate = targetFillRate;
+                        if (actualFillRate > 0) {
+                            const roomActualRate = room.capacity > 0 ? ((room.currentStudents || 0) / room.capacity) * 100 : 0;
+                            roomSimRate = Math.min(100, roomActualRate * (targetFillRate / actualFillRate));
+                        }
+                        
+                        const simulatedRoomStudentsForDept = room.capacity * (room.splits[did] / 100) * (roomSimRate / 100);
                         studentCounts[did] += simulatedRoomStudentsForDept;
                     }
                 });
@@ -1977,11 +1985,19 @@ function getSimulatedRevenueForDept(deptId) {
         ? appState.simulation.fillRates[deptId] 
         : (appState.simulation.fillRate || 80);
         
+    const actualFillRate = getActualFillRateForDept(deptId);
+        
     appState.rooms.forEach(room => {
         if (room.status === "active" && room.type !== "functional") {
             const splitRatio = room.splits[deptId] || 0;
             if (splitRatio > 0) {
-                const roomSimStudents = room.capacity * (splitRatio / 100) * (fillRate / 100);
+                let roomSimRate = fillRate;
+                if (actualFillRate > 0) {
+                    const roomActualRate = room.capacity > 0 ? ((room.currentStudents || 0) / room.capacity) * 100 : 0;
+                    roomSimRate = Math.min(100, roomActualRate * (fillRate / actualFillRate));
+                }
+                
+                const roomSimStudents = room.capacity * (splitRatio / 100) * (roomSimRate / 100);
                 
                 // Xác định đơn giá học phí theo hệ đào tạo của phòng học
                 let isXanh = (room.system === "xanh");
@@ -6879,7 +6895,15 @@ function openSimDeptRoomsModal(deptId) {
 
             // Nếu là phòng chức năng, sức chứa giả lập và sức chứa quy đổi của khối để tính doanh thu = 0
             const shareMaxCapacity = isFunctional ? 0 : (room.capacity * roomFraction);
-            const shareSimStudents = isFunctional ? 0 : (shareMaxCapacity * (fillRate / 100));
+            
+            const actualFillRate = getActualFillRateForDept(deptId);
+            let roomSimRate = fillRate;
+            if (!isFunctional && actualFillRate > 0) {
+                const roomActualRate = room.capacity > 0 ? ((room.currentStudents || 0) / room.capacity) * 100 : 0;
+                roomSimRate = Math.min(100, roomActualRate * (fillRate / actualFillRate));
+            }
+            const roundedRoomSimRate = Math.round(roomSimRate);
+            const shareSimStudents = isFunctional ? 0 : (shareMaxCapacity * (roomSimRate / 100));
             
             totalMaxCap += shareMaxCapacity;
             totalSimStudents += shareSimStudents;
@@ -6908,10 +6932,10 @@ function openSimDeptRoomsModal(deptId) {
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 700;">
                             <span style="color: ${info.color};"><i class="fa-solid fa-user-check"></i> ${roundedSim} HS</span>
-                            <span style="color: var(--text-secondary);">${fillRate}%</span>
+                            <span style="color: var(--text-secondary);">${roundedRoomSimRate}%</span>
                         </div>
                         <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
-                            <div style="width: ${fillRate}%; height: 100%; background: ${info.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
+                            <div style="width: ${roundedRoomSimRate}%; height: 100%; background: ${info.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
                         </div>
                     </div>
                 `;
