@@ -4471,8 +4471,7 @@ function updateEmpRatioStatusBar() {
     if (!emp) return;
     const isAmt = _empRatioModalMode === 'amount';
     const statusBar = document.getElementById('emp_ratio_status_bar');
-    const statusText = document.getElementById('emp_ratio_status_text');
-    if (!statusBar || !statusText) return;
+    if (!statusBar) return;
 
     let total = 0;
     Object.values(_empRatioModalDraftRatios).forEach(v => total += (v || 0));
