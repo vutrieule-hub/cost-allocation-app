@@ -5034,7 +5034,7 @@ function getRoomSplitsHTML(room) {
             else if (did === "dept_noitru") badgeClass += " badge-dept-noitru";
             else badgeClass += " badge-dept-support";
             
-            splitsArray.push(`<span class="${badgeClass}">${dName}: ${ratio.toFixed(1)}%</span>`);
+            splitsArray.push(`<span class="${badgeClass}">${dName}:\u00A0${ratio.toFixed(1)}%</span>`);
         }
     });
     
@@ -5348,7 +5348,7 @@ function renderFacilities() {
                                 ) : ''}
                             </div>
                         </td>
-                        <td class="text-right"><strong>${formatCurrency(calculatedRoomCost)}</strong></td>
+                        <td class="text-right" style="white-space: nowrap;"><strong>${formatCurrency(calculatedRoomCost)}</strong></td>
                         <td class="text-center">
                             <select onchange="updateRoomStatus('${room.id}', this.value)" class="base-select-dropdown" style="padding: 4px 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; border-radius: 6px; width: 145px; border-color: rgba(0, 122, 255, 0.2);">
                                 <option value="active" ${room.status === "active" ? "selected" : ""}>🟢 Đang sử dụng</option>
@@ -5432,7 +5432,7 @@ function renderFacilities() {
                             ) : ''}
                         </div>
                     </td>
-                    <td class="text-right"><strong>0 đ</strong></td>
+                    <td class="text-right" style="white-space: nowrap;"><strong>0 đ</strong></td>
                     <td class="text-center">
                         <select onchange="updateRoomStatus('${room.id}', this.value)" class="base-select-dropdown" style="padding: 4px 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; border-radius: 6px; width: 145px; border-color: rgba(0, 122, 255, 0.2);">
                             <option value="active" ${room.status === "active" ? "selected" : ""}>🟢 Đang sử dụng</option>
@@ -6021,8 +6021,8 @@ function parseMoneyValue(val) {
 }
 
 function formatCurrency(val) {
-    if (val === null || val === undefined || isNaN(val)) return "0 ₫";
-    return Math.round(val).toLocaleString() + " ₫";
+    if (val === null || val === undefined || isNaN(val)) return "0\u00A0₫";
+    return Math.round(val).toLocaleString() + "\u00A0₫";
 }
 
 function initApp() {
