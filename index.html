@@ -206,7 +206,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_tieuhoc" min="0" max="100" value="80" oninput="updateSimDeptFillRate('dept_tieuhoc', this.value)" style="flex-grow: 1; accent-color: #007AFF; cursor: pointer; height: 5px;">
+                                <input type="range" id="slider_sim_fill_rate_dept_tieuhoc" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_tieuhoc', this.value)" onchange="updateSimDeptFillRate('dept_tieuhoc', this.value)" style="flex-grow: 1; accent-color: #007AFF; cursor: pointer; height: 5px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
                             <div id="lbl_sim_info_dept_tieuhoc" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
@@ -225,7 +225,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_thcs" min="0" max="100" value="80" oninput="updateSimDeptFillRate('dept_thcs', this.value)" style="flex-grow: 1; accent-color: #34C759; cursor: pointer; height: 5px;">
+                                <input type="range" id="slider_sim_fill_rate_dept_thcs" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_thcs', this.value)" onchange="updateSimDeptFillRate('dept_thcs', this.value)" style="flex-grow: 1; accent-color: #34C759; cursor: pointer; height: 5px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
                             <div id="lbl_sim_info_dept_thcs" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
@@ -244,7 +244,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_thpt" min="0" max="100" value="80" oninput="updateSimDeptFillRate('dept_thpt', this.value)" style="flex-grow: 1; accent-color: #AF52DE; cursor: pointer; height: 5px;">
+                                <input type="range" id="slider_sim_fill_rate_dept_thpt" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_thpt', this.value)" onchange="updateSimDeptFillRate('dept_thpt', this.value)" style="flex-grow: 1; accent-color: #AF52DE; cursor: pointer; height: 5px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
                             <div id="lbl_sim_info_dept_thpt" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
@@ -263,7 +263,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_noitru" min="0" max="100" value="80" oninput="updateSimDeptFillRate('dept_noitru', this.value)" style="flex-grow: 1; accent-color: #FF9500; cursor: pointer; height: 5px;">
+                                <input type="range" id="slider_sim_fill_rate_dept_noitru" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_noitru', this.value)" onchange="updateSimDeptFillRate('dept_noitru', this.value)" style="flex-grow: 1; accent-color: #FF9500; cursor: pointer; height: 5px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
                             <div id="lbl_sim_info_dept_noitru" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
@@ -1330,6 +1330,6 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app.js?v=20260528_v4"></script>
+    <script src="app.js?v=20260528_v5"></script>
 </body>
 </html>

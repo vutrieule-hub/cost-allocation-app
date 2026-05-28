@@ -6461,7 +6461,10 @@ function updateSimulationUI() {
         const lblRate = document.getElementById(`lbl_sim_fill_rate_dept_${did}`);
         const lblInfo = document.getElementById(`lbl_sim_info_dept_${did}`);
         
-        if (slider) slider.value = fillRate;
+        if (slider) {
+            slider.value = fillRate;
+            slider.setAttribute("data-max-capacity", maxCapacity);
+        }
         if (lblRate) lblRate.innerText = fillRate + "%";
         if (lblInfo) {
             lblInfo.innerHTML = `
@@ -6469,11 +6472,29 @@ function updateSimulationUI() {
                     <span><i class="fa-solid fa-calculator" style="margin-right: 4px; color: var(--text-secondary);"></i>Quy mô: <strong>${roomCount.toFixed(1)} phòng</strong></span>
                     <span>Sức chứa: <strong>${maxCapacity} HS</strong></span>
                     <span>Thực tế: <strong style="color: var(--success);">${actualStudents} HS (${actualFillRate}%)</strong></span>
-                    <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-user-check" style="margin-right: 4px;"></i>Giả lập: <strong>${simulatedStudents} HS (${fillRate}%)</strong></span>
+                    <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-user-check" style="margin-right: 4px;"></i>Giả lập: <strong id="lbl_sim_students_val_dept_${did}">${simulatedStudents} HS (${fillRate}%)</strong></span>
                 </div>
             `;
         }
     });
+}
+
+function updateSimDeptFillRateVisual(deptId, val) {
+    if (!appState || !appState.simulation || !appState.simulation.fillRates) return;
+    const intVal = parseInt(val, 10) || 0;
+    appState.simulation.fillRates[deptId] = intVal;
+
+    const lbl = document.getElementById(`lbl_sim_fill_rate_dept_${deptId}`);
+    if (lbl) lbl.innerText = intVal + "%";
+
+    const slider = document.getElementById(`slider_sim_fill_rate_dept_${deptId}`);
+    const maxCapacity = slider ? parseFloat(slider.getAttribute("data-max-capacity")) || 0 : 0;
+    const simulatedStudents = Math.round(maxCapacity * (intVal / 100));
+
+    const lblStudents = document.getElementById(`lbl_sim_students_val_dept_${deptId}`);
+    if (lblStudents) {
+        lblStudents.innerText = `${simulatedStudents} HS (${intVal}%)`;
+    }
 }
 
 function updateSimDeptFillRate(deptId, val) {
@@ -6915,6 +6936,7 @@ function renameRentBlock(blockId, newName) {
 window.switchScenarioMode = switchScenarioMode;
 window.updateSimFillRate = updateSimFillRate;
 window.updateSimDeptFillRate = updateSimDeptFillRate;
+window.updateSimDeptFillRateVisual = updateSimDeptFillRateVisual;
 window.updateSimulationUI = updateSimulationUI;
 window.openSimDeptRoomsModal = openSimDeptRoomsModal;
 window.updateRoomType = updateRoomType;
