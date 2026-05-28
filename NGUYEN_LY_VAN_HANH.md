@@ -74,6 +74,11 @@ Tiền thuê mặt bằng toàn trường được quản trị theo mô hình *
   * *Ví dụ:* Một phòng học có tiền thuê quy đổi là 4M/tháng, tỷ lệ gán cho THCS là 100% $\rightarrow$ THCS gánh trọn 4M chi phí mặt bằng trực tiếp.
   * *Ví dụ:* Thư viện dùng chung được gán Tiểu học: 33.3%, THCS: 33.3%, THPT: 33.4% $\rightarrow$ Tiền thuê thư viện sẽ tự động chia đều về chi phí mặt bằng gián tiếp gánh chịu của 3 khối.
 
+### 3. Phân tách Phòng Học thường và Phòng Chức năng trong Giả lập:
+Để đảm bảo tính trung thực và loại bỏ doanh thu ảo khi lập kịch bản dự phòng "What-If" lấp đầy phòng học, hệ thống phân tách rạch ròi 2 nhóm phòng học:
+* **🏫 Nhóm Phòng học thường & Phòng nội trú (`classroom` / `boarding`):** Gánh chịu chi phí thuê mặt bằng phân bổ và tham gia trực tiếp vào tính toán sỹ số học sinh giả lập & tạo doanh thu học phí lấp đầy.
+* **🛠 Nhóm Phòng chức năng / Dùng chung (`functional` - Ví dụ: Phòng Sáng tạo):** Vẫn nhận phân bổ chi phí tiền thuê mặt bằng về cho các khối để đảm bảo tính đúng đắn cho báo cáo P&L. Tuy nhiên, phòng chức năng **tuyệt đối không tính sỹ số giả lập lấp đầy** (sỹ số giả lập luôn bằng 0 và không nhân doanh thu học phí).
+
 ---
 
 ## Ⅳ. NGUYÊN LÝ PHÂN BỔ TIỆN ÍCH (ĐIỆN & NƯỚC)
