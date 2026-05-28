@@ -4153,20 +4153,20 @@ function renderEmployees() {
                 </button>
             `;
 
-            // 4. Lưới nhập liệu tỷ lệ của 17 bộ phận (Chỉ hiển thị khi mở rộng - accordion)
+            // 4. Lưới nhập liệu tỷ lệ của từng bộ phận (Chỉ hiển thị khi mở rộng - accordion)
             let ratiosGridHtml = `
-                <div id="ratio_grid_container_${emp.id}" style="display: none; padding: 12px 14px; background: #F7F8FA; border: 1px solid rgba(0,0,0,0.06); border-radius: var(--radius-md); margin-top: 8px; flex-direction: column; gap: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.015);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; border-bottom: 1px dashed rgba(0,0,0,0.07); padding-bottom: 8px;">
-                        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <div id="ratio_grid_container_${emp.id}" style="display: none; margin-top: 8px; background: #F4F6F9; border: 1px solid rgba(0,0,0,0.07); border-radius: 8px; overflow: hidden;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(0,0,0,0.02);">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 5px;">
                             <i class="fa-solid fa-sliders" style="color: var(--info);"></i>
-                            <span>Phân bổ kiêm nhiệm theo từng bộ phận:</span>
-                        </div>
-                        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); padding: 2px; border-radius: 6px; width: fit-content; align-items: center;">
-                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${!isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${!isAmountMode ? '700' : '500'}; box-shadow: ${!isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${!isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'percentage')">% Tỷ lệ</button>
-                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${isAmountMode ? '700' : '500'}; box-shadow: ${isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${isAmountMode ? 'var(--text-primary)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'amount')">VNĐ Số tiền</button>
+                            Phân bổ kiêm nhiệm
+                        </span>
+                        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); padding: 2px; border-radius: 6px;">
+                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${!isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${!isAmountMode ? '700' : '500'}; box-shadow: ${!isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${!isAmountMode ? 'var(--info)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'percentage')">% Tỷ lệ</button>
+                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${isAmountMode ? '700' : '500'}; box-shadow: ${isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${isAmountMode ? 'var(--info)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'amount')">VNĐ Số tiền</button>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%;">`;
+                    <div style="padding: 8px; display: flex; flex-direction: column; gap: 4px;">`;
             
             nonUtilityDepts.forEach(d => {
                 const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
@@ -4175,20 +4175,19 @@ function renderEmployees() {
                 const pctWidth = isAmountMode
                     ? (emp.salary > 0 ? Math.min(100, Math.round(val / emp.salary * 100)) : 0)
                     : Math.min(100, val);
+                const inputColor = val > 0 ? theme.color : '#8E8E93';
                 ratiosGridHtml += `
-                    <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.07); border-left: 3px solid ${theme.color}; border-radius: 7px; transition: box-shadow 0.2s; min-width: 0;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='none'">
-                        <div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0; gap: 3px;">
-                            <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${d.name}">${shortName}</span>
-                            <div style="height: 3px; border-radius: 2px; background: rgba(0,0,0,0.06); overflow: hidden;">
-                                <div style="height: 100%; width: ${pctWidth}%; background: ${theme.color}; border-radius: 2px; transition: width 0.3s;"></div>
-                            </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: #FFFFFF; border-radius: 6px; border-left: 3px solid ${theme.color}; min-height: 34px;">
+                        <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+                            <span style="font-size: 0.78rem; font-weight: 600; color: #1D1D1F; flex-shrink: 0;">${shortName}</span>
                         </div>
-                        <div style="display: flex; align-items: center; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.09); border-radius: 6px; padding: 3px 7px; width: ${isAmountMode ? '90px' : '54px'}; justify-content: flex-end; gap: 2px; flex-shrink: 0; height: 28px;">
-                            <input type="${isAmountMode ? 'text' : 'number'}" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 800; color: ${val > 0 ? theme.color : 'var(--text-secondary)'}; width: ${isAmountMode ? '68px' : '32px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                        <div style="display: flex; align-items: center; gap: 3px; flex-shrink: 0;">
+                            <input type="${isAmountMode ? 'text' : 'number'}" class="ratio-pct-input" 
+                              style="width: ${isAmountMode ? '80px' : '46px'}; padding: 3px 6px; font-size: 0.82rem; font-weight: 800; color: ${inputColor}; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.1); border-radius: 5px; text-align: right; outline: none; font-family: inherit;" 
                               value="${isAmountMode ? formatNumberWithDots(val) : val}" 
                               oninput="${isAmountMode ? 'handleMoneyInput(this)' : ''}"
-                              onchange="updateEmployeeRatio('${emp.id}', '${d.id}', ${isAmountMode ? 'parseMoneyValue(this.value)' : 'this.value'}); this.style.color = (${isAmountMode ? 'parseMoneyValue(this.value)' : 'parseFloat(this.value)||0'}) > 0 ? '${theme.color}' : 'var(--text-secondary)'">
-                            <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); user-select: none; flex-shrink:0;">${isAmountMode ? 'đ' : '%'}</span>
+                              onchange="updateEmployeeRatio('${emp.id}', '${d.id}', ${isAmountMode ? 'parseMoneyValue(this.value)' : 'this.value'}); this.style.color = (${isAmountMode ? 'parseMoneyValue(this.value)' : 'parseFloat(this.value)||0'}) > 0 ? '${theme.color}' : '#8E8E93'">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #8E8E93; min-width: 14px;">${isAmountMode ? 'đ' : '%'}</span>
                         </div>
                     </div>
                 `;
@@ -4538,8 +4537,8 @@ function toggleEmployeeRatioGrid(empId) {
     const container = document.getElementById(`ratio_grid_container_${empId}`);
     const btn = document.getElementById(`ratio_grid_btn_${empId}`);
     if (container && btn) {
-        const isHidden = container.style.display === "none";
-        container.style.display = isHidden ? "flex" : "none";
+        const isHidden = container.style.display === "none" || container.style.display === "";
+        container.style.display = isHidden ? "block" : "none";
         btn.innerHTML = isHidden 
             ? `<i class="fa-solid fa-chevron-up"></i> Thu gọn ô nhập` 
             : `<i class="fa-solid fa-sliders"></i> Cấu hình tỷ lệ`;
@@ -4629,24 +4628,17 @@ function toggleMultiLevelInputs() {
             const theme = getDeptTheme(dept.name);
             const shortName = dept.name.replace("Khối ", "").replace("Ban ", "");
             const defaultVal = dept.id === document.getElementById("emp_add_dept").value ? (isAmountMode ? empSalary : 100) : 0;
-            const pctWidth = 0; // starts empty for new entries
+            const inputColor = defaultVal > 0 ? theme.color : '#8E8E93';
 
             grid.innerHTML += `
-                <div style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.07); border-left: 3px solid ${theme.color}; border-radius: 8px; transition: box-shadow 0.2s; min-width: 0;" onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,0.07)'" onmouseout="this.style.boxShadow='none'">
-                    <div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0; gap: 4px;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: ${theme.color}; flex-shrink: 0;"></span>
-                            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dept.name}">${shortName}</span>
-                        </div>
-                        <div style="height: 3px; border-radius: 2px; background: rgba(0,0,0,0.06); overflow: hidden;">
-                            <div class="emp-add-bar-${dept.id}" style="height: 100%; width: ${pctWidth}%; background: ${theme.color}; border-radius: 2px; transition: width 0.3s;"></div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.09); border-radius: 7px; padding: 4px 8px; width: ${isAmountMode ? '100px' : '64px'}; justify-content: flex-end; gap: 3px; flex-shrink: 0; height: 32px;">
-                        <input type="${isAmountMode ? 'text' : 'number'}" ${isAmountMode ? '' : 'min="0" max="100"'} class="emp-add-ratio-val ${isAmountMode ? 'money-input' : 'ratio-pct-input'}" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.85rem; font-weight: 800; color: ${defaultVal > 0 ? theme.color : 'var(--text-secondary)'}; width: ${isAmountMode ? '76px' : '38px'}; text-align: right; outline: none; padding: 0; font-family: inherit;" 
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 12px; background: #FFFFFF; border-radius: 7px; border-left: 3px solid ${theme.color}; min-height: 36px;">
+                    <span style="font-size: 0.82rem; font-weight: 600; color: #1D1D1F;">${shortName}</span>
+                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                        <input type="${isAmountMode ? 'text' : 'number'}" ${isAmountMode ? '' : 'min="0" max="100"'} class="emp-add-ratio-val ${isAmountMode ? 'money-input' : 'ratio-pct-input'}" data-dept-id="${dept.id}"
+                          style="width: ${isAmountMode ? '90px' : '48px'}; padding: 4px 7px; font-size: 0.85rem; font-weight: 800; color: ${inputColor}; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.1); border-radius: 5px; text-align: right; outline: none; font-family: inherit;" 
                           value="${isAmountMode ? formatNumberWithDots(defaultVal) : defaultVal}" 
                           oninput="${isAmountMode ? 'handleMoneyInput(this); updateEmpAddRatiosSummary();' : 'updateEmpAddRatiosSummary();'}">
-                        <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); user-select: none; flex-shrink:0;">${isAmountMode ? 'đ' : '%'}</span>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #8E8E93; min-width: 14px;">${isAmountMode ? 'đ' : '%'}</span>
                     </div>
                 </div>
             `;
