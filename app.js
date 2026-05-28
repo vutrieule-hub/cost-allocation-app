@@ -4768,8 +4768,18 @@ function renderFacilities() {
                 globalRoomIdx++;
 
                 roomsBody.innerHTML += `
-                    <tr data-room-id="${room.id}" data-block-id="${room.blockId}" data-status="${room.status}">
-                        <td>${globalRoomIdx}</td>
+                    <tr data-room-id="${room.id}" data-block-id="${room.blockId}" data-status="${room.status}" 
+                      draggable="true" 
+                      ondragstart="handleRoomDragStart(event, '${room.id}')" 
+                      ondragover="handleRoomDragOver(event, '${room.id}')" 
+                      ondragleave="handleRoomDragLeave(event, '${room.id}')" 
+                      ondrop="handleRoomDrop(event, '${room.id}')" 
+                      ondragend="handleRoomDragEnd(event)" 
+                      style="transition: all 0.2s ease;">
+                        <td style="cursor: grab; padding: 12px 10px; color: var(--text-secondary); opacity: 0.8;" title="Kéo thả để sắp xếp lại thứ tự phòng">
+                            <i class="fa-solid fa-grip-vertical" style="margin-right: 4px; color: #ccc;"></i>
+                            ${globalRoomIdx}
+                        </td>
                         <td>
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <input type="text" class="base-select-dropdown room-name-input" value="${room.name}" 
@@ -4832,8 +4842,18 @@ function renderFacilities() {
             globalRoomIdx++;
 
             roomsBody.innerHTML += `
-                <tr data-room-id="${room.id}" data-block-id="${room.blockId}" data-status="${room.status}">
-                    <td>${globalRoomIdx}</td>
+                <tr data-room-id="${room.id}" data-block-id="${room.blockId}" data-status="${room.status}" 
+                  draggable="true" 
+                  ondragstart="handleRoomDragStart(event, '${room.id}')" 
+                  ondragover="handleRoomDragOver(event, '${room.id}')" 
+                  ondragleave="handleRoomDragLeave(event, '${room.id}')" 
+                  ondrop="handleRoomDrop(event, '${room.id}')" 
+                  ondragend="handleRoomDragEnd(event)" 
+                  style="transition: all 0.2s ease;">
+                    <td style="cursor: grab; padding: 12px 10px; color: var(--text-secondary); opacity: 0.8;" title="Kéo thả để sắp xếp lại thứ tự phòng">
+                        <i class="fa-solid fa-grip-vertical" style="margin-right: 4px; color: #ccc;"></i>
+                        ${globalRoomIdx}
+                    </td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <input type="text" class="base-select-dropdown room-name-input" value="${room.name}" 
@@ -6070,6 +6090,83 @@ function openSimDeptRoomsModal(deptId) {
     document.getElementById("sim_dept_rooms_modal").classList.add("open");
 }
 
+let draggedRoomId = null;
+let roomDraggedOverId = null;
+
+function handleRoomDragStart(e, roomId) {
+    draggedRoomId = roomId;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", roomId);
+    
+    // Tạo cảm giác kéo thả mượt mà hơn
+    const row = e.currentTarget;
+    setTimeout(() => {
+        row.style.opacity = "0.4";
+        row.style.border = "2px dashed var(--primary)";
+    }, 0);
+}
+
+function handleRoomDragOver(e, roomId) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    
+    const row = e.currentTarget;
+    if (roomDraggedOverId !== roomId && draggedRoomId !== roomId) {
+        roomDraggedOverId = roomId;
+        row.style.background = "rgba(0, 122, 255, 0.06)";
+        row.style.borderTop = "2px solid var(--primary)";
+    }
+}
+
+function handleRoomDragLeave(e, roomId) {
+    const row = e.currentTarget;
+    row.style.background = "";
+    row.style.borderTop = "";
+    if (roomDraggedOverId === roomId) {
+        roomDraggedOverId = null;
+    }
+}
+
+function handleRoomDrop(e, targetRoomId) {
+    e.preventDefault();
+    const row = e.currentTarget;
+    row.style.background = "";
+    row.style.borderTop = "";
+    
+    if (draggedRoomId && draggedRoomId !== targetRoomId) {
+        const fromIndex = appState.rooms.findIndex(r => r.id === draggedRoomId);
+        const toIndex = appState.rooms.findIndex(r => r.id === targetRoomId);
+        
+        if (fromIndex !== -1 && toIndex !== -1) {
+            // Thay đổi vị trí của phòng trong mảng dữ liệu
+            const [draggedRoom] = appState.rooms.splice(fromIndex, 1);
+            appState.rooms.splice(toIndex, 0, draggedRoom);
+            
+            saveState();
+            const result = runAllocation();
+            renderDashboard(result);
+            renderFacilities();
+        }
+    }
+    draggedRoomId = null;
+    roomDraggedOverId = null;
+}
+
+function handleRoomDragEnd(e) {
+    const row = e.currentTarget;
+    row.style.opacity = "";
+    row.style.border = "";
+    
+    // Dọn dẹp tất cả các dòng đề phòng sự kiện kéo thả bị hủy đột ngột
+    const rows = document.querySelectorAll("#room_list_body tr");
+    rows.forEach(r => {
+        r.style.opacity = "";
+        r.style.border = "";
+        r.style.background = "";
+        r.style.borderTop = "";
+    });
+}
+
 function renameRentBlock(blockId, newName) {
     const blk = appState.rentBlocks.find(b => b.id === blockId);
     if (!blk || !newName.trim()) return;
@@ -6092,5 +6189,10 @@ window.updateRentBlockPercent = updateRentBlockPercent;
 window.updateLandlordRent = updateLandlordRent;
 window.updateRentBlockRoomCount = updateRentBlockRoomCount;
 window.renameRentBlock = renameRentBlock;
+window.handleRoomDragStart = handleRoomDragStart;
+window.handleRoomDragOver = handleRoomDragOver;
+window.handleRoomDragLeave = handleRoomDragLeave;
+window.handleRoomDrop = handleRoomDrop;
+window.handleRoomDragEnd = handleRoomDragEnd;
 
 
