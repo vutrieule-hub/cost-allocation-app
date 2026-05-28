@@ -4146,55 +4146,14 @@ function renderEmployees() {
             }
             activeTagsHtml += `</div>`;
 
-            // 3. Tạo nút thiết lập collapsible & lưới nhập liệu ẩn tinh gọn
+            // 3. Nút mở popup modal phân bổ kiêm nhiệm
             const configBtnHtml = `
-                <button id="ratio_grid_btn_${emp.id}" class="btn" style="padding: 2.5px 7px; font-size: 0.68rem; margin-top: 6px; background: rgba(0, 122, 255, 0.06); color: var(--info); border: 1px solid rgba(0, 122, 255, 0.12); border-radius: 4px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="toggleEmployeeRatioGrid('${emp.id}')">
-                    <i class="fa-solid fa-sliders"></i> Cấu hình tỷ lệ
+                <button class="btn" style="padding: 3px 10px; font-size: 0.72rem; margin-top: 6px; background: rgba(0, 122, 255, 0.07); color: var(--info); border: 1px solid rgba(0, 122, 255, 0.15); border-radius: 5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;" 
+                    onclick="openEmpRatioModal('${emp.id}')" 
+                    onmouseover="this.style.background='rgba(0,122,255,0.12)'" 
+                    onmouseout="this.style.background='rgba(0,122,255,0.07)'">
+                    <i class="fa-solid fa-sliders"></i> Điều chỉnh phân bổ
                 </button>
-            `;
-
-            // 4. Lưới nhập liệu tỷ lệ của từng bộ phận (Chỉ hiển thị khi mở rộng - accordion)
-            let ratiosGridHtml = `
-                <div id="ratio_grid_container_${emp.id}" style="display: none; margin-top: 8px; background: #F4F6F9; border: 1px solid rgba(0,0,0,0.07); border-radius: 8px; overflow: hidden;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(0,0,0,0.02);">
-                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-sliders" style="color: var(--info);"></i>
-                            Phân bổ kiêm nhiệm
-                        </span>
-                        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); padding: 2px; border-radius: 6px;">
-                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${!isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${!isAmountMode ? '700' : '500'}; box-shadow: ${!isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${!isAmountMode ? 'var(--info)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'percentage')">% Tỷ lệ</button>
-                            <button class="btn btn-sm" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; border: none; background: ${isAmountMode ? '#FFF' : 'transparent'}; font-weight: ${isAmountMode ? '700' : '500'}; box-shadow: ${isAmountMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'}; cursor: pointer; color: ${isAmountMode ? 'var(--info)' : 'var(--text-secondary)'};" onclick="updateEmployeeAllocationMode('${emp.id}', 'amount')">VNĐ Số tiền</button>
-                        </div>
-                    </div>
-                    <div style="padding: 8px; display: flex; flex-direction: column; gap: 4px;">`;
-            
-            nonUtilityDepts.forEach(d => {
-                const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
-                const theme = getDeptTheme(d.name);
-                const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
-                const pctWidth = isAmountMode
-                    ? (emp.salary > 0 ? Math.min(100, Math.round(val / emp.salary * 100)) : 0)
-                    : Math.min(100, val);
-                const inputColor = val > 0 ? theme.color : '#8E8E93';
-                ratiosGridHtml += `
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: #FFFFFF; border-radius: 6px; border-left: 3px solid ${theme.color}; min-height: 34px;">
-                        <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
-                            <span style="font-size: 0.78rem; font-weight: 600; color: #1D1D1F; flex-shrink: 0;">${shortName}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 3px; flex-shrink: 0;">
-                            <input type="${isAmountMode ? 'text' : 'number'}" class="ratio-pct-input" 
-                              style="width: ${isAmountMode ? '80px' : '46px'}; padding: 3px 6px; font-size: 0.82rem; font-weight: 800; color: ${inputColor}; background: #F5F5F7; border: 1px solid rgba(0,0,0,0.1); border-radius: 5px; text-align: right; outline: none; font-family: inherit;" 
-                              value="${isAmountMode ? formatNumberWithDots(val) : val}" 
-                              oninput="${isAmountMode ? 'handleMoneyInput(this)' : ''}"
-                              onchange="updateEmployeeRatio('${emp.id}', '${d.id}', ${isAmountMode ? 'parseMoneyValue(this.value)' : 'this.value'}); this.style.color = (${isAmountMode ? 'parseMoneyValue(this.value)' : 'parseFloat(this.value)||0'}) > 0 ? '${theme.color}' : '#8E8E93'">
-                            <span style="font-size: 0.72rem; font-weight: 700; color: #8E8E93; min-width: 14px;">${isAmountMode ? 'đ' : '%'}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            ratiosGridHtml += `
-                    </div>
-                </div>
             `;
 
             breakdownText = `
@@ -4207,7 +4166,6 @@ function renderEmployees() {
                     ${activeTagsHtml}
                 </div>
                 ${configBtnHtml}
-                ${ratiosGridHtml}
             `;
         } else {
             breakdownText = `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top:4px;"><i class="fa-solid fa-circle-info"></i> Lương phân bổ 100% cho ban quản lý chính</div>`;
@@ -4408,14 +4366,254 @@ function updateEmployeeRatio(empId, deptId, value) {
     }
 }
 
-function updateEmployeeAllocationMode(empId, mode) {
+// ========== KIÊM NHIỆM RATIO MODAL SYSTEM ==========
+
+let _empRatioModalId = null; // Current employee being edited in modal
+let _empRatioModalMode = 'percentage'; // 'percentage' | 'amount'
+let _empRatioModalDraftRatios = {}; // Draft in-modal ratios (not saved until Save click)
+
+function openEmpRatioModal(empId) {
     const emp = appState.employees.find(e => e.id === empId);
-    if (emp) {
-        emp.allocationMode = mode;
-        emp.ratios = {}; // Reset to prevent garbage weights between modes
-        saveState();
-        renderEmployees();
-        renderDashboard();
+    if (!emp) return;
+
+    _empRatioModalId = empId;
+    _empRatioModalMode = emp.allocationMode || 'percentage';
+    // Clone current ratios as draft
+    _empRatioModalDraftRatios = Object.assign({}, emp.ratios || {});
+
+    // Update modal header
+    document.getElementById('emp_ratio_modal_title').textContent = emp.name;
+    document.getElementById('emp_ratio_modal_subtitle').textContent =
+        'Lương gốc: ' + formatCurrency(emp.salary) + ' — Phân bổ cho từng bộ phận kiêm nhiệm';
+
+    // Render dept list
+    _renderEmpRatioModalList();
+
+    // Update mode toggle buttons
+    _updateEmpRatioModeButtons();
+
+    // Open modal
+    document.getElementById('emp_ratio_modal').classList.add('open');
+}
+
+function _renderEmpRatioModalList() {
+    const emp = appState.employees.find(e => e.id === _empRatioModalId);
+    if (!emp) return;
+    const isAmt = _empRatioModalMode === 'amount';
+    const nonUtilityDepts = appState.departments.filter(d => !d.isUtility);
+
+    const getDeptTheme = (name) => {
+        const lower = name.toLowerCase();
+        if (lower.includes('tiểu học')) return { color: '#007AFF' };
+        if (lower.includes('thcs')) return { color: '#34C759' };
+        if (lower.includes('thpt')) return { color: '#AF52DE' };
+        return { color: '#FF9500' };
+    };
+
+    let html = '';
+    nonUtilityDepts.forEach(d => {
+        const theme = getDeptTheme(d.name);
+        const shortName = d.name.replace('Khối ', '').replace('Ban ', '');
+        const val = _empRatioModalDraftRatios[d.id] || 0;
+        const inputColor = val > 0 ? theme.color : '#8E8E93';
+        const pctWidth = isAmt
+            ? (emp.salary > 0 ? Math.min(100, Math.round(val / emp.salary * 100)) : 0)
+            : Math.min(100, val);
+
+        html += `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; background:#FFFFFF; border-radius:7px; border-left:4px solid ${theme.color}; min-height:40px;">
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:0.85rem; font-weight:700; color:#1D1D1F;">${shortName}</div>
+                <div style="height:3px; border-radius:2px; background:rgba(0,0,0,0.06); overflow:hidden; margin-top:4px;">
+                    <div id="emp_ratio_bar_${d.id}" style="height:100%; width:${pctWidth}%; background:${theme.color}; border-radius:2px; transition:width 0.25s;"></div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                <input type="${isAmt ? 'text' : 'number'}" ${isAmt ? '' : 'min="0" max="100"'}
+                    id="emp_ratio_input_${d.id}"
+                    data-dept-id="${d.id}"
+                    data-dept-color="${theme.color}"
+                    style="width:${isAmt ? '96px' : '56px'}; padding:5px 8px; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
+                    value="${isAmt ? formatNumberWithDots(val) : val}"
+                    oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
+                    onfocus="this.style.borderColor='${theme.color}'"
+                    onblur="this.style.borderColor='rgba(0,0,0,0.1)'">
+                <span style="font-size:0.78rem; font-weight:700; color:#8E8E93; min-width:16px;">${isAmt ? 'đ' : '%'}</span>
+            </div>
+        </div>`;
+    });
+
+    document.getElementById('emp_ratio_dept_list').innerHTML = html;
+    updateEmpRatioStatusBar();
+}
+
+function updateEmpRatioModalDraft(input) {
+    const deptId = input.dataset.deptId;
+    const deptColor = input.dataset.deptColor;
+    const isAmt = _empRatioModalMode === 'amount';
+    const val = isAmt ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
+    _empRatioModalDraftRatios[deptId] = val;
+    input.style.color = val > 0 ? deptColor : '#8E8E93';
+
+    // Update mini progress bar
+    const emp = appState.employees.find(e => e.id === _empRatioModalId);
+    const barEl = document.getElementById('emp_ratio_bar_' + deptId);
+    if (barEl && emp) {
+        const pctWidth = isAmt
+            ? (emp.salary > 0 ? Math.min(100, Math.round(val / emp.salary * 100)) : 0)
+            : Math.min(100, val);
+        barEl.style.width = pctWidth + '%';
+    }
+    updateEmpRatioStatusBar();
+}
+
+function updateEmpRatioStatusBar() {
+    const emp = appState.employees.find(e => e.id === _empRatioModalId);
+    if (!emp) return;
+    const isAmt = _empRatioModalMode === 'amount';
+    const statusBar = document.getElementById('emp_ratio_status_bar');
+    const statusText = document.getElementById('emp_ratio_status_text');
+    if (!statusBar || !statusText) return;
+
+    let total = 0;
+    Object.values(_empRatioModalDraftRatios).forEach(v => total += (v || 0));
+
+    if (isAmt) {
+        const diff = emp.salary - total;
+        if (diff === 0) {
+            statusBar.style.background = 'rgba(52,199,89,0.08)';
+            statusBar.style.borderColor = 'rgba(52,199,89,0.3)';
+            statusBar.style.color = '#34C759';
+            statusBar.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>Khớp lương gốc ✓</span>';
+        } else if (diff > 0) {
+            statusBar.style.background = 'rgba(255,149,0,0.07)';
+            statusBar.style.borderColor = 'rgba(255,149,0,0.25)';
+            statusBar.style.color = '#FF9500';
+            statusBar.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i><span>Tổng: ' + formatCurrency(total) + ' — Thiếu ' + formatCurrency(diff) + '</span>';
+        } else {
+            statusBar.style.background = 'rgba(255,59,48,0.07)';
+            statusBar.style.borderColor = 'rgba(255,59,48,0.25)';
+            statusBar.style.color = '#FF3B30';
+            statusBar.innerHTML = '<i class="fa-solid fa-circle-xmark"></i><span>Vượt quá ' + formatCurrency(-diff) + '</span>';
+        }
+    } else {
+        const diff = 100 - total;
+        if (Math.abs(diff) < 0.1) {
+            statusBar.style.background = 'rgba(52,199,89,0.08)';
+            statusBar.style.borderColor = 'rgba(52,199,89,0.3)';
+            statusBar.style.color = '#34C759';
+            statusBar.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>Đủ 100% ✓</span>';
+        } else if (diff > 0) {
+            statusBar.style.background = 'rgba(255,149,0,0.07)';
+            statusBar.style.borderColor = 'rgba(255,149,0,0.25)';
+            statusBar.style.color = '#FF9500';
+            statusBar.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i><span>Tổng: ' + total.toFixed(1) + '% — Thiếu ' + diff.toFixed(1) + '%</span>';
+        } else {
+            statusBar.style.background = 'rgba(255,59,48,0.07)';
+            statusBar.style.borderColor = 'rgba(255,59,48,0.25)';
+            statusBar.style.color = '#FF3B30';
+            statusBar.innerHTML = '<i class="fa-solid fa-circle-xmark"></i><span>Vượt quá ' + (-diff).toFixed(1) + '%</span>';
+        }
+    }
+}
+
+function switchEmpRatioMode(mode) {
+    if (_empRatioModalMode === mode) return;
+    // Read current input values into draft before switching
+    const isAmt = _empRatioModalMode === 'amount';
+    document.querySelectorAll('#emp_ratio_dept_list input').forEach(input => {
+        const deptId = input.dataset.deptId;
+        if (deptId) {
+            _empRatioModalDraftRatios[deptId] = isAmt ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
+        }
+    });
+    _empRatioModalMode = mode;
+
+    // If switching between modes, convert the draft values
+    const emp = appState.employees.find(e => e.id === _empRatioModalId);
+    if (emp && emp.salary > 0) {
+        const newDraft = {};
+        if (mode === 'amount') {
+            // Convert % -> VNĐ
+            Object.entries(_empRatioModalDraftRatios).forEach(([dId, pct]) => {
+                newDraft[dId] = Math.round(emp.salary * (pct / 100));
+            });
+        } else {
+            // Convert VNĐ -> % (proportional)
+            const totalAmt = Object.values(_empRatioModalDraftRatios).reduce((s, v) => s + (v || 0), 0);
+            if (totalAmt > 0) {
+                Object.entries(_empRatioModalDraftRatios).forEach(([dId, amt]) => {
+                    newDraft[dId] = Math.round((amt / totalAmt) * 100 * 10) / 10;
+                });
+            } else {
+                Object.keys(_empRatioModalDraftRatios).forEach(dId => { newDraft[dId] = 0; });
+            }
+        }
+        _empRatioModalDraftRatios = newDraft;
+    }
+
+    _updateEmpRatioModeButtons();
+    _renderEmpRatioModalList();
+}
+
+function _updateEmpRatioModeButtons() {
+    const btnPct = document.getElementById('emp_ratio_btn_pct');
+    const btnAmt = document.getElementById('emp_ratio_btn_amt');
+    if (!btnPct || !btnAmt) return;
+    const isPct = _empRatioModalMode === 'percentage';
+    btnPct.style.background = isPct ? '#FFFFFF' : 'transparent';
+    btnPct.style.fontWeight = isPct ? '700' : '500';
+    btnPct.style.color = isPct ? 'var(--info)' : 'var(--text-secondary)';
+    btnPct.style.boxShadow = isPct ? '0 1px 3px rgba(0,0,0,0.1)' : 'none';
+    btnAmt.style.background = !isPct ? '#FFFFFF' : 'transparent';
+    btnAmt.style.fontWeight = !isPct ? '700' : '500';
+    btnAmt.style.color = !isPct ? 'var(--info)' : 'var(--text-secondary)';
+    btnAmt.style.boxShadow = !isPct ? '0 1px 3px rgba(0,0,0,0.1)' : 'none';
+}
+
+function saveEmpRatioModal() {
+    // Read latest inputs
+    const isAmt = _empRatioModalMode === 'amount';
+    document.querySelectorAll('#emp_ratio_dept_list input').forEach(input => {
+        const deptId = input.dataset.deptId;
+        if (deptId) {
+            _empRatioModalDraftRatios[deptId] = isAmt ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
+        }
+    });
+
+    // Validate
+    const emp = appState.employees.find(e => e.id === _empRatioModalId);
+    if (!emp) return;
+    let total = Object.values(_empRatioModalDraftRatios).reduce((s, v) => s + (v || 0), 0);
+    if (isAmt) {
+        if (Math.abs(total - emp.salary) > 1) {
+            const diff = emp.salary - total;
+            if (!confirm('Tổng phân bổ chưa khớp lương gốc (Thiếu/Thừa ' + formatCurrency(Math.abs(diff)) + '). Vẫn lưu?')) return;
+        }
+    } else {
+        if (Math.abs(total - 100) > 0.5) {
+            if (!confirm('Tổng % chưa đủ 100% (Hiện: ' + total.toFixed(1) + '%). Vẫn lưu?')) return;
+        }
+    }
+
+    // Save to appState
+    emp.allocationMode = _empRatioModalMode;
+    emp.ratios = Object.assign({}, _empRatioModalDraftRatios);
+    saveState();
+
+    // Update badge + progress in employee list without full re-render
+    updateEmpBadgeInDOM(_empRatioModalId);
+    updateEmpActiveTagsAndProgress(_empRatioModalId);
+    renderDashboard();
+
+    closeModal('emp_ratio_modal');
+}
+
+// =========================================================
+
+function updateEmployeeAllocationMode(empId, mode) {
+    // This function now only used for legacy calls — redirect to modal switcher
+    if (_empRatioModalId === empId) {
+        switchEmpRatioMode(mode);
     }
 }
 
