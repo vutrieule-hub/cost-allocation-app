@@ -1823,7 +1823,7 @@ function getActualFillRateForDept(deptId) {
 
     if (appState.rooms) {
         appState.rooms.forEach(room => {
-            if (room.status === "active" && room.type !== "functional" && room.splits) {
+            if (room && room.status === "active" && room.type !== "functional" && room.splits) {
                 const splitRatio = room.splits[deptId] || 0;
                 if (splitRatio > 0) {
                     const ratio = splitRatio / 100;
@@ -6349,9 +6349,11 @@ function pushLocalDataToCloud() {
         });
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", initApp);
+} else {
     initApp();
-});
+}
 
 // ===================================================================
 // DYNAMIC SCENARIO SIMULATION HANDLERS (WHAT-IF PROJECTION ENGINE)
