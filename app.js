@@ -4858,6 +4858,7 @@ function renderFacilities() {
                                     <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
                                     <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
                                 </select>
+                                <i class="fa-solid fa-circle-question" style="color: var(--info); cursor: help; font-size: 0.78rem; display: inline-block; vertical-align: middle; margin-left: 2px;" title="Giải thích phân loại:\n\n- 🏫 Lớp học / 🛌 Nội trú: Tham gia trực tiếp vào tính toán sỹ số lấp đầy & tạo doanh thu giả lập học phí.\n- 🛠 Dùng chung: Là các phòng chức năng không trực tiếp tạo ra nguồn thu từ học sinh. Chỉ nhận phân bổ chi phí mặt bằng của trường, không gán doanh thu giả lập hay sỹ số lấp đầy trong kịch bản."></i>
                                 ${room.type === 'classroom' ? `
                                 <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
                                     <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
@@ -4938,6 +4939,7 @@ function renderFacilities() {
                                 <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
                                 <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
                             </select>
+                            <i class="fa-solid fa-circle-question" style="color: var(--info); cursor: help; font-size: 0.78rem; display: inline-block; vertical-align: middle; margin-left: 2px;" title="Giải thích phân loại:\n\n- 🏫 Lớp học / 🛌 Nội trú: Tham gia trực tiếp vào tính toán sỹ số lấp đầy & tạo doanh thu giả lập học phí.\n- 🛠 Dùng chung: Là các phòng chức năng không trực tiếp tạo ra nguồn thu từ học sinh. Chỉ nhận phân bổ chi phí mặt bằng của trường, không gán doanh thu giả lập hay sỹ số lấp đầy trong kịch bản."></i>
                             ${room.type === 'classroom' ? `
                             <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
                                 <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
