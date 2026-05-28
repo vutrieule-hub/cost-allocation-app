@@ -1734,7 +1734,6 @@ function loadState() {
         ensureStateCompatibility(appState);
     }
 }
-}
 
 function saveState() {
     saveStateLocalOnly();
