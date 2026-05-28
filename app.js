@@ -4133,10 +4133,14 @@ function renderEmployees() {
                     activeCount++;
                     const theme = getDeptTheme(d.name);
                     const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
+                    const noteText = emp.ratioNotes?.[d.id] || '';
+                    const noteIcon = noteText ? ` <i class="fa-regular fa-comment-dots" style="color: ${theme.color}; opacity: 0.85; font-size: 0.65rem;" title="${noteText}"></i>` : '';
+
                     activeTagsHtml += `
-                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);"
+                              title="${d.name}: ${isAmountMode ? formatCurrency(val) : (val + '%')}${noteText ? ' — Ghi chú: ' + noteText : ''}">
                             <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
-                            ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>
+                            ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>${noteIcon}
                         </span>
                     `;
                 }
@@ -4371,6 +4375,7 @@ function updateEmployeeRatio(empId, deptId, value) {
 let _empRatioModalId = null; // Current employee being edited in modal
 let _empRatioModalMode = 'percentage'; // 'percentage' | 'amount'
 let _empRatioModalDraftRatios = {}; // Draft in-modal ratios (not saved until Save click)
+let _empRatioModalDraftNotes = {}; // Draft notes
 
 function openEmpRatioModal(empId) {
     const emp = appState.employees.find(e => e.id === empId);
@@ -4378,8 +4383,9 @@ function openEmpRatioModal(empId) {
 
     _empRatioModalId = empId;
     _empRatioModalMode = emp.allocationMode || 'percentage';
-    // Clone current ratios as draft
+    // Clone current ratios and notes as draft
     _empRatioModalDraftRatios = Object.assign({}, emp.ratios || {});
+    _empRatioModalDraftNotes = Object.assign({}, emp.ratioNotes || {});
 
     // Update modal header
     document.getElementById('emp_ratio_modal_title').textContent = emp.name;
@@ -4420,24 +4426,39 @@ function _renderEmpRatioModalList() {
             ? (emp.salary > 0 ? Math.min(100, Math.round(val / emp.salary * 100)) : 0)
             : Math.min(100, val);
 
-        html += `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; background:#FFFFFF; border-radius:7px; border-left:4px solid ${theme.color}; min-height:40px;">
-            <div style="flex:1; min-width:0;">
-                <div style="font-size:0.85rem; font-weight:700; color:#1D1D1F;">${shortName}</div>
-                <div style="height:3px; border-radius:2px; background:rgba(0,0,0,0.06); overflow:hidden; margin-top:4px;">
-                    <div id="emp_ratio_bar_${d.id}" style="height:100%; width:${pctWidth}%; background:${theme.color}; border-radius:2px; transition:width 0.25s;"></div>
+        const noteVal = _empRatioModalDraftNotes[d.id] || '';
+
+        html += `<div style="display:flex; flex-direction:column; gap:6px; padding:10px 12px; background:#FFFFFF; border-radius:7px; border-left:4px solid ${theme.color};">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:0.85rem; font-weight:700; color:#1D1D1F;">${shortName}</div>
+                    <div style="height:3px; border-radius:2px; background:rgba(0,0,0,0.06); overflow:hidden; margin-top:4px;">
+                        <div id="emp_ratio_bar_${d.id}" style="height:100%; width:${pctWidth}%; background:${theme.color}; border-radius:2px; transition:width 0.25s;"></div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                    <input type="${isAmt ? 'text' : 'number'}" ${isAmt ? '' : 'min="0" max="100"'}
+                        id="emp_ratio_input_${d.id}"
+                        data-dept-id="${d.id}"
+                        data-dept-color="${theme.color}"
+                        style="width:${isAmt ? '96px' : '56px'}; padding:5px 8px; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
+                        value="${isAmt ? formatNumberWithDots(val) : val}"
+                        oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
+                        onfocus="this.style.borderColor='${theme.color}'"
+                        onblur="this.style.borderColor='rgba(0,0,0,0.1)'">
+                    <span style="font-size:0.78rem; font-weight:700; color:#8E8E93; min-width:16px;">${isAmt ? 'đ' : '%'}</span>
                 </div>
             </div>
-            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
-                <input type="${isAmt ? 'text' : 'number'}" ${isAmt ? '' : 'min="0" max="100"'}
-                    id="emp_ratio_input_${d.id}"
+            <!-- Ô nhập ghi chú lý do / vai trò kiêm nhiệm -->
+            <div style="display:flex; align-items:center; gap:6px; background:#F5F5F7; padding:4px 8px; border-radius:6px; border: 1px dashed rgba(0,0,0,0.05);">
+                <i class="fa-regular fa-comment-dots" style="color:#8E8E93; font-size:0.78rem;"></i>
+                <input type="text"
+                    id="emp_ratio_note_${d.id}"
                     data-dept-id="${d.id}"
-                    data-dept-color="${theme.color}"
-                    style="width:${isAmt ? '96px' : '56px'}; padding:5px 8px; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
-                    value="${isAmt ? formatNumberWithDots(val) : val}"
-                    oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
-                    onfocus="this.style.borderColor='${theme.color}'"
-                    onblur="this.style.borderColor='rgba(0,0,0,0.1)'">
-                <span style="font-size:0.78rem; font-weight:700; color:#8E8E93; min-width:16px;">${isAmt ? 'đ' : '%'}</span>
+                    placeholder="Mô tả vai trò / công việc kiêm nhiệm..."
+                    style="flex:1; border:none; background:transparent; font-size:0.75rem; color:#1D1D1F; outline:none; font-family:inherit; padding:0;"
+                    value="${noteVal}"
+                    oninput="updateEmpRatioModalDraftNote(this)">
             </div>
         </div>`;
     });
@@ -4464,6 +4485,11 @@ function updateEmpRatioModalDraft(input) {
         barEl.style.width = pctWidth + '%';
     }
     updateEmpRatioStatusBar();
+}
+
+function updateEmpRatioModalDraftNote(input) {
+    const deptId = input.dataset.deptId;
+    _empRatioModalDraftNotes[deptId] = input.value.trim();
 }
 
 function updateEmpRatioStatusBar() {
@@ -4519,7 +4545,7 @@ function switchEmpRatioMode(mode) {
     if (_empRatioModalMode === mode) return;
     // Read current input values into draft before switching
     const isAmt = _empRatioModalMode === 'amount';
-    document.querySelectorAll('#emp_ratio_dept_list input').forEach(input => {
+    document.querySelectorAll('#emp_ratio_dept_list input[id^="emp_ratio_input_"]').forEach(input => {
         const deptId = input.dataset.deptId;
         if (deptId) {
             _empRatioModalDraftRatios[deptId] = isAmt ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
@@ -4572,10 +4598,18 @@ function _updateEmpRatioModeButtons() {
 function saveEmpRatioModal() {
     // Read latest inputs
     const isAmt = _empRatioModalMode === 'amount';
-    document.querySelectorAll('#emp_ratio_dept_list input').forEach(input => {
+    document.querySelectorAll('#emp_ratio_dept_list input[id^="emp_ratio_input_"]').forEach(input => {
         const deptId = input.dataset.deptId;
         if (deptId) {
             _empRatioModalDraftRatios[deptId] = isAmt ? parseMoneyValue(input.value) : (parseFloat(input.value) || 0);
+        }
+    });
+
+    // Read latest notes
+    document.querySelectorAll('#emp_ratio_dept_list input[id^="emp_ratio_note_"]').forEach(input => {
+        const deptId = input.dataset.deptId;
+        if (deptId) {
+            _empRatioModalDraftNotes[deptId] = input.value.trim();
         }
     });
 
@@ -4597,6 +4631,15 @@ function saveEmpRatioModal() {
     // Save to appState
     emp.allocationMode = _empRatioModalMode;
     emp.ratios = Object.assign({}, _empRatioModalDraftRatios);
+    
+    // Save notes
+    emp.ratioNotes = {};
+    Object.entries(_empRatioModalDraftNotes).forEach(([dId, text]) => {
+        if (text) {
+            emp.ratioNotes[dId] = text;
+        }
+    });
+
     saveState();
 
     // Update badge + progress in employee list without full re-render
@@ -4784,10 +4827,14 @@ function updateEmpActiveTagsAndProgress(empId) {
             activeCount++;
             const theme = getDeptTheme(d.name);
             const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
+            const noteText = emp.ratioNotes?.[d.id] || '';
+            const noteIcon = noteText ? ` <i class="fa-regular fa-comment-dots" style="color: ${theme.color}; opacity: 0.85; font-size: 0.65rem;" title="${noteText}"></i>` : '';
+
             activeTagsHtml += `
-                <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);"
+                      title="${d.name}: ${isAmountMode ? formatCurrency(val) : (val + '%')}${noteText ? ' — Ghi chú: ' + noteText : ''}">
                     <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
-                    ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>
+                    ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>${noteIcon}
                 </span>
             `;
         }
