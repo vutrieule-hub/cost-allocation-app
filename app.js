@@ -1682,6 +1682,14 @@ function loadState() {
     // Di trú dữ liệu cho thuộc tính "system" (Hệ đào tạo) của phòng học
     if (appState.rooms) {
         appState.rooms.forEach(room => {
+            if (room.type === "classroom") {
+                const hasTieuhocOrThcs = room.splits && ((room.splits.dept_tieuhoc || 0) > 0 || (room.splits.dept_thcs || 0) > 0);
+                const hasThpt = room.splits && (room.splits.dept_thpt || 0) > 0;
+                if (hasTieuhocOrThcs && !hasThpt) {
+                    room.system = "xanh";
+                    room.capacity = 25;
+                }
+            }
             if (!room.system) {
                 const lowerName = (room.name || "").toLowerCase();
                 if (lowerName.includes("xanh") || lowerName.includes("sáng tạo")) {
@@ -1849,6 +1857,20 @@ function getActiveRoomCounts() {
 let allocationResult = {};
 
 function runAllocation() {
+    // Automatically enforce that Primary/THCS classrooms (without THPT) are Green track and max capacity 25
+    if (appState.rooms) {
+        appState.rooms.forEach(room => {
+            if (room.type === "classroom") {
+                const hasTieuhocOrThcs = room.splits && ((room.splits.dept_tieuhoc || 0) > 0 || (room.splits.dept_thcs || 0) > 0);
+                const hasThpt = room.splits && (room.splits.dept_thpt || 0) > 0;
+                if (hasTieuhocOrThcs && !hasThpt) {
+                    room.system = "xanh";
+                    room.capacity = 25;
+                }
+            }
+        });
+    }
+
     const revenueDepts = appState.departments.filter(d => d.type === "revenue");
     const supportDepts = appState.departments.filter(d => d.type === "support" && !d.isUtility);
     const utilityDepts = appState.departments.filter(d => d.type === "support" && d.isUtility);
@@ -4858,12 +4880,16 @@ function renderFacilities() {
                                     <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
                                     <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
                                 </select>
-                                ${room.type === 'classroom' ? `
-                                <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
-                                    <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
-                                    <option value="xanh" ${room.system === "xanh" ? "selected" : ""}>🌿 Hệ Xanh (max 25)</option>
-                                </select>
-                                ` : ''}
+                                ${room.type === 'classroom' ? (
+                                    (room.splits && (room.splits.dept_thpt || 0) > 0) ? `
+                                    <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
+                                        <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
+                                        <option value="xanh" ${room.system === "xanh" ? "selected" : ""}>🌿 Hệ Xanh (max 25)</option>
+                                    </select>
+                                    ` : `
+                                    <span class="badge" style="background: rgba(52, 199, 89, 0.08); color: var(--success); font-size: 0.72rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.15);">🌿 Hệ Xanh (max 25)</span>
+                                    `
+                                ) : ''}
                             </div>
                         </td>
                         <td class="text-right"><strong>${formatCurrency(calculatedRoomCost)}</strong></td>
@@ -4938,12 +4964,16 @@ function renderFacilities() {
                                 <option value="boarding" ${room.type === "boarding" ? "selected" : ""}>🛌 Nội trú</option>
                                 <option value="functional" ${room.type === "functional" || !room.type ? "selected" : ""}>🛠 Dùng chung</option>
                             </select>
-                            ${room.type === 'classroom' ? `
-                            <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
-                                <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
-                                <option value="xanh" ${room.system === "xanh" ? "selected" : ""}>🌿 Hệ Xanh (max 25)</option>
-                            </select>
-                            ` : ''}
+                            ${room.type === 'classroom' ? (
+                                (room.splits && (room.splits.dept_thpt || 0) > 0) ? `
+                                <select onchange="updateRoomSystem('${room.id}', this.value)" class="base-select-dropdown" style="padding: 2px 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border-radius: 4px; border-color: rgba(0,122,255,0.15); background: ${room.system === 'xanh' ? 'rgba(52,199,89,0.08)' : 'rgba(0,122,255,0.08)'}; color: ${room.system === 'xanh' ? 'var(--success)' : 'var(--primary)'}; width: auto; height: auto;">
+                                    <option value="thuong" ${room.system === "thuong" || !room.system ? "selected" : ""}>🏫 Thường (max 40)</option>
+                                    <option value="xanh" ${room.system === "xanh" ? "selected" : ""}>🌿 Hệ Xanh (max 25)</option>
+                                </select>
+                                ` : `
+                                <span class="badge" style="background: rgba(52, 199, 89, 0.08); color: var(--success); font-size: 0.72rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.15);">🌿 Hệ Xanh (max 25)</span>
+                                `
+                            ) : ''}
                         </div>
                     </td>
                     <td class="text-right"><strong>0 đ</strong></td>
@@ -5566,17 +5596,13 @@ function initApp() {
         // Cập nhật giá trị và thông tin cho 4 thanh trượt mới của từng khối
         updateSimulationUI();
 
-        const txtTieuhocThuong = document.getElementById("txt_sim_tuition_tieuhoc_thuong");
         const txtTieuhocXanh = document.getElementById("txt_sim_tuition_tieuhoc_xanh");
-        const txtThcsThuong = document.getElementById("txt_sim_tuition_thcs_thuong");
         const txtThcsXanh = document.getElementById("txt_sim_tuition_thcs_xanh");
         const txtThptThuong = document.getElementById("txt_sim_tuition_thpt_thuong");
         const txtThptXanh = document.getElementById("txt_sim_tuition_thpt_xanh");
         const txtNoitru = document.getElementById("txt_sim_tuition_noitru");
 
-        if (txtTieuhocThuong) txtTieuhocThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc_thuong);
         if (txtTieuhocXanh) txtTieuhocXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_tieuhoc_xanh);
-        if (txtThcsThuong) txtThcsThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs_thuong);
         if (txtThcsXanh) txtThcsXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_thcs_xanh);
         if (txtThptThuong) txtThptThuong.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt_thuong);
         if (txtThptXanh) txtThptXanh.value = formatNumberWithDots(appState.simulation.tuition.dept_thpt_xanh);
