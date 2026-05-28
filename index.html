@@ -275,17 +275,8 @@
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #007AFF; display: block; margin-bottom: 4px;">Tiểu học - Thường (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_tieuhoc_thuong" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="5.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc_thuong', this.value)">
-                            </div>
-                            <div>
                                 <label style="font-size: 0.68rem; font-weight: 700; color: #00A2FF; display: block; margin-bottom: 4px;">Tiểu học - Hệ Xanh (VNĐ/tháng):</label>
                                 <input type="text" id="txt_sim_tuition_tieuhoc_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="7.500.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc_xanh', this.value)">
-                            </div>
-                            
-                            <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #34C759; display: block; margin-bottom: 4px;">THCS - Thường (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_thcs_thuong" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="6.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thcs_thuong', this.value)">
                             </div>
                             <div>
                                 <label style="font-size: 0.68rem; font-weight: 700; color: #30D158; display: block; margin-bottom: 4px;">THCS - Hệ Xanh (VNĐ/tháng):</label>
@@ -536,7 +527,7 @@
                     <!-- Multi-level Toggle for Multi-department split -->
                     <div class="form-group" style="margin-bottom: 12px; flex-direction: row; align-items: center; gap: 8px;">
                         <input type="checkbox" id="emp_add_multilevel" onchange="toggleMultiLevelInputs()" style="width:18px; height:18px; cursor:pointer;">
-                        <label for="emp_add_multilevel" style="cursor:pointer; font-weight:600; color:#FFF;">
+                        <label for="emp_add_multilevel" style="cursor:pointer; font-weight:600; color:var(--text-primary);">
                             Nhân sự này kiêm nhiệm nhiều phòng ban (Dạy chéo khối, hỗ trợ đa bộ phận)
                         </label>
                     </div>
@@ -680,7 +671,7 @@
 
                             <!-- Room Split Ratios across departments -->
                             <div class="form-group" style="margin-top: 10px;">
-                                <label style="font-weight: 600; color:#FFF;">
+                                <label style="font-weight: 600; color:var(--text-primary);">
                                     <i class="fa-solid fa-percent"></i> Bản chất sử dụng: Nhập tỷ lệ sử dụng (%) của các phòng ban (Tổng phải bằng 100%):
                                 </label>
                                 <div class="ratios-grid" id="room_add_splits_container">

@@ -4488,10 +4488,10 @@ function toggleMultiLevelInputs() {
             const shortName = dept.name.replace("Khối ", "").replace("Ban ", "");
             const val = dept.id === document.getElementById("emp_add_dept").value ? 100 : 0;
             grid.innerHTML += `
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
-                    <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
-                        <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 5px; flex-shrink: 0;"></span>
-                        <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${dept.name}">${shortName}</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);" onmouseover="this.style.borderColor='rgba(0,0,0,0.18)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.08)'">
+                    <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: ${theme.color}; margin-right: 6px; flex-shrink: 0;"></span>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);" title="${dept.name}">${shortName}</span>
                     </div>
                     <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
                         <input type="number" min="0" max="100" class="emp-add-ratio-val ratio-pct-input" data-dept-id="${dept.id}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
