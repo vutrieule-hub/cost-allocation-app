@@ -1641,10 +1641,10 @@ function loadState() {
             active: false,
             fillRate: 80,
             fillRates: {
-                "dept_tieuhoc": 80,
-                "dept_thcs": 80,
-                "dept_thpt": 80,
-                "dept_noitru": 80
+                "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+                "dept_thcs": getActualFillRateForDept("dept_thcs"),
+                "dept_thpt": getActualFillRateForDept("dept_thpt"),
+                "dept_noitru": getActualFillRateForDept("dept_noitru")
             },
             tuition: {
                 "dept_tieuhoc_thuong": 5000000,
@@ -6410,7 +6410,7 @@ function switchScenarioMode(mode) {
 }
 
 function updateSimulationUI() {
-    if (!appState.simulation) return;
+    if (!appState || !appState.simulation) return;
     
     if (!appState.simulation.fillRates) {
         appState.simulation.fillRates = {
@@ -6433,19 +6433,25 @@ function updateSimulationUI() {
         let maxCapacity = 0;
         let roomCount = 0;
         
-        appState.rooms.forEach(room => {
-            if (room.status === "active" && room.type !== "functional" && room.splits && room.splits[did] > 0) {
-                const ratio = room.splits[did] / 100;
-                maxCapacity += room.capacity * ratio;
-                roomCount += ratio;
-            }
-        });
+        if (appState.rooms && Array.isArray(appState.rooms)) {
+            appState.rooms.forEach(room => {
+                if (room && room.status === "active" && room.type !== "functional" && room.splits && room.splits[did] > 0) {
+                    const ratio = room.splits[did] / 100;
+                    maxCapacity += (room.capacity || 0) * ratio;
+                    roomCount += ratio;
+                }
+            });
+        }
         
         maxCapacity = Math.round(maxCapacity);
-        const fillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
+        const fillRate = (appState.simulation.fillRates && appState.simulation.fillRates[did] !== undefined) 
+            ? appState.simulation.fillRates[did] 
+            : 80;
         const simulatedStudents = Math.round(maxCapacity * (fillRate / 100));
         
-        const deptObj = appState.departments.find(d => d.id === did);
+        const deptObj = (appState.departments && Array.isArray(appState.departments)) 
+            ? appState.departments.find(d => d.id === did) 
+            : null;
         const actualStudents = deptObj ? (deptObj.students || 0) : 0;
         const actualFillRate = maxCapacity > 0 ? Math.round((actualStudents / maxCapacity) * 100) : 0;
         
