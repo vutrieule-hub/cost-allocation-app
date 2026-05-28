@@ -183,9 +183,14 @@
                     
                     <!-- Left: Grid of 4 Sliders for each Block/Department -->
                     <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
-                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary); border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-hotel" style="color: var(--primary);"></i>
-                            Tỷ lệ Lấp đầy Mục tiêu theo Từng khối Học
+                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary); border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <span style="display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-hotel" style="color: var(--primary);"></i>
+                                Tỷ lệ Lấp đầy Mục tiêu theo Từng khối Học
+                            </span>
+                            <button onclick="resetFillRatesToActuals()" class="btn hover-opacity" style="padding: 2px 8px; font-size: 0.68rem; background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.15); color: var(--success); font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; line-height: 1;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Đặt theo thực tế
+                            </button>
                         </span>
                         
                         <!-- 1. Tiểu học Slider -->

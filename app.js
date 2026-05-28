@@ -1664,6 +1664,17 @@ function loadState() {
                 "dept_thpt": getActualFillRateForDept("dept_thpt"),
                 "dept_noitru": getActualFillRateForDept("dept_noitru")
             };
+        } else {
+            // Tự động chuyển đổi nếu tất cả tỷ lệ đang là 80% (mặc định cũ trong localStorage)
+            const allEighty = Object.values(appState.simulation.fillRates).every(v => v === 80);
+            if (allEighty) {
+                appState.simulation.fillRates = {
+                    "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+                    "dept_thcs": getActualFillRateForDept("dept_thcs"),
+                    "dept_thpt": getActualFillRateForDept("dept_thpt"),
+                    "dept_noitru": getActualFillRateForDept("dept_noitru")
+                };
+            }
         }
         if (!appState.simulation.tuition || !appState.simulation.tuition.dept_tieuhoc_thuong) {
             const oldTuition = appState.simulation.tuition || {};
@@ -6457,6 +6468,20 @@ function updateSimDeptFillRate(deptId, val) {
     renderDashboard(result);
 }
 
+function resetFillRatesToActuals() {
+    if (!appState.simulation) return;
+    appState.simulation.fillRates = {
+        "dept_tieuhoc": getActualFillRateForDept("dept_tieuhoc"),
+        "dept_thcs": getActualFillRateForDept("dept_thcs"),
+        "dept_thpt": getActualFillRateForDept("dept_thpt"),
+        "dept_noitru": getActualFillRateForDept("dept_noitru")
+    };
+    saveState();
+    updateSimulationUI();
+    const result = runAllocation();
+    renderDashboard(result);
+}
+
 function updateSimFillRate(val) {
     if (!appState.simulation) return;
     const intVal = parseInt(val, 10) || 0;
@@ -6877,5 +6902,6 @@ window.handleRoomDragLeave = handleRoomDragLeave;
 window.handleRoomDrop = handleRoomDrop;
 window.handleRoomDragEnd = handleRoomDragEnd;
 window.updateEmpAddRatiosSummary = updateEmpAddRatiosSummary;
+window.resetFillRatesToActuals = resetFillRatesToActuals;
 
 
