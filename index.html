@@ -112,7 +112,7 @@
                     <i class="fa-solid fa-hand-holding-dollar"></i>
                 </div>
                 <div class="kpi-info">
-                    <h3>Tổng quỹ lương tháng</h3>
+                    <h3>Tổng quỹ lương & BHXH</h3>
                     <div class="kpi-value" id="kpi_total_salary">0 ₫</div>
                 </div>
             </div>
@@ -563,6 +563,10 @@
                             <label class="priority-container">Mức Lương thỏa thuận mới (vnđ/tháng) <span class="priority-dot" title="Trường dữ liệu lương quan trọng bắt buộc để tự động tính quỹ lương tháng"></span></label>
                             <input type="text" id="emp_add_salary" placeholder="Ví dụ: 10.000.000" oninput="handleMoneyInput(this)" required>
                         </div>
+                        <div class="form-group">
+                            <label>Bảo hiểm đóng (vnđ/tháng)</label>
+                            <input type="text" id="emp_add_insurance" placeholder="Ví dụ: 2.000.000 (Mặc định 0)" oninput="handleMoneyInput(this)">
+                        </div>
                     </div>
 
                     <!-- Multi-level Toggle for Multi-department split -->
@@ -614,7 +618,8 @@
                                 <th style="min-width: 250px;">Họ và Tên</th>
                                 <th style="width: 200px; min-width: 180px;">Bộ phận chính</th>
                                 <th style="width: 150px; min-width: 130px;">Phân loại nhân sự</th>
-                                <th class="text-right" style="width: 180px; min-width: 160px;">Lương thỏa thuận mới (vnđ)</th>
+                                <th class="text-right" style="width: 150px; min-width: 130px;">Lương thỏa thuận mới (vnđ)</th>
+                                <th class="text-right" style="width: 150px; min-width: 130px;">Bảo hiểm đóng (vnđ)</th>
                                 <th style="width: 100px;" class="text-center">Thao tác</th>
                             </tr>
                         </thead>
@@ -1574,6 +1579,6 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app_v10.js?v=25"></script>
+    <script src="app_v10.js?v=26"></script>
 </body>
 </html>

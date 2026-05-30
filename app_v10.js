@@ -2140,8 +2140,10 @@ function runAllocation() {
     // Initialize tracking structures
     const result = {
         directSalary: {},
+        directInsurance: {},
         directRent: {},
         indirectSalary: {},
+        indirectInsurance: {},
         indirectRent: {},
         allocatedCosts: {},
         allocatedUtilityCosts: {},
@@ -2149,6 +2151,7 @@ function runAllocation() {
         allocatedSalaryCosts: {},
         allocatedRentCosts: {},
         totalIndirectSalaryAllocated: {},
+        totalIndirectInsuranceAllocated: {},
         totalIndirectRentAllocated: {},
         totalUtilityAllocated: {},
         departmentTotalCosts: {},
@@ -2162,8 +2165,10 @@ function runAllocation() {
     // Prepare structure
     revenueDepts.forEach(d => {
         result.directSalary[d.id] = 0;
+        result.directInsurance[d.id] = 0;
         result.directRent[d.id] = 0;
         result.totalIndirectSalaryAllocated[d.id] = 0;
+        result.totalIndirectInsuranceAllocated[d.id] = 0;
         result.totalIndirectRentAllocated[d.id] = 0;
         result.totalUtilityAllocated[d.id] = 0;
         result.allocatedCosts[d.id] = {};
@@ -2182,6 +2187,7 @@ function runAllocation() {
     });
     supportDepts.forEach(d => {
         result.indirectSalary[d.id] = 0;
+        result.indirectInsurance[d.id] = 0;
         result.indirectRent[d.id] = 0;
         result.departmentTotalCosts[d.id] = 0;
     });
@@ -2190,6 +2196,7 @@ function runAllocation() {
     // BƯỚC 1 & 2: PHÂN BỔ LƯƠNG NHÂN SỰ
     // ==========================================
     appState.employees.forEach(emp => {
+        const empInsurance = emp.insurance || 0;
         if (emp.isMultiLevel && emp.ratios) {
             const isAmountMode = emp.allocationMode === "amount";
             if (isAmountMode) {
@@ -2197,12 +2204,16 @@ function runAllocation() {
                 Object.keys(emp.ratios).forEach(deptId => {
                     const allocatedSalary = emp.ratios[deptId] || 0;
                     if (allocatedSalary > 0) {
+                        const ratio = emp.salary > 0 ? (allocatedSalary / emp.salary) : 0;
+                        const allocatedInsurance = empInsurance * ratio;
                         const dept = appState.departments.find(d => d.id === deptId);
                         if (dept) {
                             if (dept.type === "revenue") {
                                 result.directSalary[deptId] += allocatedSalary;
+                                result.directInsurance[deptId] += allocatedInsurance;
                             } else {
                                 result.indirectSalary[deptId] += allocatedSalary;
+                                result.indirectInsurance[deptId] += allocatedInsurance;
                             }
                         }
                     }
@@ -2214,18 +2225,21 @@ function runAllocation() {
                     totalRatio += emp.ratios[deptId] || 0;
                 });
 
-                // Allocate multi-level/kiêm nhiệm employee salary across any departments based on weights
+                // Allocate multi-level/kiêm nhiệm employee salary & insurance across any departments based on weights
                 Object.keys(emp.ratios).forEach(deptId => {
                     const ratioVal = emp.ratios[deptId] || 0;
                     if (ratioVal > 0 && totalRatio > 0) {
                         const ratio = ratioVal / totalRatio;
                         const allocatedSalary = emp.salary * ratio;
+                        const allocatedInsurance = empInsurance * ratio;
                         const dept = appState.departments.find(d => d.id === deptId);
                         if (dept) {
                             if (dept.type === "revenue") {
                                 result.directSalary[deptId] += allocatedSalary;
+                                result.directInsurance[deptId] += allocatedInsurance;
                             } else {
                                 result.indirectSalary[deptId] += allocatedSalary;
+                                result.indirectInsurance[deptId] += allocatedInsurance;
                             }
                         }
                     }
@@ -2237,8 +2251,10 @@ function runAllocation() {
             if (dept) {
                 if (dept.type === "revenue") {
                     result.directSalary[emp.deptId] += emp.salary;
+                    result.directInsurance[emp.deptId] += empInsurance;
                 } else {
                     result.indirectSalary[emp.deptId] += emp.salary;
+                    result.indirectInsurance[emp.deptId] += empInsurance;
                 }
             }
         }
@@ -2339,7 +2355,7 @@ function runAllocation() {
     // ==========================================
     // 1. Calculate Consolidated Total Cost for each Support Department
     supportDepts.forEach(sd => {
-        result.departmentTotalCosts[sd.id] = result.indirectSalary[sd.id] + result.indirectRent[sd.id];
+        result.departmentTotalCosts[sd.id] = result.indirectSalary[sd.id] + result.indirectInsurance[sd.id] + result.indirectRent[sd.id];
     });
 
     // 2. Allocate Support Department Costs to Revenue Departments
@@ -2384,6 +2400,7 @@ function runAllocation() {
             }
 
             const allocatedSalary = result.indirectSalary[sd.id] * ratio;
+            const allocatedInsurance = result.indirectInsurance[sd.id] * ratio;
             const allocatedRent = result.indirectRent[sd.id] * ratio;
 
             result.allocatedCosts[rd.id][sd.id] = allocatedVal;
@@ -2391,6 +2408,7 @@ function runAllocation() {
             result.allocatedRentCosts[rd.id][sd.id] = allocatedRent;
 
             result.totalIndirectSalaryAllocated[rd.id] += allocatedSalary;
+            result.totalIndirectInsuranceAllocated[rd.id] += allocatedInsurance;
             result.totalIndirectRentAllocated[rd.id] += allocatedRent;
 
             result.allocatedDetails[rd.id][sd.id] = {
@@ -2475,7 +2493,7 @@ function runAllocation() {
     }
     
     revenueDepts.forEach(rd => {
-        const rdDirectCost = result.directSalary[rd.id] + result.directRent[rd.id];
+        const rdDirectCost = result.directSalary[rd.id] + result.directInsurance[rd.id] + result.directRent[rd.id];
         let rdAllocatedSum = 0;
         supportDepts.forEach(sd => {
             rdAllocatedSum += result.allocatedCosts[rd.id][sd.id];
@@ -2588,7 +2606,7 @@ function renderDashboard() {
     updateSimulationUI();
 
     // Render KPI Values
-    const totalSalary = (appState.employees || []).reduce((acc, curr) => acc + (curr.salary || 0), 0);
+    const totalSalary = (appState.employees || []).reduce((acc, curr) => acc + (curr.salary || 0) + (curr.insurance || 0), 0);
     const totalRent = (appState.rentBlocks || []).reduce((acc, curr) => acc + (curr.totalRent || 0), 0);
     const staffCount = (appState.employees || []).length;
     const revDeptsCount = (appState.departments || []).filter(d => d.type === "revenue").length;
@@ -2678,6 +2696,43 @@ function renderDashboard() {
     const overallSalary = sumDirectSalary + sumIndirectSalary;
     totalSalaryHtml += `<td class="text-right">${formatCurrency(overallSalary)}</td></tr>`;
     plBody.innerHTML += totalSalaryHtml;
+
+    // SECTION I.B: CHI PHÍ BẢO HIỂM XÃ HỘI
+    plBody.innerHTML += `<tr style="font-weight: 600; color: #FFF; background: rgba(52, 199, 89, 0.02)">
+        <td colspan="${revenueDepts.length + 2}">I.B. CHI PHÍ BẢO HIỂM XÃ HỘI (BHXH, BHYT...)</td>
+    </tr>`;
+
+    // Row I.B.1: Bảo hiểm trực tiếp
+    let insuranceDirectHtml = `<tr>
+        <td style="padding-left: 24px;">1. Bảo hiểm Nhân sự Trực tiếp (Kế toán điền tay)</td>`;
+    revenueDepts.forEach(rd => {
+        insuranceDirectHtml += `<td class="text-right">${formatCurrency(data.directInsurance?.[rd.id] || 0)}</td>`;
+    });
+    const sumDirectInsurance = Object.values(data.directInsurance || {}).reduce((a, b) => a + b, 0);
+    insuranceDirectHtml += `<td class="text-right text-muted">${formatCurrency(sumDirectInsurance)}</td></tr>`;
+    plBody.innerHTML += insuranceDirectHtml;
+
+    // Row I.B.2: Bảo hiểm gián tiếp phân bổ
+    let insuranceIndirectHtml = `<tr>
+        <td style="padding-left: 24px;">2. Chi phí Bảo hiểm Gián tiếp Phân bổ</td>`;
+    revenueDepts.forEach(rd => {
+        const val = data.totalIndirectInsuranceAllocated?.[rd.id] || 0;
+        insuranceIndirectHtml += `<td class="text-right">${formatCurrency(val)}</td>`;
+    });
+    const sumIndirectInsurance = Object.values(data.totalIndirectInsuranceAllocated || {}).reduce((a, b) => a + b, 0);
+    insuranceIndirectHtml += `<td class="text-right text-muted">${formatCurrency(sumIndirectInsurance)}</td></tr>`;
+    plBody.innerHTML += insuranceIndirectHtml;
+
+    // Row I.B.3: TỔNG CHI PHÍ BẢO HIỂM
+    let totalInsuranceHtml = `<tr class="pl-row-subtotal">
+        <td>➔ TỔNG CHI PHÍ BẢO HIỂM HỢP NHẤT</td>`;
+    revenueDepts.forEach(rd => {
+        const sum = (data.directInsurance?.[rd.id] || 0) + (data.totalIndirectInsuranceAllocated?.[rd.id] || 0);
+        totalInsuranceHtml += `<td class="text-right">${formatCurrency(sum)}</td>`;
+    });
+    const overallInsurance = sumDirectInsurance + sumIndirectInsurance;
+    totalInsuranceHtml += `<td class="text-right">${formatCurrency(overallInsurance)}</td></tr>`;
+    plBody.innerHTML += totalInsuranceHtml;
 
 
     // SECTION II: CHI PHÍ MẶT BẰNG & TIỀN THUÊ
@@ -4489,6 +4544,9 @@ function renderEmployees() {
                 <td class="text-right">
                     <input type="text" class="base-select-dropdown" style="width:100%; text-align:right; display:inline; padding: 4px; box-sizing:border-box;" value="${formatNumberWithDots(emp.salary)}" oninput="handleMoneyInput(this)" onblur="updateEmployeeSalary('${emp.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
                 </td>
+                <td class="text-right">
+                    <input type="text" class="base-select-dropdown" style="width:100%; text-align:right; display:inline; padding: 4px; box-sizing:border-box;" value="${formatNumberWithDots(emp.insurance || 0)}" oninput="handleMoneyInput(this)" onblur="updateEmployeeInsurance('${emp.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
+                </td>
                 <td class="text-center">
                     <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp.id}')">
                         <i class="fas fa-trash"></i> Xóa
@@ -4513,7 +4571,7 @@ function renderPayrollMatrix() {
                 <th style="padding: 10px 8px; width: 50px;">STT</th>
                 <th style="padding: 10px 8px; min-width: 150px;">Họ và Tên</th>
                 <th style="padding: 10px 8px; min-width: 120px;">Bộ phận chính</th>
-                <th style="padding: 10px 8px; text-align: right; min-width: 120px;">Lương gốc (VNĐ)</th>
+                <th style="padding: 10px 8px; text-align: right; min-width: 150px;">Nhân sự gốc (VNĐ)</th>
     `;
     depts.forEach(d => {
         headerHtml += `<th style="padding: 10px 8px; text-align: right; min-width: 130px;">${d.name.replace("Khối ", "").replace("Ban ", "")}</th>`;
@@ -4534,7 +4592,9 @@ function renderPayrollMatrix() {
     // Build Rows for each employee
     appState.employees.forEach((emp, index) => {
         const deptName = appState.departments.find(d => d.id === emp.deptId)?.name || "Chưa rõ";
-        grandGrossTotal += emp.salary;
+        const empInsurance = emp.insurance || 0;
+        const totalBase = emp.salary + empInsurance;
+        grandGrossTotal += totalBase;
 
         let rowHtml = `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
@@ -4544,7 +4604,11 @@ function renderPayrollMatrix() {
                     ${emp.isMultiLevel ? ' <span class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); padding: 1px 4px; font-size: 0.6rem;">Kiêm nhiệm</span>' : ''}
                 </td>
                 <td style="padding: 8px; font-size: 0.8rem; color: var(--text-secondary);">${deptName}</td>
-                <td style="padding: 8px; text-align: right; font-weight: 500;">${formatCurrency(emp.salary)}</td>
+                <td style="padding: 8px; text-align: right; font-weight: 500;">
+                    <div style="font-weight: 700; color: var(--text-primary);">${formatCurrency(totalBase)}</div>
+                    <div style="font-size: 0.68rem; color: var(--text-secondary);">Lương: ${formatCurrency(emp.salary)}</div>
+                    <div style="font-size: 0.68rem; color: var(--text-secondary); font-style: italic;">BH: ${formatCurrency(empInsurance)}</div>
+                </td>
         `;
 
         let empAllocSum = 0;
@@ -4554,7 +4618,7 @@ function renderPayrollMatrix() {
 
             if (!emp.isMultiLevel) {
                 if (emp.deptId === d.id) {
-                    cellVal = emp.salary;
+                    cellVal = totalBase;
                     cellText = `<span style="font-weight: 500; color: var(--success);">${formatCurrency(cellVal)}</span> <small class="text-muted">(100%)</small>`;
                 }
             } else {
@@ -4562,8 +4626,9 @@ function renderPayrollMatrix() {
                 const isAmountMode = emp.allocationMode === "amount";
                 if (isAmountMode) {
                     if (ratios[d.id] > 0) {
-                        cellVal = ratios[d.id];
-                        const pct = emp.salary > 0 ? (cellVal / emp.salary * 100).toFixed(0) : 0;
+                        const ratio = emp.salary > 0 ? (ratios[d.id] / emp.salary) : 0;
+                        cellVal = totalBase * ratio;
+                        const pct = (ratio * 100).toFixed(0);
                         cellText = `<span style="font-weight: 500; color: var(--primary);">${formatCurrency(cellVal)}</span> <small class="text-muted">(${pct}%)</small>`;
                     }
                 } else {
@@ -4571,7 +4636,7 @@ function renderPayrollMatrix() {
                     Object.values(ratios).forEach(r => totalRatio += r);
                     if (totalRatio > 0 && ratios[d.id] > 0) {
                         const pct = ratios[d.id];
-                        cellVal = emp.salary * (pct / totalRatio);
+                        cellVal = totalBase * (pct / totalRatio);
                         cellText = `<span style="font-weight: 500; color: var(--primary);">${formatCurrency(cellVal)}</span> <small class="text-muted">(${pct}%)</small>`;
                     }
                 }
@@ -4597,7 +4662,7 @@ function renderPayrollMatrix() {
         </tbody>
         <tfoot>
             <tr style="border-top: 2px solid var(--border-color); font-weight: bold; background: rgba(52, 199, 89, 0.05); color: #FFF; font-size: 0.9rem;">
-                <td colspan="3" style="padding: 10px 8px; text-align: left;">➔ TỔNG CỘNG QUỸ LƯƠNG PHÒNG BAN:</td>
+                <td colspan="3" style="padding: 10px 8px; text-align: left;">➔ TỔNG CỘNG QUỸ NHÂN SỰ (LƯƠNG + BHXH):</td>
                 <td style="padding: 10px 8px; text-align: right; color: var(--success);">${formatCurrency(grandGrossTotal)}</td>
     `;
     
@@ -4619,6 +4684,16 @@ function updateEmployeeSalary(empId, value) {
     const emp = appState.employees.find(e => e.id === empId);
     if (emp) {
         emp.salary = val;
+        saveState();
+        renderDashboard();
+    }
+}
+
+function updateEmployeeInsurance(empId, value) {
+    const val = parseMoneyValue(value);
+    const emp = appState.employees.find(e => e.id === empId);
+    if (emp) {
+        emp.insurance = val;
         saveState();
         renderDashboard();
     }
@@ -5254,6 +5329,7 @@ function addEmployee(event) {
     const name = document.getElementById("emp_add_name").value.trim();
     const deptId = document.getElementById("emp_add_dept").value;
     const salary = parseMoneyValue(document.getElementById("emp_add_salary").value);
+    const insurance = parseMoneyValue(document.getElementById("emp_add_insurance").value) || 0;
     const isMultiLevel = document.getElementById("emp_add_multilevel").checked;
 
     if (!name || !deptId || salary <= 0) {
@@ -5266,6 +5342,7 @@ function addEmployee(event) {
         name: name,
         deptId: deptId,
         salary: salary,
+        insurance: insurance,
         isMultiLevel: isMultiLevel
     };
 
