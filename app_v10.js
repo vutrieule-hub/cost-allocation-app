@@ -4737,7 +4737,7 @@ function _renderEmpRatioModalList() {
                         class="ratio-pct-input"
                         data-dept-id="${d.id}"
                         data-dept-color="${theme.color}"
-                        style="width:${isAmt ? '135px' : '75px'}; padding:5px 8px; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
+                        style="width:${isAmt ? '165px' : '75px'}; padding:5px 6px; box-sizing:border-box; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
                         value="${isAmt ? formatNumberWithDots(val) : val}"
                         oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
                         onfocus="this.style.borderColor='${theme.color}'"
