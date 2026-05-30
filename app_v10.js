@@ -1892,6 +1892,74 @@ function getStaffCounts() {
     return staffCounts;
 }
 
+function getSimulatedStudentsMapForDept(deptId, fillRate) {
+    const map = {};
+    if (!appState.rooms) return map;
+    
+    // 1. Lấy danh sách các phòng học thường đang hoạt động thuộc khối này
+    const deptRooms = appState.rooms.filter(room => 
+        room.status === "active" && 
+        room.type !== "functional" && 
+        room.splits && 
+        (room.splits[deptId] || 0) > 0
+    );
+    
+    let totalCapacity = 0;
+    let totalActual = 0;
+    let totalRemaining = 0;
+    
+    const roomDetails = deptRooms.map(room => {
+        const splitRatio = room.splits[deptId] || 0;
+        const ratio = splitRatio / 100;
+        const capacity = (room.capacity || 0) * ratio;
+        const actual = (room.currentStudents || 0) * ratio;
+        const remaining = Math.max(0, capacity - actual);
+        
+        totalCapacity += capacity;
+        totalActual += actual;
+        totalRemaining += remaining;
+        
+        return {
+            id: room.id,
+            actual,
+            capacity,
+            remaining
+        };
+    });
+    
+    const totalTarget = Math.round(totalCapacity * (fillRate / 100));
+    const diff = totalTarget - totalActual;
+    
+    let allocatedSum = 0;
+    
+    roomDetails.forEach(rd => {
+        let simulated = rd.actual;
+        if (diff > 0 && totalRemaining > 0) {
+            // Tăng trưởng: Phân phối số học sinh cần thêm tỉ lệ thuận theo SỨC CHỨA CÒN TRỐNG của từng phòng
+            simulated += diff * (rd.remaining / totalRemaining);
+        } else if (diff < 0 && totalActual > 0) {
+            // Thu hẹp: Giảm sĩ số tỉ lệ thuận theo số lượng học sinh thực tế đang có
+            simulated += diff * (rd.actual / totalActual);
+        }
+        
+        simulated = Math.max(0, Math.min(rd.capacity, simulated));
+        map[rd.id] = simulated;
+        allocatedSum += simulated;
+    });
+    
+    // Điều chỉnh sai số làm tròn để tổng sĩ số các phòng khớp chính xác với mục tiêu
+    const targetDiff = totalTarget - Math.round(allocatedSum);
+    if (targetDiff !== 0 && deptRooms.length > 0) {
+        const adjRoom = deptRooms[0];
+        if (adjRoom) {
+            const maxCapShare = adjRoom.capacity * ((adjRoom.splits[deptId] || 0) / 100);
+            map[adjRoom.id] = Math.max(0, Math.min(maxCapShare, (map[adjRoom.id] || 0) + targetDiff));
+        }
+    }
+    
+    return map;
+}
+
 function getActiveStudentCounts() {
     const studentCounts = {
         "dept_tieuhoc": 0,
@@ -1910,29 +1978,17 @@ function getActiveStudentCounts() {
                 "dept_noitru": getActualFillRateForDept("dept_noitru")
             };
         }
-        appState.rooms.forEach(room => {
-            if (room.status === "active" && room.type !== "functional" && room.splits) {
-                Object.keys(room.splits).forEach(did => {
-                    if (studentCounts[did] !== undefined && room.splits[did] > 0) {
-                        const targetFillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
-                        const actualFillRate = getActualFillRateForDept(did);
-                        
-                        let roomSimRate = targetFillRate;
-                        if (actualFillRate > 0) {
-                            const roomActualRate = room.capacity > 0 ? ((room.currentStudents || 0) / room.capacity) * 100 : 0;
-                            roomSimRate = Math.min(100, roomActualRate * (targetFillRate / actualFillRate));
-                        }
-                        
-                        const simulatedRoomStudentsForDept = room.capacity * (room.splits[did] / 100) * (roomSimRate / 100);
-                        studentCounts[did] += simulatedRoomStudentsForDept;
-                    }
-                });
-            }
+        
+        Object.keys(studentCounts).forEach(did => {
+            const targetFillRate = appState.simulation.fillRates[did] !== undefined ? appState.simulation.fillRates[did] : 80;
+            const simMap = getSimulatedStudentsMapForDept(did, targetFillRate);
+            let deptSum = 0;
+            Object.values(simMap).forEach(v => {
+                deptSum += v;
+            });
+            studentCounts[did] = Math.round(deptSum);
         });
-        // Làm tròn số học sinh giả lập về số nguyên cho đẹp
-        Object.keys(studentCounts).forEach(k => {
-            studentCounts[k] = Math.round(studentCounts[k]);
-        });
+        
         return studentCounts;
     }
 
@@ -1985,19 +2041,13 @@ function getSimulatedRevenueForDept(deptId) {
         ? appState.simulation.fillRates[deptId] 
         : (appState.simulation.fillRate || 80);
         
-    const actualFillRate = getActualFillRateForDept(deptId);
+    const simMap = getSimulatedStudentsMapForDept(deptId, fillRate);
         
     appState.rooms.forEach(room => {
         if (room.status === "active" && room.type !== "functional") {
             const splitRatio = room.splits[deptId] || 0;
             if (splitRatio > 0) {
-                let roomSimRate = fillRate;
-                if (actualFillRate > 0) {
-                    const roomActualRate = room.capacity > 0 ? ((room.currentStudents || 0) / room.capacity) * 100 : 0;
-                    roomSimRate = Math.min(100, roomActualRate * (fillRate / actualFillRate));
-                }
-                
-                const roomSimStudents = room.capacity * (splitRatio / 100) * (roomSimRate / 100);
+                const roomSimStudents = simMap[room.id] || 0;
                 
                 // Xác định đơn giá học phí theo hệ đào tạo của phòng học
                 let isXanh = (room.system === "xanh");
@@ -2197,14 +2247,25 @@ function runAllocation() {
     // ==========================================
     // BƯỚC 3: DYNAMIC ROOMS TO BLOCKS RENT ALLOCATION
     // ==========================================
-    // 1. Count rooms per block
+    // 1. Count rooms and sum custom rents per block
     const blockRoomCounts = {};
+    const blockCustomRentSums = {};
+    const blockUnallocatedCounts = {};
+
     appState.rentBlocks.forEach(blk => {
         blockRoomCounts[blk.id] = 0;
+        blockCustomRentSums[blk.id] = 0;
+        blockUnallocatedCounts[blk.id] = 0;
     });
+
     appState.rooms.forEach(room => {
         if (blockRoomCounts[room.blockId] !== undefined) {
             blockRoomCounts[room.blockId]++;
+            if (room.customRent !== undefined && room.customRent !== null && !isNaN(room.customRent)) {
+                blockCustomRentSums[room.blockId] += room.customRent;
+            } else {
+                blockUnallocatedCounts[room.blockId]++;
+            }
         }
     });
 
@@ -2213,8 +2274,18 @@ function runAllocation() {
         const block = appState.rentBlocks.find(b => b.id === room.blockId);
         if (!block) return;
 
-        const roomCount = blockRoomCounts[block.id] || 1;
-        const roomRent = block.totalRent / roomCount; // Divided equally within the block!
+        let roomRent = 0;
+        if (room.customRent !== undefined && room.customRent !== null && !isNaN(room.customRent)) {
+            roomRent = room.customRent;
+        } else {
+            const totalRent = block.totalRent || 0;
+            const customSum = blockCustomRentSums[block.id] || 0;
+            const unallocatedCount = blockUnallocatedCounts[block.id] || 0;
+            const remainingRent = Math.max(0, totalRent - customSum);
+            roomRent = unallocatedCount > 0 ? remainingRent / unallocatedCount : 0;
+        }
+        
+        room.calculatedRent = roomRent; // Stash for other views to use
 
         // Tự động tính toán tỷ lệ gánh chi phí dựa trên sỹ số học sinh thực tế nếu được cấu hình
         let splitsToUse = {};
@@ -2467,8 +2538,48 @@ function switchTab(tabId) {
     else if (tabId === "view_payroll_matrix") renderPayrollMatrix();
 }
 
+function openProblemsModal() {
+    document.getElementById("problems_walkthrough_modal").classList.add("open");
+}
+
+function goToProblemSolution(tabId, extraAction) {
+    // 1. Close modal
+    closeModal('problems_walkthrough_modal');
+    
+    // 2. Switch tab
+    switchTab(tabId);
+    
+    // 3. Perform extra actions based on specific problem
+    if (extraAction === 'simulation') {
+        switchScenarioMode('simulation');
+        setTimeout(() => {
+            const el = document.getElementById('simulation_controls_panel');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+    } else if (extraAction === 'pnl_table') {
+        switchScenarioMode('actual');
+        setTimeout(() => {
+            const el = document.getElementById('pnl_table_card');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+    } else if (extraAction === 'empty_rooms') {
+        setTimeout(() => {
+            switchFacilitySubtab('subtab_rooms');
+            const selectEl = document.getElementById('filter_room_status');
+            if (selectEl) {
+                selectEl.value = 'empty';
+                if (typeof filterRoomsList === 'function') {
+                    filterRoomsList();
+                }
+            }
+            if (selectEl) selectEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+    }
+}
+
 // 3.1 RENDERING VIEW: DASHBOARD & P&L
 let dashboardChart = null;
+let dashboardChartSim = null;
 
 function renderDashboard() {
     const data = runAllocation() || {};
@@ -2693,13 +2804,6 @@ function renderDashboardChart(revenueDepts, data) {
         return;
     }
 
-    const canvas = document.getElementById("dashboard_chart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (dashboardChart) {
-        dashboardChart.destroy();
-    }
-
     const isSim = appState.simulation && appState.simulation.active;
     const activeStudents = getActiveStudentCounts();
     const labels = (revenueDepts || []).map(rd => rd.name);
@@ -2720,206 +2824,182 @@ function renderDashboardChart(revenueDepts, data) {
     const revColor = isSim ? '#AF52DE' : '#10B981';
     const costColor = isSim ? '#FF9500' : '#EF4444';
 
-    dashboardChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: isSim ? 'Doanh Thu (Giả Lập)' : 'Doanh Thu',
-                    data: revenueData,
-                    backgroundColor: revColor,
-                    borderRadius: 6,
-                    order: 2
-                },
-                {
-                    label: isSim ? 'Tổng Chi Phí (Giả Lập)' : 'Tổng Chi Phí (Trực tiếp + Phân bổ)',
-                    data: costData,
-                    backgroundColor: costColor,
-                    borderRadius: 6,
-                    order: 2
-                },
-                {
-                    label: 'Lợi Nhuận / (Lỗ) Thuần',
-                    data: profitLossData,
-                    type: 'line',
-                    borderColor: 'transparent',
-                    backgroundColor: 'transparent',
-                    borderWidth: 0,
-                    fill: false,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    pointHoverRadius: 0,
-                    order: 1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { color: '#9CA3AF', font: { family: 'Outfit' } }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += formatCurrency(context.parsed.y);
-                            }
-                            return label;
-                        },
-                        footer: function(tooltipItems) {
-                            const index = tooltipItems[0].dataIndex;
-                            const diff = profitLossData[index];
-                            if (diff >= 0) {
-                                return `\n➔ KẾT QUẢ: LÃI +${formatCurrency(diff)}`;
-                            } else {
-                                return `\n➔ KẾT QUẢ: LỖ ${formatCurrency(diff)}`;
-                            }
-                        }
+    // Helper function to create standard configuration to avoid code duplication and conflicts
+    function createConfig() {
+        return {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: isSim ? 'Doanh Thu (Giả Lập)' : 'Doanh Thu',
+                        data: revenueData,
+                        backgroundColor: revColor,
+                        borderRadius: 6,
+                        order: 2
+                    },
+                    {
+                        label: isSim ? 'Tổng Chi Phí (Giả Lập)' : 'Tổng Chi Phí (Trực tiếp + Phân bổ)',
+                        data: costData,
+                        backgroundColor: costColor,
+                        borderRadius: 6,
+                        order: 2
+                    },
+                    {
+                        label: 'Lợi Nhuận / (Lỗ) Thuần',
+                        data: profitLossData,
+                        type: 'line',
+                        borderColor: 'transparent',
+                        backgroundColor: 'transparent',
+                        borderWidth: 0,
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        order: 1
                     }
-                }
+                ]
             },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#9CA3AF', font: { family: 'Outfit' } }
-                },
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { 
-                        color: '#9CA3AF', 
-                        font: { family: 'Outfit' },
-                        callback: function(value) {
-                            return (value / 1000000).toLocaleString() + 'M';
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { 
+                            color: '#9CA3AF', 
+                            font: { family: 'Outfit' },
+                            filter: function(item, chart) {
+                                return item.text !== 'Lợi Nhuận / (Lỗ) Thuần';
+                            }
                         }
                     },
-                    min: 0
-                }
-            }
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { 
-                        color: '#9CA3AF', 
-                        font: { family: 'Outfit' },
-                        filter: function(item, chart) {
-                            return item.text !== 'Lợi Nhuận / (Lỗ) Thuần';
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += formatCurrency(context.parsed.y);
+                                }
+                                return label;
+                            },
+                            footer: function(tooltipItems) {
+                                const index = tooltipItems[0].dataIndex;
+                                const diff = profitLossData[index];
+                                if (diff >= 0) {
+                                    return `\n➔ KẾT QUẢ: LÃI +${formatCurrency(diff)}`;
+                                } else {
+                                    return `\n➔ KẾT QUẢ: LỖ ${formatCurrency(diff)}`;
+                                }
+                            }
                         }
                     }
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += formatCurrency(context.parsed.y);
-                            }
-                            return label;
-                        },
-                        footer: function(tooltipItems) {
-                            const index = tooltipItems[0].dataIndex;
-                            const diff = profitLossData[index];
-                            if (diff >= 0) {
-                                return `\n➔ KẾT QUẢ: LÃI +${formatCurrency(diff)}`;
-                            } else {
-                                return `\n➔ KẾT QUẢ: LỖ ${formatCurrency(diff)}`;
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#9CA3AF', font: { family: 'Outfit' } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { 
+                            color: '#9CA3AF', 
+                            font: { family: 'Outfit' },
+                            callback: function(value) {
+                                return (value / 1000000).toLocaleString() + 'M';
                             }
                         }
                     }
                 }
             },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#9CA3AF', font: { family: 'Outfit' } }
-                },
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { 
-                        color: '#9CA3AF', 
-                        font: { family: 'Outfit' },
-                        callback: function(value) {
-                            return (value / 1000000).toLocaleString() + 'M';
-                        }
+            plugins: [
+                {
+                    id: 'custom_datalabels',
+                    afterDatasetsDraw: function(chart, args, options) {
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.font = "bold 11px Outfit, sans-serif";
+                        ctx.textAlign = "center";
+                        
+                        const datasetIndex = 2; // Line dataset (index 2)
+                        const meta = chart.getDatasetMeta(datasetIndex);
+                        if (!meta || meta.hidden) return;
+                        
+                        meta.data.forEach((element, index) => {
+                            const val = chart.data.datasets[datasetIndex].data[index];
+                            const formattedVal = (val / 1000000).toFixed(0) + 'M';
+                            const text = val >= 0 ? '+' + formattedVal : formattedVal;
+                            
+                            // Background pill dimensions
+                            const paddingX = 8;
+                            const paddingY = 4;
+                            const textWidth = ctx.measureText(text).width;
+                            const rectWidth = textWidth + paddingX * 2;
+                            const rectHeight = 18;
+                            const rectX = element.x - rectWidth / 2;
+                            
+                            // Find the height of the tallest bar in this category group to float above it
+                            const maxVal = Math.max(revenueData[index], costData[index]);
+                            const barTopY = chart.scales.y.getPixelForValue(maxVal);
+                            const rectY = barTopY - 26; // Float elegantly 26px above the tallest bar
+                            
+                            // Draw shadow for premium floating glow
+                            ctx.shadowColor = val >= 0 ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)';
+                            ctx.shadowBlur = 8;
+                            ctx.shadowOffsetX = 0;
+                            ctx.shadowOffsetY = 3;
+                            
+                            // Draw rounded rect pill
+                            ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.98)' : 'rgba(239, 68, 68, 0.98)';
+                            ctx.beginPath();
+                            if (ctx.roundRect) {
+                                ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 5);
+                            } else {
+                                ctx.rect(rectX, rectY, rectWidth, rectHeight);
+                            }
+                            ctx.fill();
+                            
+                            // Clean border setup (reset shadow for border)
+                            ctx.shadowBlur = 0;
+                            ctx.shadowOffsetY = 0;
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            
+                            // Draw text inside the pill
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillText(text, element.x, rectY + 13);
+                        });
+                        ctx.restore();
                     }
                 }
-            }
-        },
-        plugins: [
-            {
-                id: 'custom_datalabels',
-                afterDatasetsDraw: function(chart, args, options) {
-                    const ctx = chart.ctx;
-                    ctx.save();
-                    ctx.font = "bold 11px Outfit, sans-serif";
-                    ctx.textAlign = "center";
-                    
-                    const datasetIndex = 2; // Line dataset (index 2)
-                    const meta = chart.getDatasetMeta(datasetIndex);
-                    if (!meta || meta.hidden) return;
-                    
-                    meta.data.forEach((element, index) => {
-                        const val = chart.data.datasets[datasetIndex].data[index];
-                        const formattedVal = (val / 1000000).toFixed(0) + 'M';
-                        const text = val >= 0 ? '+' + formattedVal : formattedVal;
-                        
-                        // Background pill dimensions
-                        const paddingX = 8;
-                        const paddingY = 4;
-                        const textWidth = ctx.measureText(text).width;
-                        const rectWidth = textWidth + paddingX * 2;
-                        const rectHeight = 18;
-                        const rectX = element.x - rectWidth / 2;
-                        
-                        // Find the height of the tallest bar in this category group to float above it
-                        const maxVal = Math.max(revenueData[index], costData[index]);
-                        const barTopY = chart.scales.y.getPixelForValue(maxVal);
-                        const rectY = barTopY - 26; // Float elegantly 26px above the tallest bar
-                        
-                        // Draw shadow for premium floating glow
-                        ctx.shadowColor = val >= 0 ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)';
-                        ctx.shadowBlur = 8;
-                        ctx.shadowOffsetX = 0;
-                        ctx.shadowOffsetY = 3;
-                        
-                        // Draw rounded rect pill
-                        ctx.fillStyle = val >= 0 ? 'rgba(16, 185, 129, 0.98)' : 'rgba(239, 68, 68, 0.98)';
-                        ctx.beginPath();
-                        if (ctx.roundRect) {
-                            ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 5);
-                        } else {
-                            ctx.rect(rectX, rectY, rectWidth, rectHeight);
-                        }
-                        ctx.fill();
-                        
-                        // Clean border setup (reset shadow for border)
-                        ctx.shadowBlur = 0;
-                        ctx.shadowOffsetY = 0;
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-                        ctx.lineWidth = 1;
-                        ctx.stroke();
-                        
-                        // Draw text inside the pill
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.fillText(text, element.x, rectY + 13);
-                    });
-                    ctx.restore();
-                }
-            }
-        ]
-    });
+            ]
+        };
+    }
+
+    // 1. Draw Main Dashboard Chart
+    const canvas = document.getElementById("dashboard_chart");
+    if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (dashboardChart) {
+            dashboardChart.destroy();
+        }
+        dashboardChart = new Chart(ctx, createConfig());
+    }
+
+    // 2. Draw Simulation Control Panel Live Chart
+    const canvasSim = document.getElementById("dashboard_chart_sim");
+    if (canvasSim) {
+        if (dashboardChartSim) {
+            dashboardChartSim.destroy();
+        }
+        if (isSim) {
+            const ctxSim = canvasSim.getContext("2d");
+            dashboardChartSim = new Chart(ctxSim, createConfig());
+        }
+    }
 }
 
 function openAuditModal(rdId, sdId) {
@@ -3404,7 +3484,7 @@ function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
     const getDeptTheme = (name) => {
         const lower = name.toLowerCase();
         if (lower.includes("tiểu học")) return { color: "#007AFF" }; // Blue
-        if (lower.includes("thcs")) return { color: "#34C759" };    // Green
+        if (lower.includes("thcs")) return { color: "#00C7BE" };    // Premium Teal
         if (lower.includes("thpt")) return { color: "#AF52DE" };    // Premium Violet / Royal Purple
         return { color: "#FF9500" };                                // Gold/Orange for Nội trú
     };
@@ -3423,7 +3503,7 @@ function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
     progressBarHtml += `</div>`;
 
     // 2. Tạo lưới nhập liệu Card/Pill hiện đại (Nền trắng sang trọng, tối giản để chống lóa mắt)
-    let cardsHtml = `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; width: 100%;">`;
+    let cardsHtml = `<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; margin-top: 6px; width: 100%;">`;
     revenueDepts.forEach((rd, rdIndex) => {
         const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
             ? appState.drivers.custom_percent[dept.id][rd.id]
@@ -3439,7 +3519,7 @@ function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
                 <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
                     <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 5px; flex-shrink: 0;"></span>
-                    <span style="font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${rd.name}">${shortName}</span>
+                    <span style="display: inline-block; font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100px; vertical-align: middle;" title="${rd.name}">${shortName}</span>
                 </div>
                 <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
                     <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
@@ -3508,7 +3588,7 @@ function renderDepartments() {
                 </td>
                 <td>
                     <div class="priority-container" style="display: inline-block;">
-                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: 500;" value="${formatNumberWithDots(rev)}" oninput="handleMoneyInput(this)" onchange="updateRevenue('${dept.id}', this.value)">
+                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: 500;" value="${formatNumberWithDots(rev)}" oninput="handleMoneyInput(this)" onblur="updateRevenue('${dept.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
                         <span class="priority-dot" title="Cần điền Doanh thu thực tế hàng tháng của khối để tính P&L"></span>
                     </div>
                 </td>
@@ -3712,7 +3792,7 @@ function renderDepartments() {
                 </td>
                 <td>
                     <div class="priority-container" style="display: inline-block;">
-                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: bold; border-color: rgba(0, 122, 255, 0.3);" value="${formatNumberWithDots(bill)}" oninput="handleMoneyInput(this)" onchange="updateUtilityCost('${dept.id}', this.value)">
+                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: bold; border-color: rgba(0, 122, 255, 0.3);" value="${formatNumberWithDots(bill)}" oninput="handleMoneyInput(this)" onblur="updateUtilityCost('${dept.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
                         <span class="priority-dot" title="Cần điền Doanh thu thực tế hàng tháng của khối để tính P&L"></span>
                     </div>
                 </td>
@@ -3850,7 +3930,7 @@ function openDepartmentCostAuditModal(deptId) {
             const block = appState.rentBlocks.find(b => b.id === room.blockId);
             if (!block) return;
             const roomCount = blockRoomCounts[block.id] || 1;
-            const roomRent = block.totalRent / roomCount;
+            const roomRent = (room.calculatedRent !== undefined && room.calculatedRent !== null) ? room.calculatedRent : (block.totalRent / roomCount);
             const ratio = room.splits[deptId] || 0;
             const allocatedRent = roomRent * (ratio / 100);
             totalRent += allocatedRent;
@@ -4290,7 +4370,7 @@ function renderEmployees() {
         const getDeptTheme = (name) => {
             const lower = name.toLowerCase();
             if (lower.includes("tiểu học")) return { color: "#007AFF" };
-            if (lower.includes("thcs")) return { color: "#34C759" };
+            if (lower.includes("thcs")) return { color: "#00C7BE" };
             if (lower.includes("thpt")) return { color: "#AF52DE" };
             return { color: "#FF9500" };
         };
@@ -4407,7 +4487,7 @@ function renderEmployees() {
                 <td style="width: 200px; min-width: 180px;">${deptSelectHtml}</td>
                 <td>${typeLabel}</td>
                 <td class="text-right">
-                    <input type="text" class="base-select-dropdown" style="width:125px; text-align:right; display:inline; padding: 4px;" value="${formatNumberWithDots(emp.salary)}" oninput="handleMoneyInput(this)" onchange="updateEmployeeSalary('${emp.id}', this.value)">
+                    <input type="text" class="base-select-dropdown" style="width:100%; text-align:right; display:inline; padding: 4px; box-sizing:border-box;" value="${formatNumberWithDots(emp.salary)}" oninput="handleMoneyInput(this)" onblur="updateEmployeeSalary('${emp.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
                 </td>
                 <td class="text-center">
                     <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp.id}')">
@@ -4626,7 +4706,7 @@ function _renderEmpRatioModalList() {
     const getDeptTheme = (name) => {
         const lower = name.toLowerCase();
         if (lower.includes('tiểu học')) return { color: '#007AFF' };
-        if (lower.includes('thcs')) return { color: '#34C759' };
+        if (lower.includes('thcs')) return { color: '#00C7BE' };
         if (lower.includes('thpt')) return { color: '#AF52DE' };
         return { color: '#FF9500' };
     };
@@ -4654,9 +4734,10 @@ function _renderEmpRatioModalList() {
                 <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
                     <input type="${isAmt ? 'text' : 'number'}" ${isAmt ? '' : 'min="0" max="100"'}
                         id="emp_ratio_input_${d.id}"
+                        class="ratio-pct-input"
                         data-dept-id="${d.id}"
                         data-dept-color="${theme.color}"
-                        style="width:${isAmt ? '96px' : '56px'}; padding:5px 8px; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
+                        style="width:${isAmt ? '135px' : '75px'}; padding:5px 8px; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
                         value="${isAmt ? formatNumberWithDots(val) : val}"
                         oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
                         onfocus="this.style.borderColor='${theme.color}'"
@@ -5014,7 +5095,7 @@ function updateEmpActiveTagsAndProgress(empId) {
     const getDeptTheme = (name) => {
         const lower = name.toLowerCase();
         if (lower.includes("tiểu học")) return { color: "#007AFF" };
-        if (lower.includes("thcs")) return { color: "#34C759" };
+        if (lower.includes("thcs")) return { color: "#00C7BE" };
         if (lower.includes("thpt")) return { color: "#AF52DE" };
         return { color: "#FF9500" };
     };
@@ -5075,7 +5156,7 @@ function toggleMultiLevelInputs() {
         const getDeptTheme = (name) => {
             const lower = name.toLowerCase();
             if (lower.includes("tiểu học")) return { color: "#007AFF" };
-            if (lower.includes("thcs")) return { color: "#34C759" };
+            if (lower.includes("thcs")) return { color: "#00C7BE" };
             if (lower.includes("thpt")) return { color: "#AF52DE" };
             return { color: "#FF9500" };
         };
@@ -5301,7 +5382,8 @@ function renderFacilities() {
         totalRentSum += blk.totalRent;
         totalRoomsSum += roomCount;
 
-        const rentPercent = absoluteTotalRent > 0 ? (blk.totalRent / absoluteTotalRent * 100).toFixed(1) : "0.0";
+        const baseRentForPercent = appState.landlordRent > 0 ? appState.landlordRent : (absoluteTotalRent > 0 ? absoluteTotalRent : 1);
+        const rentPercent = (blk.totalRent / baseRentForPercent * 100).toFixed(1);
 
         blocksBody.innerHTML += `
             <tr>
@@ -5316,7 +5398,7 @@ function renderFacilities() {
                 </td>
                 <td class="text-right">
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                        <input type="text" class="base-select-dropdown" style="width: 140px; text-align: right; font-weight: 700; padding: 4px 8px; display: inline-block;" value="${formatNumberWithDots(blk.totalRent)}" oninput="handleMoneyInput(this)" onchange="updateRentBlockCost('${blk.id}', this.value)">
+                        <input type="text" class="base-select-dropdown" style="width: 140px; text-align: right; font-weight: 700; padding: 4px 8px; display: inline-block;" value="${formatNumberWithDots(blk.totalRent)}" oninput="handleMoneyInput(this)" onblur="updateRentBlockCost('${blk.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
                         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
                             <span style="font-size: 0.72rem; color: var(--text-secondary);">chiếm</span>
                             <input type="number" step="0.1" min="0" max="100" class="base-select-dropdown" style="width: 65px; padding: 2px 4px; font-size: 0.72rem; text-align: center; display: inline-block; height: auto;" value="${rentPercent}" onchange="updateRentBlockPercent('${blk.id}', this.value)">
@@ -5425,7 +5507,7 @@ function renderFacilities() {
             <td></td>
             <td style="color: var(--text-primary); text-transform: uppercase; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.5px;">TỔNG TIỀN THUÊ CHỦ NHÀ (LANDLORD TOTAL)</td>
             <td class="text-right">
-                <input type="text" class="base-select-dropdown" style="width: 140px; text-align: right; font-weight: 800; color: var(--danger); padding: 4px 8px; display: inline-block; border-color: rgba(239, 68, 68, 0.3);" value="${formatNumberWithDots(currentLandlordRent)}" oninput="handleMoneyInput(this)" onchange="updateLandlordRent(this.value)">
+                <input type="text" class="base-select-dropdown" style="width: 140px; text-align: right; font-weight: 800; color: var(--danger); padding: 4px 8px; display: inline-block; border-color: rgba(239, 68, 68, 0.3);" value="${formatNumberWithDots(currentLandlordRent)}" oninput="handleMoneyInput(this)" onblur="updateLandlordRent(this.value)" onkeydown="if(event.key==='Enter') this.blur()">
             </td>
             <td class="text-center">
                 <span class="badge" style="background: var(--accent); color: #FFF; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;">${totalRoomsSum} Phòng</span>
@@ -5513,7 +5595,7 @@ function renderFacilities() {
             // Render rooms under this block
             blockRooms.forEach(room => {
                 const countInBlock = blockRoomCounts[room.blockId] || 1;
-                const calculatedRoomCost = blk ? blk.totalRent / countInBlock : 0;
+                const calculatedRoomCost = (room.calculatedRent !== undefined && room.calculatedRent !== null) ? room.calculatedRent : (blk ? blk.totalRent / countInBlock : 0);
 
                 // Render splits text as beautiful badges/chips using the helper function
                 const splitsText = getRoomSplitsHTML(room);
@@ -5563,7 +5645,18 @@ function renderFacilities() {
                                 ) : ''}
                             </div>
                         </td>
-                        <td class="text-right" style="white-space: nowrap;"><strong>${formatCurrency(calculatedRoomCost)}</strong></td>
+                        <td class="text-right" style="white-space: nowrap;">
+                            <div style="display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; width: 100%;">
+                                <input type="text" class="base-select-dropdown" 
+                                  style="width: 100px; text-align: right; font-weight: bold; padding: 2px 6px; font-size: 0.82rem; height: 26px; border: 1px solid ${room.customRent !== undefined && room.customRent !== null ? 'rgba(0,122,255,0.45)' : 'rgba(0,0,0,0.08)'}; background: ${room.customRent !== undefined && room.customRent !== null ? 'rgba(0,122,255,0.03)' : '#FFF'}; border-radius: var(--radius-md);" 
+                                  value="${formatNumberWithDots(Math.round(calculatedRoomCost))}" 
+                                  oninput="handleMoneyInput(this)" 
+                                  onblur="updateRoomCustomRent('${room.id}', this.value)"
+                                  onkeydown="if(event.key==='Enter') this.blur()"
+                                  title="${room.customRent !== undefined && room.customRent !== null ? 'Bấm để đổi giá trị thuê (Đang tùy chỉnh)' : 'Bấm để tùy chỉnh giá thuê phòng này (Mặc định tự động)'}">
+                                <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">đ</span>
+                            </div>
+                        </td>
                         <td class="text-center">
                             <select onchange="updateRoomStatus('${room.id}', this.value)" class="base-select-dropdown" style="padding: 4px 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; border-radius: 6px; width: 145px; border-color: rgba(0, 122, 255, 0.2);">
                                 <option value="active" ${room.status === "active" ? "selected" : ""}>🟢 Đang sử dụng</option>
@@ -6582,6 +6675,86 @@ function switchScenarioMode(mode) {
     renderDashboard(result);
 }
 
+function updateSimDeptInfoLabel(did, fillRate, maxCapacity, roomCount) {
+    const lblInfo = document.getElementById(`lbl_sim_info_${did}`);
+    if (!lblInfo) return;
+    
+    const deptObj = (appState.departments && Array.isArray(appState.departments)) 
+        ? appState.departments.find(d => d.id === did) 
+        : null;
+    const actualStudents = deptObj ? (deptObj.students || 0) : 0;
+    const actualFillRate = maxCapacity > 0 ? Math.round((actualStudents / maxCapacity) * 100) : 0;
+    const simulatedStudents = Math.round(maxCapacity * (fillRate / 100));
+    
+    const simAddedStudents = simulatedStudents - actualStudents;
+    const simAddedRate = fillRate - actualFillRate;
+    const emptyStudents = Math.max(0, maxCapacity - simulatedStudents);
+    const emptyRate = Math.max(0, 100 - fillRate);
+    
+    let actualBarWidth = actualFillRate;
+    let simBarWidth = 0;
+    if (fillRate >= actualFillRate) {
+        actualBarWidth = actualFillRate;
+        simBarWidth = fillRate - actualFillRate;
+    } else {
+        actualBarWidth = fillRate;
+        simBarWidth = 0;
+    }
+    
+    const deptMap = {
+        "dept_tieuhoc": { name: "Khối Tiểu học", color: "#007AFF" },
+        "dept_thcs": { name: "Khối THCS", color: "#00C7BE" },
+        "dept_thpt": { name: "Khối THPT", color: "#AF52DE" },
+        "dept_noitru": { name: "Ban Nội trú", color: "#FF9500" }
+    };
+    const info = deptMap[did] || { name: "Khối học", color: "var(--primary)" };
+    
+    // Cập nhật động nền Slider Track phân đoạn tương tác [V18]
+    const slider = document.getElementById(`slider_sim_fill_rate_${did}`);
+    if (slider) {
+        slider.style.background = `linear-gradient(to right, #34C759 0%, #34C759 ${actualBarWidth}%, ${info.color} ${actualBarWidth}%, ${info.color} ${actualBarWidth + simBarWidth}%, rgba(0,0,0,0.06) ${actualBarWidth + simBarWidth}%, rgba(0,0,0,0.06) 100%)`;
+    }
+    
+    lblInfo.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; background: rgba(250, 250, 250, 0.8); border: 1px solid rgba(0,0,0,0.04); padding: 10px 14px; border-radius: 8px; width: 100%;">
+            <!-- Hàng 1: Chỉ số đo lường chi tiết -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.72rem; border-bottom: 1px dashed rgba(0,0,0,0.06); padding-bottom: 8px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="color: var(--text-secondary); font-size: 0.65rem; font-weight: 550;">THỰC TẾ ĐANG CÓ</span>
+                    <span style="color: var(--success); font-weight: 800; font-size: 0.82rem;">${actualStudents} HS <span style="font-weight: 600; font-size: 0.7rem; color: var(--text-secondary);">(${actualFillRate}%)</span></span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px; text-align: center; border-left: 1px solid rgba(0,0,0,0.06); border-right: 1px solid rgba(0,0,0,0.06);">
+                    <span style="color: var(--text-secondary); font-size: 0.65rem; font-weight: 550;">GIẢ LẬP CẦN THÊM</span>
+                    <span style="color: ${fillRate >= actualFillRate ? info.color : 'var(--warning)'}; font-weight: 800; font-size: 0.82rem;">
+                        ${fillRate >= actualFillRate ? '+' : ''}${simAddedStudents} HS 
+                        <span style="font-weight: 600; font-size: 0.7rem; color: var(--text-secondary);">
+                            (${fillRate >= actualFillRate ? '+' : ''}${simAddedRate}%)
+                        </span>
+                    </span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px; text-align: right;">
+                    <span style="color: var(--text-secondary); font-size: 0.65rem; font-weight: 550;">CẦN LẤP ĐẦY THÊM</span>
+                    <span style="color: #FF9500; font-weight: 800; font-size: 0.82rem;">${emptyStudents} HS <span style="font-weight: 600; font-size: 0.7rem; color: var(--text-secondary);">(${emptyRate}%)</span></span>
+                </div>
+            </div>
+            
+            <!-- Hàng 2: Chú thích nhãn phân đoạn -->
+            <div style="display: flex; justify-content: space-between; font-size: 0.62rem; color: var(--text-secondary); font-weight: 600; margin-top: 2px; flex-wrap: wrap; gap: 4px;">
+                <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; background: #34C759; border-radius: 50%; display: inline-block;"></span> Thực tế (${actualFillRate}%)</span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; background: ${info.color}; border-radius: 50%; display: inline-block;"></span> Giả lập (${fillRate}%)</span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; background: rgba(0,0,0,0.15); border-radius: 50%; display: inline-block;"></span> Còn trống (${emptyRate}%)</span>
+            </div>
+            
+            <!-- Hàng 3: Câu thuyết minh nghiệp vụ tự nhiên -->
+            <div style="font-size: 0.68rem; color: var(--text-secondary); line-height: 1.4; font-style: italic; background: rgba(0,0,0,0.015); border-left: 2px solid ${fillRate >= actualFillRate ? info.color : '#FF9500'}; padding-left: 6px; margin-top: 2px;">
+                ${info.name} hiện có <strong>${actualStudents} HS / ${maxCapacity} HS</strong> sức chứa tối đa (${roomCount.toFixed(1)} phòng). 
+                Để lấp đầy 100% cần thêm <strong>${maxCapacity - actualStudents} HS</strong> (tương đương <strong>${100 - actualFillRate}%</strong>). 
+                Hiện tại đang giả lập tuyển thêm <strong>${fillRate >= actualFillRate ? '+' : ''}${simAddedStudents} HS</strong> để đạt <strong>${fillRate}%</strong> lấp đầy mục tiêu.
+            </div>
+        </div>
+    `;
+}
+
 function updateSimulationUI() {
     if (!appState || !appState.simulation) return;
     
@@ -6636,17 +6809,11 @@ function updateSimulationUI() {
         if (slider && document.activeElement !== slider) {
             slider.value = fillRate;
             slider.setAttribute("data-max-capacity", maxCapacity);
+            slider.setAttribute("data-room-count", roomCount);
         }
         if (lblRate) lblRate.innerText = fillRate + "%";
         if (lblInfo) {
-            lblInfo.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px; background: #F8F9FA; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.03); flex-wrap: wrap; gap: 8px;">
-                    <span><i class="fa-solid fa-calculator" style="margin-right: 4px; color: var(--text-secondary);"></i>Quy mô: <strong>${roomCount.toFixed(1)} phòng</strong></span>
-                    <span>Sức chứa: <strong>${maxCapacity} HS</strong></span>
-                    <span>Thực tế: <strong style="color: var(--success);">${actualStudents} HS (${actualFillRate}%)</strong></span>
-                    <span style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-user-check" style="margin-right: 4px;"></i>Giả lập: <strong id="lbl_sim_students_val_${did}">${simulatedStudents} HS (${fillRate}%)</strong></span>
-                </div>
-            `;
+            updateSimDeptInfoLabel(did, fillRate, maxCapacity, roomCount);
         }
     });
 
@@ -6686,12 +6853,9 @@ function updateSimDeptFillRateVisual(deptId, val) {
 
     const slider = document.getElementById(`slider_sim_fill_rate_${deptId}`);
     const maxCapacity = slider ? parseFloat(slider.getAttribute("data-max-capacity")) || 0 : 0;
-    const simulatedStudents = Math.round(maxCapacity * (intVal / 100));
+    const roomCount = slider ? parseFloat(slider.getAttribute("data-room-count")) || 0 : 0;
 
-    const lblStudents = document.getElementById(`lbl_sim_students_val_${deptId}`);
-    if (lblStudents) {
-        lblStudents.innerText = `${simulatedStudents} HS (${intVal}%)`;
-    }
+    updateSimDeptInfoLabel(deptId, intVal, maxCapacity, roomCount);
 }
 
 function updateSimDeptFillRate(deptId, val) {
@@ -6772,10 +6936,11 @@ function updateRentBlockPercent(blockId, percentVal) {
     if (!blk) return;
     const percent = parseFloat(percentVal) || 0;
     
-    // Tính tổng tiền thuê hiện tại trước khi thay đổi để làm gốc quy đổi %
+    // Tính tổng tiền thuê hiện tại để làm gốc dự phòng nếu chưa điền landlordRent
     const absoluteTotalRent = appState.rentBlocks.reduce((sum, b) => sum + b.totalRent, 0);
+    const baseRent = appState.landlordRent > 0 ? appState.landlordRent : (absoluteTotalRent > 0 ? absoluteTotalRent : 0);
     
-    blk.totalRent = Math.round(absoluteTotalRent * (percent / 100));
+    blk.totalRent = Math.round(baseRent * (percent / 100));
     
     saveState();
     const result = runAllocation();
@@ -6833,7 +6998,7 @@ function updateRentBlockRoomCount(blockId, val) {
 function openSimDeptRoomsModal(deptId) {
     const deptMap = {
         "dept_tieuhoc": { name: "Khối Tiểu học", color: "#007AFF", icon: "fa-graduation-cap" },
-        "dept_thcs": { name: "Khối THCS", color: "#34C759", icon: "fa-graduation-cap" },
+        "dept_thcs": { name: "Khối THCS", color: "#00C7BE", icon: "fa-graduation-cap" },
         "dept_thpt": { name: "Khối THPT", color: "#AF52DE", icon: "fa-graduation-cap" },
         "dept_noitru": { name: "Ban Nội trú", color: "#FF9500", icon: "fa-hotel" }
     };
@@ -6896,14 +7061,8 @@ function openSimDeptRoomsModal(deptId) {
             // Nếu là phòng chức năng, sức chứa giả lập và sức chứa quy đổi của khối để tính doanh thu = 0
             const shareMaxCapacity = isFunctional ? 0 : (room.capacity * roomFraction);
             
-            const actualFillRate = getActualFillRateForDept(deptId);
-            let roomSimRate = fillRate;
-            if (!isFunctional && actualFillRate > 0) {
-                const roomActualRate = room.capacity > 0 ? ((room.currentStudents || 0) / room.capacity) * 100 : 0;
-                roomSimRate = Math.min(100, roomActualRate * (fillRate / actualFillRate));
-            }
-            const roundedRoomSimRate = Math.round(roomSimRate);
-            const shareSimStudents = isFunctional ? 0 : (shareMaxCapacity * (roomSimRate / 100));
+            const simMap = getSimulatedStudentsMapForDept(deptId, fillRate);
+            const shareSimStudents = isFunctional ? 0 : (simMap[room.id] || 0);
             
             totalMaxCap += shareMaxCapacity;
             totalSimStudents += shareSimStudents;
@@ -6915,6 +7074,7 @@ function openSimDeptRoomsModal(deptId) {
             
             const roundedSim = Math.round(shareSimStudents);
             const roundedMax = Math.round(shareMaxCapacity);
+            const roundedRoomSimRate = shareMaxCapacity > 0 ? Math.round((roundedSim / shareMaxCapacity) * 100) : 0;
             
             // Visual Column for Simulated Fill Rate
             let fillProgressHtml = "";
@@ -7187,5 +7347,25 @@ window.handleRoomDrop = handleRoomDrop;
 window.handleRoomDragEnd = handleRoomDragEnd;
 window.updateEmpAddRatiosSummary = updateEmpAddRatiosSummary;
 window.resetFillRatesToActuals = resetFillRatesToActuals;
+
+function updateRoomCustomRent(roomId, val) {
+    const room = appState.rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    const cleanVal = val.trim() === "" ? null : parseMoneyValue(val);
+    if (cleanVal === null || cleanVal <= 0) {
+        delete room.customRent;
+    } else {
+        room.customRent = cleanVal;
+    }
+
+    saveState();
+    const result = runAllocation();
+    renderDashboard(result);
+    renderFacilities();
+}
+window.updateRoomCustomRent = updateRoomCustomRent;
+window.openProblemsModal = openProblemsModal;
+window.goToProblemSolution = goToProblemSolution;
 
 

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Link Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=22">
     
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -150,6 +150,27 @@
              =================================================================== -->
         <div id="view_dashboard" class="view-section active">
             
+            <!-- Premium Brain Mindmap Banner for 6 Problems [V21] -->
+            <div class="card problem-solving-banner" style="background: linear-gradient(135deg, rgba(52, 199, 89, 0.05) 0%, rgba(0, 122, 255, 0.03) 100%); border: 1px solid rgba(52, 199, 89, 0.15); margin-bottom: 1.25rem; padding: 14px 20px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 15px; box-shadow: var(--shadow-sm); transition: all 0.3s ease;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #FFF; box-shadow: 0 4px 10px rgba(52, 199, 89, 0.2); flex-shrink: 0;">
+                        <i class="fa-solid fa-brain" style="font-size: 18px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 6px;">
+                            BẢN ĐỒ TƯ DUY GIẢI QUYẾT 6 BÀI TOÁN QUẢN TRỊ CỐT LÕI
+                            <span style="background: var(--primary); color: #FFF; font-size: 0.62rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Nghiệp vụ</span>
+                        </h4>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 3px 0 0 0; line-height: 1.4;">
+                            Khám phá hành trình trải nghiệm qua 6 bài toán nghiệp vụ kinh điển: phân bổ tiền thuê mặt bằng, lương chéo khối liên cấp, quỹ hỗ trợ gián tiếp, chi phí phòng học trống, giả lập What-If và minh bạch giải trình công thức.
+                        </p>
+                    </div>
+                </div>
+                <button onclick="openProblemsModal()" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%); border: none; font-size: 0.74rem; font-weight: 700; padding: 8px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--primary-glow); cursor: pointer; white-space: nowrap; height: 32px; color: #FFF;">
+                    <i class="fa-solid fa-circle-nodes"></i> Xem Bản Đồ
+                </button>
+            </div>
+            
             <!-- Apple-style Segmented Switcher for Actuals vs Simulation -->
             <div style="display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center;">
                 <div class="facility-segmented-control" style="margin: 0; padding: 3px;">
@@ -163,153 +184,168 @@
             </div>
 
             <!-- Simulation Controls Panel (Hidden by default) -->
-            <div id="simulation_controls_panel" class="card" style="display: none; border-left: 4px solid var(--info); background: rgba(0, 122, 255, 0.015); padding: 16px 20px; margin-bottom: 1.5rem; transition: all 0.3s ease;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div id="simulation_controls_panel" class="card" style="display: none; border-left: 4px solid var(--info); background: rgba(0, 122, 255, 0.015); padding: 18px 22px; margin-bottom: 1.5rem; transition: all 0.3s ease;">
+                <!-- Header with correct tags and closing div -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                     <div>
                         <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid fa-sliders" style="color: var(--info);"></i>
-                            BẢNG THIẾT LẬP KỊCH BẢN GIẢ LẬP LẤP ĐẦY (WHAT-IF PARAMETERS) [V10]
+                            BẢNG THIẾT LẬP KỊCH BẢN GIẢ LẬP LẤP ĐẦY (WHAT-IF PARAMETERS) [V11]
                         </h3>
                         <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">
                             Điều chỉnh tỷ lệ lấp đầy sỹ số của 41 phòng học vật lý và thiết lập học phí kỳ vọng để ước tính doanh thu & lợi nhuận tương lai.
                         </p>
                     </div>
-                    <span class="badge" style="background: var(--info); color: #FFF; font-size: 0.7rem; font-weight: 700; padding: 4px 8px; border-radius: 4px;">
-                        <i class="fa-solid fa-circle-info"></i> Chế độ Dự phòng
-                    </span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="resetFillRatesToActuals()" class="btn hover-opacity" style="padding: 4px 10px; font-size: 0.7rem; background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.15); color: var(--success); font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; line-height: 1; height: 26px;">
+                            <i class="fa-solid fa-arrows-rotate"></i> Đặt theo thực tế
+                        </button>
+                        <span class="badge" style="background: var(--info); color: #FFF; font-size: 0.7rem; font-weight: 700; padding: 4px 8px; border-radius: 4px;">
+                            <i class="fa-solid fa-circle-info"></i> Chế độ Dự phòng
+                        </span>
+                    </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; flex-wrap: wrap;">
+                <!-- Balanced 2-Column Layout -->
+                <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; flex-wrap: wrap; align-items: stretch;">
                     
-                    <!-- Left: Grid of 4 Sliders for each Block/Department -->
-                    <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
-                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary); border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <span style="display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-hotel" style="color: var(--primary);"></i>
-                                Tỷ lệ Lấp đầy Mục tiêu theo Từng khối Học
-                            </span>
-                            <button onclick="resetFillRatesToActuals()" class="btn hover-opacity" style="padding: 2px 8px; font-size: 0.68rem; background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.15); color: var(--success); font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; line-height: 1;">
-                                <i class="fa-solid fa-arrows-rotate"></i> Đặt theo thực tế
-                            </button>
-                        </span>
+                    <!-- Left: Grid of 4 beautifully designed, branded integrated blocks -->
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
                         
-                        <!-- 1. Tiểu học Slider -->
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(0,0,0,0.04); padding-bottom: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #007AFF; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-graduation-cap"></i> Khối Tiểu học:
+                        <!-- 1. Khối Tiểu học Card -->
+                        <div class="card" style="padding: 12px 16px; border-left: 4px solid #007AFF; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 8px;">
+                                <span style="font-size: 0.82rem; font-weight: 700; color: #007AFF; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-graduation-cap"></i> Khối Tiểu học
                                     <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #007AFF; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_tieuhoc')">
                                         <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
                                     </span>
                                 </span>
-                                <span id="lbl_sim_fill_rate_dept_tieuhoc" style="font-size: 0.78rem; font-weight: 800; color: #007AFF; background: rgba(0, 122, 255, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 122, 255, 0.03); border: 1px solid rgba(0, 122, 255, 0.12); padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 600;">
+                                        <span style="color: #007AFF;">Học phí Hệ Xanh:</span>
+                                        <input type="text" id="txt_sim_tuition_tieuhoc_xanh" style="width: 75px; text-align: center; border: none; background: transparent; font-weight: 800; color: var(--success); font-size: 0.72rem; outline: none; padding: 0; margin: 0 2px;" value="2.500.000" oninput="handleMoneyInput(this); updateSimTuition('dept_tieuhoc_xanh', this.value)">
+                                        <span style="color: var(--text-secondary); font-size: 0.6rem;">đ</span>
+                                    </div>
+                                    <span id="lbl_sim_fill_rate_dept_tieuhoc" style="font-size: 0.78rem; font-weight: 800; color: #007AFF; background: rgba(0, 122, 255, 0.08); padding: 2px 6px; border-radius: 4px;">36%</span>
+                                </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_tieuhoc" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_tieuhoc', this.value)" onchange="updateSimDeptFillRate('dept_tieuhoc', this.value)" style="flex-grow: 1; accent-color: #007AFF; cursor: pointer; height: 5px;">
+                                <input type="range" class="segmented-range-slider" id="slider_sim_fill_rate_dept_tieuhoc" min="0" max="100" value="36" oninput="updateSimDeptFillRateVisual('dept_tieuhoc', this.value)" onchange="updateSimDeptFillRate('dept_tieuhoc', this.value)" style="flex-grow: 1; color: #007AFF;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
-                            <div id="lbl_sim_info_dept_tieuhoc" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
+                            <div id="lbl_sim_info_dept_tieuhoc" style="width: 100%;"></div>
                         </div>
 
-                        <!-- 2. THCS Slider -->
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(0,0,0,0.04); padding-bottom: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #34C759; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-graduation-cap"></i> Khối THCS:
-                                    <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #34C759; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_thcs')">
+                        <!-- 2. Khối THCS Card -->
+                        <div class="card" style="padding: 12px 16px; border-left: 4px solid #00C7BE; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 8px;">
+                                <span style="font-size: 0.82rem; font-weight: 700; color: #00C7BE; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-graduation-cap"></i> Khối THCS
+                                    <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #00C7BE; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_thcs')">
                                         <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
                                     </span>
                                 </span>
-                                <span id="lbl_sim_fill_rate_dept_thcs" style="font-size: 0.78rem; font-weight: 800; color: #34C759; background: rgba(52, 199, 89, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 199, 190, 0.03); border: 1px solid rgba(0, 199, 190, 0.12); padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 600;">
+                                        <span style="color: #00C7BE;">Học phí Hệ Xanh:</span>
+                                        <input type="text" id="txt_sim_tuition_thcs_xanh" style="width: 75px; text-align: center; border: none; background: transparent; font-weight: 800; color: var(--success); font-size: 0.72rem; outline: none; padding: 0; margin: 0 2px;" value="2.500.000" oninput="handleMoneyInput(this); updateSimTuition('dept_thcs_xanh', this.value)">
+                                        <span style="color: var(--text-secondary); font-size: 0.6rem;">đ</span>
+                                    </div>
+                                    <span id="lbl_sim_fill_rate_dept_thcs" style="font-size: 0.78rem; font-weight: 800; color: #00C7BE; background: rgba(0, 199, 190, 0.08); padding: 2px 6px; border-radius: 4px;">55%</span>
+                                </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_thcs" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_thcs', this.value)" onchange="updateSimDeptFillRate('dept_thcs', this.value)" style="flex-grow: 1; accent-color: #34C759; cursor: pointer; height: 5px;">
+                                <input type="range" class="segmented-range-slider" id="slider_sim_fill_rate_dept_thcs" min="0" max="100" value="55" oninput="updateSimDeptFillRateVisual('dept_thcs', this.value)" onchange="updateSimDeptFillRate('dept_thcs', this.value)" style="flex-grow: 1; color: #00C7BE;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
-                            <div id="lbl_sim_info_dept_thcs" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
+                            <div id="lbl_sim_info_dept_thcs" style="width: 100%;"></div>
                         </div>
 
-                        <!-- 3. THPT Slider -->
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(0,0,0,0.04); padding-bottom: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #AF52DE; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-graduation-cap"></i> Khối THPT:
+                        <!-- 3. Khối THPT Card -->
+                        <div class="card" style="padding: 12px 16px; border-left: 4px solid #AF52DE; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 8px;">
+                                <span style="font-size: 0.82rem; font-weight: 700; color: #AF52DE; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-graduation-cap"></i> Khối THPT
                                     <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #AF52DE; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_thpt')">
                                         <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
                                     </span>
                                 </span>
-                                <span id="lbl_sim_fill_rate_dept_thpt" style="font-size: 0.78rem; font-weight: 800; color: #AF52DE; background: rgba(175, 82, 222, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <!-- Hệ Thường -->
+                                    <div style="display: inline-flex; align-items: center; gap: 3px; background: rgba(175, 82, 222, 0.03); border: 1px solid rgba(175, 82, 222, 0.12); padding: 2px 6px; border-radius: 5px; font-size: 0.65rem; font-weight: 600;">
+                                        <span style="color: #AF52DE;">Thường:</span>
+                                        <input type="text" id="txt_sim_tuition_thpt_thuong" style="width: 70px; text-align: center; border: none; background: transparent; font-weight: 800; color: var(--success); font-size: 0.68rem; outline: none; padding: 0;" value="7.000.000" oninput="handleMoneyInput(this); updateSimTuition('dept_thpt_thuong', this.value)">
+                                        <span style="color: var(--text-secondary); font-size: 0.55rem;">đ</span>
+                                    </div>
+                                    <!-- Hệ Xanh -->
+                                    <div style="display: inline-flex; align-items: center; gap: 3px; background: rgba(191, 90, 242, 0.03); border: 1px solid rgba(191, 90, 242, 0.12); padding: 2px 6px; border-radius: 5px; font-size: 0.65rem; font-weight: 600;">
+                                        <span style="color: #BF5AF2;">Hệ Xanh:</span>
+                                        <input type="text" id="txt_sim_tuition_thpt_xanh" style="width: 70px; text-align: center; border: none; background: transparent; font-weight: 800; color: var(--success); font-size: 0.68rem; outline: none; padding: 0;" value="11.000.000" oninput="handleMoneyInput(this); updateSimTuition('dept_thpt_xanh', this.value)">
+                                        <span style="color: var(--text-secondary); font-size: 0.55rem;">đ</span>
+                                    </div>
+                                    <span id="lbl_sim_fill_rate_dept_thpt" style="font-size: 0.78rem; font-weight: 800; color: #AF52DE; background: rgba(175, 82, 222, 0.08); padding: 2px 6px; border-radius: 4px;">55%</span>
+                                </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_thpt" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_thpt', this.value)" onchange="updateSimDeptFillRate('dept_thpt', this.value)" style="flex-grow: 1; accent-color: #AF52DE; cursor: pointer; height: 5px;">
+                                <input type="range" class="segmented-range-slider" id="slider_sim_fill_rate_dept_thpt" min="0" max="100" value="55" oninput="updateSimDeptFillRateVisual('dept_thpt', this.value)" onchange="updateSimDeptFillRate('dept_thpt', this.value)" style="flex-grow: 1; color: #AF52DE;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
-                            <div id="lbl_sim_info_dept_thpt" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
+                            <div id="lbl_sim_info_dept_thpt" style="width: 100%;"></div>
                         </div>
 
-                        <!-- 4. Nội trú Slider -->
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #FF9500; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-hotel"></i> Khối Nội trú:
+                        <!-- 4. Khối Nội trú Card -->
+                        <div class="card" style="padding: 12px 16px; border-left: 4px solid #FF9500; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 8px;">
+                                <span style="font-size: 0.82rem; font-weight: 700; color: #FF9500; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-hotel"></i> Ban Nội trú
                                     <span class="hover-opacity" style="cursor: pointer; font-size: 0.65rem; color: #FF9500; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="openSimDeptRoomsModal('dept_noitru')">
                                         <i class="fa-solid fa-magnifying-glass-chart"></i> Xem phòng
                                     </span>
                                 </span>
-                                <span id="lbl_sim_fill_rate_dept_noitru" style="font-size: 0.78rem; font-weight: 800; color: #FF9500; background: rgba(255, 149, 0, 0.08); padding: 1px 6px; border-radius: 4px;">80%</span>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 149, 0, 0.03); border: 1px solid rgba(255, 149, 0, 0.12); padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 600;">
+                                        <span style="color: #FF9500;">Phí nội trú:</span>
+                                        <input type="text" id="txt_sim_tuition_noitru" style="width: 75px; text-align: center; border: none; background: transparent; font-weight: 800; color: var(--success); font-size: 0.72rem; outline: none; padding: 0; margin: 0 2px;" value="3.000.000" oninput="handleMoneyInput(this); updateSimTuition('dept_noitru', this.value)">
+                                        <span style="color: var(--text-secondary); font-size: 0.6rem;">đ</span>
+                                    </div>
+                                    <span id="lbl_sim_fill_rate_dept_noitru" style="font-size: 0.78rem; font-weight: 800; color: #FF9500; background: rgba(255, 149, 0, 0.08); padding: 2px 6px; border-radius: 4px;">58%</span>
+                                </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">0%</span>
-                                <input type="range" id="slider_sim_fill_rate_dept_noitru" min="0" max="100" value="80" oninput="updateSimDeptFillRateVisual('dept_noitru', this.value)" onchange="updateSimDeptFillRate('dept_noitru', this.value)" style="flex-grow: 1; accent-color: #FF9500; cursor: pointer; height: 5px;">
+                                <input type="range" class="segmented-range-slider" id="slider_sim_fill_rate_dept_noitru" min="0" max="100" value="58" oninput="updateSimDeptFillRateVisual('dept_noitru', this.value)" onchange="updateSimDeptFillRate('dept_noitru', this.value)" style="flex-grow: 1; color: #FF9500;">
                                 <span style="font-size: 0.65rem; color: var(--text-secondary);">100%</span>
                             </div>
-                            <div id="lbl_sim_info_dept_noitru" style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;"></div>
+                            <div id="lbl_sim_info_dept_noitru" style="width: 100%;"></div>
                         </div>
 
                     </div>
-
-                    <!-- Right: Tuition fee inputs per student -->
-                    <div style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; justify-content: center;">
-                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary); border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-hand-holding-dollar" style="color: var(--success);"></i>
-                            Đơn Giá Học Phí & Phí Nội Trú Dự Phóng
+                    
+                    <!-- Right: Live Simulation Performance Chart Card -->
+                    <div class="card" style="background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 380px; justify-content: space-between;">
+                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary); border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 8px; display: flex; align-items: center; gap: 6px; justify-content: space-between; width: 100%;">
+                            <span style="display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-chart-bar" style="color: var(--primary);"></i>
+                                Hiệu Năng Tài Chính Giả Lập (Live Update)
+                            </span>
+                            <span class="badge badge-success" style="font-size: 0.62rem; padding: 2px 6px; font-weight: 700; background: rgba(52, 199, 89, 0.08); color: var(--success);">THỜI GIAN THỰC</span>
                         </span>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #00A2FF; display: block; margin-bottom: 4px;">Tiểu học - Hệ Xanh (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_tieuhoc_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="7.500.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_tieuhoc_xanh', this.value)">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #30D158; display: block; margin-bottom: 4px;">THCS - Hệ Xanh (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_thcs_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="9.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thcs_xanh', this.value)">
-                            </div>
-                            
-                            <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #AF52DE; display: block; margin-bottom: 4px;">THPT - Thường (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_thpt_thuong" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="7.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thpt_thuong', this.value)">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #BF5AF2; display: block; margin-bottom: 4px;">THPT - Hệ Xanh (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_thpt_xanh" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="11.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_thpt_xanh', this.value)">
-                            </div>
-                            
-                            <div style="grid-column: span 2;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #FF9500; display: block; margin-bottom: 4px;">Phí bán trú/Nội trú (VNĐ/tháng):</label>
-                                <input type="text" id="txt_sim_tuition_noitru" class="base-select-dropdown" style="width: 100%; padding: 6px 10px; font-size: 0.78rem; font-weight: 700;" value="3.000.000" oninput="handleMoneyInput(this)" onchange="updateSimTuition('dept_noitru', this.value)">
-                            </div>
+                        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; height: 100%; min-height: 300px;">
+                            <canvas id="dashboard_chart_sim" style="width: 100%; max-height: 300px;"></canvas>
                         </div>
                     </div>
+
                 </div>
             </div>
 
             <div class="dashboard-grid">
                 
                 <!-- Left Screen: P&L Detailed Table Report -->
-                <div class="card" style="padding: 1.75rem;">
+                <div class="card" id="pnl_table_card" style="padding: 1.75rem;">
                     <div class="section-header">
                         <h2>Báo Cáo Kết Quả Hoạt Động (Lợi Nhuận) Sau Phân Bổ</h2>
                         <span class="text-muted" style="font-size: 0.85rem;"><i class="fa-solid fa-circle-info"></i> Click vào số tiền chi phí phân bổ để xem giải trình</span>
@@ -873,20 +909,23 @@
                     <a class="guidelines-toc-item active" href="#guide_intro">
                         <i class="fa-solid fa-circle-info"></i> Giới thiệu chung
                     </a>
+                    <a class="guidelines-toc-item" href="#guide_problems">
+                        <i class="fa-solid fa-brain"></i> I. Bản đồ 6 bài toán quản trị
+                    </a>
                     <a class="guidelines-toc-item" href="#guide_revenue">
-                        <i class="fa-solid fa-coins"></i> Ⅰ. Thu nhập & Doanh thu
+                        <i class="fa-solid fa-coins"></i> II. Thu nhập & Doanh thu
                     </a>
                     <a class="guidelines-toc-item" href="#guide_payroll">
-                        <i class="fa-solid fa-users-gear"></i> Ⅱ. Phân bổ quỹ lương
+                        <i class="fa-solid fa-users-gear"></i> III. Phân bổ quỹ lương
                     </a>
                     <a class="guidelines-toc-item" href="#guide_facilities">
-                        <i class="fa-solid fa-hotel"></i> Ⅲ. Tiền thuê mặt bằng
+                        <i class="fa-solid fa-hotel"></i> IV. Tiền thuê mặt bằng
                     </a>
                     <a class="guidelines-toc-item" href="#guide_utilities">
-                        <i class="fa-solid fa-bolt"></i> Ⅳ. Tiền Điện & Nước
+                        <i class="fa-solid fa-bolt"></i> V. Tiền Điện & Nước
                     </a>
                     <a class="guidelines-toc-item" href="#guide_support">
-                        <i class="fa-solid fa-diagram-project"></i> Ⅴ. Bộ phận hỗ trợ chung
+                        <i class="fa-solid fa-diagram-project"></i> VI. Bộ phận hỗ trợ chung
                     </a>
                 </nav>
 
@@ -924,11 +963,92 @@
                         </div>
                     </section>
 
+                    <!-- Phần: Bản đồ tư duy 6 bài toán quản trị -->
+                    <section class="guidelines-section" id="guide_problems">
+                        <div class="guidelines-section-title" style="border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 20px;">
+                            <i class="fa-solid fa-brain" style="color: var(--primary); font-size: 1.4rem;"></i>
+                            <h2 style="font-size: 1.4rem; color: var(--text-primary); margin: 0; font-weight: 700;">I. BẢN ĐỒ TƯ DUY GIẢI QUYẾT 6 BÀI TOÁN QUẢN TRỊ CỐT LÕI</h2>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
+                            Chúng ta có thể đúc kết hành trình trải nghiệm của người xem qua 6 bài toán nghiệp vụ kinh điển sau:
+                        </p>
+                        
+                        <div class="guidelines-problems-grid" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                            
+                            <!-- Bài toán 1 -->
+                            <div class="guidelines-card" style="border-left: 4px solid var(--info); padding: 18px; background: rgba(0, 122, 255, 0.015); box-shadow: var(--shadow-sm); border-radius: 8px; margin-bottom: 0;">
+                                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: var(--info); color: #FFF; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 800;">Bài toán 1</span>
+                                    Phân bổ mặt bằng (Mỗi phòng học gánh bao nhiêu tiền thuê?)
+                                </h3>
+                                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                                    <strong>Nghiệp vụ:</strong> Tiền thuê của cả dãy nhà lớn được chia đều và phân bổ chính xác cho từng phòng học hoạt động dựa trên diện tích hoặc số phòng, thay vì chia trung bình cào bằng vô lý.
+                                </p>
+                            </div>
+
+                            <!-- Bài toán 2 -->
+                            <div class="guidelines-card" style="border-left: 4px solid var(--success); padding: 18px; background: rgba(52, 199, 89, 0.015); box-shadow: var(--shadow-sm); border-radius: 8px; margin-bottom: 0;">
+                                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: var(--success); color: #FFF; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 800;">Bài toán 2</span>
+                                    Lương giáo viên dạy liên cấp (Lương bóc tách thế nào?)
+                                </h3>
+                                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                                    <strong>Nghiệp vụ:</strong> Giáo viên dạy chéo khối (Tiểu học + THCS) được bóc tách lương và bảo hiểm xã hội theo tỷ lệ % số tiết dạy thực tế, giúp P&L nhân sự của từng khối không bị lệch.
+                                </p>
+                            </div>
+
+                            <!-- Bài toán 3 -->
+                            <div class="guidelines-card" style="border-left: 4px solid var(--primary); padding: 18px; background: rgba(52, 199, 89, 0.015); box-shadow: var(--shadow-sm); border-radius: 8px; margin-bottom: 0;">
+                                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: var(--primary); color: #FFF; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 800;">Bài toán 3</span>
+                                    Phân bổ chi phí của các Ban gián tiếp (Ban Giám Hiệu, Tuyển sinh, Kế toán...)
+                                </h3>
+                                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                                    <strong>Nghiệp vụ:</strong> Chi phí của các ban hỗ trợ được phân chia ngược lại cho 4 khối trực tiếp gánh vác theo tỷ lệ % cấu hình động, giúp thấy rõ bức tranh "Lợi nhuận gộp thực tế".
+                                </p>
+                            </div>
+
+                            <!-- Bài toán 4 -->
+                            <div class="guidelines-card" style="border-left: 4px solid var(--warning); padding: 18px; background: rgba(255, 149, 0, 0.015); box-shadow: var(--shadow-sm); border-radius: 8px; margin-bottom: 0;">
+                                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: var(--warning); color: #FFF; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 800;">Bài toán 4</span>
+                                    Phòng học trống hoặc phòng dự trữ (Chi phí cơ hội và gánh nặng mặt bằng?)
+                                </h3>
+                                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                                    <strong>Nghiệp vụ:</strong> Phòng học trống không có học sinh vẫn phải trả tiền thuê, tạo ra gánh nặng chi phí cố định được bóc tách rõ rệt để ban giám hiệu thấy rõ tổn thất.
+                                </p>
+                            </div>
+
+                            <!-- Bài toán 5 -->
+                            <div class="guidelines-card" style="border-left: 4px solid #AF52DE; padding: 18px; background: rgba(175, 82, 222, 0.015); box-shadow: var(--shadow-sm); border-radius: 8px; margin-bottom: 0;">
+                                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: #AF52DE; color: #FFF; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 800;">Bài toán 5</span>
+                                    Giả lập What-If (Làm sao ước lượng điểm hòa vốn và doanh thu kỳ vọng?)
+                                </h3>
+                                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                                    <strong>Nghiệp vụ:</strong> Công cụ kéo trượt tỷ lệ lấp đầy sỹ số và học phí pill động giúp dự báo ngay lập tức doanh thu & P&L tương lai để đưa ra chiến dịch tuyển sinh phù hợp.
+                                </p>
+                            </div>
+
+                            <!-- Bài toán 6 -->
+                            <div class="guidelines-card" style="border-left: 4px solid var(--danger); padding: 18px; background: rgba(255, 59, 48, 0.015); box-shadow: var(--shadow-sm); border-radius: 8px; margin-bottom: 0;">
+                                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="background: var(--danger); color: #FFF; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 800;">Bài toán 6</span>
+                                    Minh bạch giải trình công thức (Làm sao để tin tưởng số liệu phân bổ?)
+                                </h3>
+                                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                                    <strong>Nghiệp vụ:</strong> Bất kỳ ai cũng có thể nhấp chuột vào bất kỳ ô số liệu nào trên bảng P&L để xem hộp giải thích công thức (Audit Formula Box) bóc tách chi tiết từng đồng chi phí từ đâu ra.
+                                </p>
+                            </div>
+
+                        </div>
+                    </section>
+
                     <!-- Phần 1: Doanh thu -->
                     <section class="guidelines-section" id="guide_revenue">
                         <div class="guidelines-section-title">
                             <i class="fa-solid fa-coins text-warning" style="color: var(--warning);"></i>
-                            <span>Ⅰ. NGUYÊN TẮC GHI NHẬN HỌC PHÍ & DOANH THU</span>
+                            <span>Ⅱ. NGUYÊN TẮC GHI NHẬN HỌC PHÍ & DOANH THU</span>
                         </div>
                         <p style="margin-bottom: 12px; color: var(--text-secondary);">Tiền học phí và các phí dịch vụ thu được từ học sinh được ghi nhận trực tiếp và độc lập cho từng khối cấp học:</p>
                         
@@ -963,7 +1083,7 @@
                     <section class="guidelines-section" id="guide_payroll">
                         <div class="guidelines-section-title">
                             <i class="fa-solid fa-users-gear text-primary" style="color: var(--info);"></i>
-                            <span>Ⅱ. CƠ CHẾ PHÂN CHIA CHI PHÍ LƯƠNG NHÂN SỰ</span>
+                            <span>Ⅲ. CƠ CHẾ PHÂN CHIA CHI PHÍ LƯƠNG NHÂN SỰ</span>
                         </div>
                         <p style="margin-bottom: 12px; color: var(--text-secondary);">Quỹ lương của cán bộ giáo viên được bóc tách tự động theo 2 nhóm để đảm bảo tính chính xác:</p>
                         
@@ -996,7 +1116,7 @@
                     <section class="guidelines-section" id="guide_facilities">
                         <div class="guidelines-section-title">
                             <i class="fa-solid fa-hotel text-success" style="color: var(--success);"></i>
-                            <span>Ⅲ. CƠ CHẾ CHIA CHI PHÍ THUÊ MẶT BẰNG & PHÒNG HỌC</span>
+                            <span>Ⅳ. CƠ CHẾ CHIA CHI PHÍ THUÊ MẶT BẰNG & PHÒNG HỌC</span>
                         </div>
                         <p style="margin-bottom: 12px; color: var(--text-secondary);">Tiền mặt bằng thuê đất và các tòa nhà được quản lý và tự động chia theo nguyên tắc phòng học sử dụng thực tế:</p>
                         
@@ -1033,7 +1153,7 @@
                     <section class="guidelines-section" id="guide_utilities">
                         <div class="guidelines-section-title">
                             <i class="fa-solid fa-bolt text-warning" style="color: var(--warning);"></i>
-                            <span>Ⅳ. CƠ CHẾ PHÂN CHIA HÓA ĐƠN ĐIỆN & NƯỚC HỢP LÝ</span>
+                            <span>Ⅴ. CƠ CHẾ PHÂN CHIA HÓA ĐƠN ĐIỆN & NƯỚC HỢP LÝ</span>
                         </div>
                         <p style="margin-bottom: 12px; color: var(--text-secondary);">Tiền Điện và tiền Nước sinh hoạt toàn trường được hệ thống phân bổ khoa học và công bằng theo 2 cơ chế riêng biệt:</p>
                         
@@ -1080,7 +1200,7 @@
                     <section class="guidelines-section" id="guide_support">
                         <div class="guidelines-section-title">
                             <i class="fa-solid fa-diagram-project text-info" style="color: var(--info);"></i>
-                            <span>Ⅴ. CƠ CHẾ CHIA CHI PHÍ PHÒNG BAN CHUNG (GIÁN TIẾP)</span>
+                            <span>Ⅵ. CƠ CHẾ CHIA CHI PHÍ PHÒNG BAN CHUNG (GIÁN TIẾP)</span>
                         </div>
                         <p style="margin-bottom: 12px; color: var(--text-secondary);">Các bộ phận dùng chung (như Ban Điều hành, Ban Giám hiệu, Hành chính Kế toán, Tuyển sinh...) không tạo ra nguồn thu trực tiếp từ học phí. Chi phí vận hành của các ban này được chia đều về cho 4 khối học chính gánh chịu:</p>
                         
@@ -1168,6 +1288,129 @@
             <div class="modal-overlay" style="display:none;"></div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('audit_modal')">Đóng lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL POPUP: 6 CORE MANAGEMENT PROBLEMS WALKTHROUGH [V21]
+         =================================================================== -->
+    <div class="modal-overlay" id="problems_walkthrough_modal">
+        <div class="modal-content" style="max-width: 850px; width: 90%;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%); color: #FFF; border-bottom: none; padding: 18px 24px;">
+                <h3 id="problems_walkthrough_title" style="color: #FFF; font-weight: 700; display: flex; align-items: center; gap: 10px; font-size: 1.1rem; margin: 0;">
+                    <i class="fa-solid fa-brain" style="font-size: 22px;"></i>
+                    I. BẢN ĐỒ TƯ DUY GIẢI QUYẾT 6 BÀI TOÁN QUẢN TRỊ CỐT LÕI
+                </h3>
+                <button class="modal-close" onclick="closeModal('problems_walkthrough_modal')" style="color: #FFF; font-size: 1.8rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px; background: var(--bg-main); max-height: 70vh; overflow-y: auto;">
+                <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+                    Chúng ta có thể đúc kết hành trình trải nghiệm của người xem qua 6 bài toán nghiệp vụ kinh điển sau. Hãy nhấp vào <strong>"Trải nghiệm giải pháp"</strong> để tự động di chuyển đến đúng phần tính năng tương ứng trong ứng dụng!
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+                    
+                    <!-- Card 1 -->
+                    <div class="card" style="margin: 0; padding: 18px; border-top: 4px solid var(--info); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: #FFF; border-radius: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: rgba(0, 122, 255, 0.1); color: var(--info); font-size: 0.68rem; padding: 2px 8px; border-radius: 12px; font-weight: 800;">Bài 1</span>
+                                Phân bổ mặt bằng
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin: 0;">
+                                <strong>Nghiệp vụ:</strong> Tiền thuê của cả dãy nhà lớn được chia đều và phân bổ chính xác cho từng phòng học hoạt động dựa trên diện tích hoặc số phòng, thay vì chia trung bình cào bằng vô lý.
+                            </p>
+                        </div>
+                        <button onclick="goToProblemSolution('view_facilities')" class="btn btn-secondary btn-sm" style="align-self: flex-start; font-size: 0.72rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Trải nghiệm giải pháp
+                        </button>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="card" style="margin: 0; padding: 18px; border-top: 4px solid var(--success); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: #FFF; border-radius: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: rgba(52, 199, 89, 0.1); color: var(--success); font-size: 0.68rem; padding: 2px 8px; border-radius: 12px; font-weight: 800;">Bài 2</span>
+                                Lương giáo viên dạy liên cấp
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin: 0;">
+                                <strong>Nghiệp vụ:</strong> Giáo viên dạy chéo khối (Tiểu học + THCS) được bóc tách lương và bảo hiểm xã hội theo tỷ lệ % số tiết dạy thực tế, giúp P&L nhân sự của từng khối không bị lệch.
+                            </p>
+                        </div>
+                        <button onclick="goToProblemSolution('view_payroll_matrix')" class="btn btn-secondary btn-sm" style="align-self: flex-start; font-size: 0.72rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Trải nghiệm giải pháp
+                        </button>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="card" style="margin: 0; padding: 18px; border-top: 4px solid var(--primary); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: #FFF; border-radius: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: rgba(52, 199, 89, 0.1); color: var(--primary); font-size: 0.68rem; padding: 2px 8px; border-radius: 12px; font-weight: 800;">Bài 3</span>
+                                Phân bổ các Ban gián tiếp
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin: 0;">
+                                <strong>Nghiệp vụ:</strong> Chi phí của các ban hỗ trợ được phân chia ngược lại cho 4 khối trực tiếp gánh vác theo tỷ lệ % cấu hình động, giúp thấy rõ bức tranh "Lợi nhuận gộp thực tế".
+                            </p>
+                        </div>
+                        <button onclick="goToProblemSolution('view_departments')" class="btn btn-secondary btn-sm" style="align-self: flex-start; font-size: 0.72rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Trải nghiệm giải pháp
+                        </button>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div class="card" style="margin: 0; padding: 18px; border-top: 4px solid var(--warning); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: #FFF; border-radius: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: rgba(255, 149, 0, 0.1); color: var(--warning); font-size: 0.68rem; padding: 2px 8px; border-radius: 12px; font-weight: 800;">Bài 4</span>
+                                Phòng học trống / dự trữ
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin: 0;">
+                                <strong>Nghiệp vụ:</strong> Phòng học trống không có học sinh vẫn phải trả tiền thuê, tạo ra gánh nặng chi phí cố định được bóc tách rõ rệt để ban giám hiệu thấy rõ tổn thất.
+                            </p>
+                        </div>
+                        <button onclick="goToProblemSolution('view_facilities', 'empty_rooms')" class="btn btn-secondary btn-sm" style="align-self: flex-start; font-size: 0.72rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Trải nghiệm giải pháp
+                        </button>
+                    </div>
+
+                    <!-- Card 5 -->
+                    <div class="card" style="margin: 0; padding: 18px; border-top: 4px solid #AF52DE; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: #FFF; border-radius: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: rgba(175, 82, 222, 0.1); color: #AF52DE; font-size: 0.68rem; padding: 2px 8px; border-radius: 12px; font-weight: 800;">Bài 5</span>
+                                Giả lập What-If sỹ số & học phí
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin: 0;">
+                                <strong>Nghiệp vụ:</strong> Công cụ kéo trượt tỷ lệ lấp đầy sỹ số và học phí pill động giúp dự báo ngay lập tức doanh thu & P&L tương lai để đưa ra chiến dịch tuyển sinh phù hợp.
+                            </p>
+                        </div>
+                        <button onclick="goToProblemSolution('view_dashboard', 'simulation')" class="btn btn-secondary btn-sm" style="align-self: flex-start; font-size: 0.72rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Trải nghiệm giải pháp
+                        </button>
+                    </div>
+
+                    <!-- Card 6 -->
+                    <div class="card" style="margin: 0; padding: 18px; border-top: 4px solid var(--danger); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: #FFF; border-radius: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: rgba(255, 59, 48, 0.1); color: var(--danger); font-size: 0.68rem; padding: 2px 8px; border-radius: 12px; font-weight: 800;">Bài 6</span>
+                                Minh bạch giải trình công thức
+                            </h4>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin: 0;">
+                                <strong>Nghiệp vụ:</strong> Bất kỳ ai cũng có thể nhấp chuột vào bất kỳ ô số liệu nào trên bảng P&L để xem hộp giải thích công thức (Audit Formula Box) bóc tách chi tiết từng đồng chi phí từ đâu ra.
+                            </p>
+                        </div>
+                        <button onclick="goToProblemSolution('view_dashboard', 'pnl_table')" class="btn btn-secondary btn-sm" style="align-self: flex-start; font-size: 0.72rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Trải nghiệm giải pháp
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid rgba(0,0,0,0.06);">
+                <button class="btn btn-secondary" onclick="closeModal('problems_walkthrough_modal')">Đóng lại</button>
             </div>
         </div>
     </div>
@@ -1289,6 +1532,7 @@
          =================================================================== -->
     <div class="helper-bot-container">
         <!-- Expanded Assistant Card -->
+        <!-- Expanded Assistant Card -->
         <div class="helper-bot-card" id="helper_bot_card">
             <div class="helper-bot-header">
                 <h4><i class="fa-solid fa-circle-nodes"></i> Trợ Lý Phân Bổ Tuệ Đức</h4>
@@ -1330,6 +1574,6 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app_v10.js"></script>
+    <script src="app_v10.js?v=24"></script>
 </body>
 </html>
