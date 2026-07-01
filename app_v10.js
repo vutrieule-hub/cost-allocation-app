@@ -1857,12 +1857,12 @@ function saveStateLocalOnly() {
 }
 
 function resetToDefault() {
-    if (confirm("Bạn có chắc chắn muốn khôi phục dữ liệu mẫu ban đầu của Xanh Tuệ Đức? Toàn bộ các thay đổi hiện tại của bạn sẽ bị xóa.")) {
+    customConfirm("Bạn có chắc chắn muốn khôi phục dữ liệu mẫu ban đầu của Xanh Tuệ Đức? Toàn bộ các thay đổi hiện tại của bạn sẽ bị xóa.", () => {
         appState = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
         saveState();
         initApp();
-        alert("Khôi phục dữ liệu mẫu thành công!");
-    }
+        setTimeout(() => alert("Khôi phục dữ liệu mẫu thành công!"), 100);
+    });
 }
 
 
@@ -3516,84 +3516,134 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove("open");
 }
 
-// Helper to render luxurious manual ratios with visually segmented progress bar and Apple-style cards
-function renderCustomRatiosHtml(dept, revenueDepts, showOnboardingDot = false) {
-    let totalPct = 0;
-    revenueDepts.forEach(rd => {
-        const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-            ? appState.drivers.custom_percent[dept.id][rd.id]
-            : 25;
-        totalPct += val;
+function customConfirm(message, onConfirmCallback) {
+    document.getElementById("custom_confirm_message").innerHTML = message;
+    const okBtn = document.getElementById("custom_confirm_ok_btn");
+    const newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    
+    newOkBtn.addEventListener("click", () => {
+        closeModal("custom_confirm_modal");
+        if (onConfirmCallback) onConfirmCallback();
     });
+    
+    document.getElementById("custom_confirm_modal").classList.add("open");
+}
 
-    let badgeHtml = "";
-    if (totalPct === 100) {
-        badgeHtml = `<span id="dept_badge_${dept.id}" class="badge badge-revenue" style="font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-check"></i> Đủ 100%</span>`;
-    } else if (totalPct < 100) {
-        badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 149, 0, 0.08); color: var(--warning); font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-exclamation"></i> Tổng: ${totalPct}% (Thiếu ${100 - totalPct}%)</span>`;
+// Helper to render luxurious manual ratios with visually segmented progress bar and Apple-style cards
+function renderCustomRatiosHtml(dept, revenueDepts, method = "manual") {
+    let totalPct = 0;
+    let values = {};
+
+    if (method === "student") {
+        const activeStudents = getActiveStudentCounts();
+        const totalSum = Object.values(activeStudents).reduce((a, b) => a + b, 0);
+        revenueDepts.forEach(rd => {
+            const rdVal = activeStudents[rd.id] || 0;
+            const pct = totalSum > 0 ? (rdVal / totalSum) * 100 : 0;
+            values[rd.id] = Math.round(pct);
+            totalPct += Math.round(pct);
+        });
+        if (totalSum > 0 && totalPct !== 100) {
+            let maxId = revenueDepts[0].id;
+            let maxVal = values[maxId];
+            revenueDepts.forEach(rd => {
+                if (values[rd.id] > maxVal) { maxVal = values[rd.id]; maxId = rd.id; }
+            });
+            values[maxId] += (100 - totalPct);
+            totalPct = 100;
+        }
+    } else if (method === "staff") {
+        const staffCounts = getStaffCounts();
+        const totalSum = Object.values(staffCounts).reduce((a, b) => a + b, 0);
+        revenueDepts.forEach(rd => {
+            const rdVal = staffCounts[rd.id] || 0;
+            const pct = totalSum > 0 ? (rdVal / totalSum) * 100 : 0;
+            values[rd.id] = Math.round(pct);
+            totalPct += Math.round(pct);
+        });
+        if (totalSum > 0 && totalPct !== 100) {
+            let maxId = revenueDepts[0].id;
+            let maxVal = values[maxId];
+            revenueDepts.forEach(rd => {
+                if (values[rd.id] > maxVal) { maxVal = values[rd.id]; maxId = rd.id; }
+            });
+            values[maxId] += (100 - totalPct);
+            totalPct = 100;
+        }
     } else {
-        badgeHtml = `<span id="dept_badge_${dept.id}" class="badge" style="background-color: rgba(255, 59, 48, 0.08); color: #FF3B30; font-size:0.7rem; padding: 2px 6px; display:inline-block;"><i class="fa-solid fa-circle-xmark"></i> Tổng: ${totalPct}% (Thừa ${totalPct - 100}%)</span>`;
+        revenueDepts.forEach(rd => {
+            const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
+                ? appState.drivers.custom_percent[dept.id][rd.id]
+                : 25;
+            values[rd.id] = val;
+            totalPct += val;
+        });
     }
 
-    // Định nghĩa bảng màu thương hiệu sang trọng cho các Khối học (THPT sử dụng màu Tím Hoàng Gia để khác biệt rõ nét với Tiểu Học)
     const getDeptTheme = (name) => {
         const lower = name.toLowerCase();
-        if (lower.includes("tiểu học")) return { color: "#007AFF" }; // Blue
-        if (lower.includes("thcs")) return { color: "#00C7BE" };    // Premium Teal
-        if (lower.includes("thpt")) return { color: "#AF52DE" };    // Premium Violet / Royal Purple
-        return { color: "#FF9500" };                                // Gold/Orange for Nội trú
+        if (lower.includes("tiểu học")) return { color: "#007AFF", bg: "rgba(0,122,255,0.2)" }; 
+        if (lower.includes("thcs")) return { color: "#00C7BE", bg: "rgba(0,199,190,0.2)" };    
+        if (lower.includes("thpt")) return { color: "#AF52DE", bg: "rgba(175,82,222,0.2)" };    
+        return { color: "#FF9500", bg: "rgba(255,149,0,0.2)" };                                
     };
 
-    // 1. Tạo Thanh phân bổ tỷ lệ trực quan (Segmented Progress Bar) siêu sang trọng (Thu nhỏ độ dày 4px thanh lịch)
-    let progressBarHtml = `<div style="display: flex; height: 4px; width: 100%; border-radius: 2px; overflow: hidden; background: #EAEAEF; margin-top: 6px; margin-bottom: 8px; box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,0.05);">`;
+    let chartHtml = `<div style="display: flex; gap: 12px; align-items: flex-end; height: 48px; padding-bottom: 2px;">`;
     revenueDepts.forEach(rd => {
-        const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-            ? appState.drivers.custom_percent[dept.id][rd.id]
-            : 25;
-        if (val > 0) {
-            const theme = getDeptTheme(rd.name);
-            progressBarHtml += `<div style="width: ${val}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${rd.name}: ${val}%"></div>`;
-        }
-    });
-    progressBarHtml += `</div>`;
-
-    // 2. Tạo lưới nhập liệu Card/Pill hiện đại (Nền trắng sang trọng, tối giản để chống lóa mắt)
-    let cardsHtml = `<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; margin-top: 6px; width: 100%;">`;
-    revenueDepts.forEach((rd, rdIndex) => {
-        const val = (appState.drivers.custom_percent?.[dept.id]?.[rd.id] !== undefined)
-            ? appState.drivers.custom_percent[dept.id][rd.id]
-            : 25;
+        const val = values[rd.id];
         const theme = getDeptTheme(rd.name);
-        const shortName = rd.name.replace("Khối ", "").replace("Ban ", "");
+        const heightPct = Math.max(8, Math.min(100, val));
         
-        const dotHtml = (showOnboardingDot && rdIndex === 0)
-            ? `<span class="ratio-onboarding-dot" title="Nhấp vào ô này để điều chỉnh tỷ lệ phân bổ thủ công"></span>`
-            : "";
+        const getInitials = (name) => {
+            if (name.includes("Tiểu học")) return "TH";
+            if (name.includes("THCS")) return "THCS";
+            if (name.includes("THPT")) return "THPT";
+            if (name.includes("Nội trú")) return "NT";
+            return name.substring(0,2).toUpperCase();
+        };
+        const label = getInitials(rd.name);
         
-        cardsHtml += `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.075); border-radius: 6px; transition: all 0.2s; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='rgba(0,0,0,0.15)'" onmouseout="this.style.borderColor='rgba(0,0,0,0.075)'">
-                <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1; margin-right: 4px;">
-                    <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: ${theme.color}; margin-right: 5px; flex-shrink: 0;"></span>
-                    <span style="display: inline-block; font-size: 0.72rem; font-weight: 700; color: ${theme.color}; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100px; vertical-align: middle;" title="${rd.name}">${shortName}</span>
-                </div>
-                <div style="display: flex; align-items: center; background: #FFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 5px; padding: 2px 6px; box-shadow: var(--shadow-sm); width: 50px; justify-content: space-between; height: 22px; flex-shrink: 0; position: relative;">
-                    <input type="number" min="0" max="100" class="ratio-pct-input" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; outline: none; padding: 0; font-family: inherit;" 
-                      value="${val}" onchange="updateCustomPercent('${dept.id}', '${rd.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
-                    <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-left: 1px; user-select: none;">%</span>
-                    ${dotHtml}
-                </div>
+        chartHtml += `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px;" title="${rd.name}: ${val}%">
+                <div style="font-size: 0.65rem; font-weight: 700; color: ${val > 0 ? theme.color : 'transparent'}; line-height: 1;">${val}%</div>
+                <div style="width: 24px; height: ${val > 0 ? heightPct + '%' : '2px'}; background-color: ${val > 0 ? theme.bg : '#F2F2F7'}; border: 1px solid ${val > 0 ? theme.color : 'rgba(0,0,0,0.1)'}; border-bottom: none; border-radius: 4px 4px 0 0; transition: height 0.3s ease;"></div>
+                <div style="font-size: 0.55rem; font-weight: 600; color: ${val > 0 ? 'var(--text-secondary)' : 'rgba(0,0,0,0.3)'}; line-height: 1;">${label}</div>
             </div>
         `;
     });
-    cardsHtml += `</div>`;
+    chartHtml += `</div>`;
+
+    let badgeHtml = "";
+    if (method === "student") {
+        badgeHtml = `<span style="font-size:0.75rem; font-weight: 600; color: #34C759; margin-bottom: 2px;"><i class="fa-solid fa-users"></i> Tự động theo Sỹ số Học sinh</span>`;
+    } else if (method === "staff") {
+        badgeHtml = `<span style="font-size:0.75rem; font-weight: 600; color: #34C759; margin-bottom: 2px;"><i class="fa-solid fa-user-tie"></i> Tự động theo Định biên Nhân sự</span>`;
+    } else {
+        if (totalPct === 100) {
+            badgeHtml = `<span style="font-size:0.75rem; font-weight: 600; color: #34C759; margin-bottom: 2px;"><i class="fa-solid fa-check"></i> Đủ 100%</span>`;
+        } else {
+            badgeHtml = `<span style="font-size:0.75rem; font-weight: 600; color: #FF3B30; margin-bottom: 2px;"><i class="fa-solid fa-triangle-exclamation"></i> Lỗi: ${totalPct}%</span>`;
+        }
+    }
+
+    const editBtnHtml = method === "manual" 
+        ? `<div style="font-size: 0.65rem; color: #007AFF; font-weight: 600; background: rgba(0,122,255,0.1); padding: 3px 10px; border-radius: 10px;"><i class="fa-solid fa-pen-to-square"></i> Sửa phân bổ</div>`
+        : `<div style="font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; background: rgba(0,0,0,0.05); padding: 3px 10px; border-radius: 10px;"><i class="fa-solid fa-lock"></i> Tự động tính toán</div>`;
+
+    const onclickHtml = method === "manual" ? `onclick="openAllocationModal('${dept.id}')"` : "";
+    const cursorHtml = method === "manual" ? "cursor: pointer;" : "cursor: default;";
+    const hoverHtml = method === "manual" 
+        ? `onmouseover="this.style.borderColor='rgba(0,122,255,0.4)'; this.style.backgroundColor='#F8FBFF';"` 
+        : `onmouseover="this.style.borderColor='rgba(52,199,89,0.4)'; this.style.backgroundColor='#F2FFF5';"`;
 
     return `
-        <div style="display: flex; flex-direction: column; width: 100%;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+        <div ${onclickHtml} style="display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; ${cursorHtml} transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.02); min-width: 250px;" ${hoverHtml} onmouseout="this.style.borderColor='rgba(0,0,0,0.08)'; this.style.backgroundColor='#FFFFFF';">
+            ${chartHtml}
+            <div style="display: flex; flex-direction: column; align-items: flex-end; border-left: 1px dashed rgba(0,0,0,0.1); padding-left: 16px; margin-left: auto;">
                 ${badgeHtml}
+                ${editBtnHtml}
             </div>
-            ${progressBarHtml}
-            ${cardsHtml}
         </div>
     `;
 }
@@ -3622,10 +3672,18 @@ function renderDepartments() {
     const supportDepts = appState.departments.filter(d => d.type === "support" && !d.isUtility);
     const utilityDepts = appState.departments.filter(d => d.type === "support" && d.isUtility);
 
+    // Tính toán lại chi phí để lấy số liệu cập nhật nhất
+    const currentResult = runAllocation();
+
     // 1. RENDER KHỐI TRỰC TIẾP (REVENUE CENTERS)
     revenueDepts.forEach((dept, index) => {
         const rev = appState.revenues[dept.id] || 0;
         const stud = dept.students || 0;
+        
+        const dSalary = currentResult.directSalary[dept.id] || 0;
+        const dInsurance = currentResult.directInsurance[dept.id] || 0;
+        const dRent = currentResult.directRent[dept.id] || 0;
+        const totalDirect = dSalary + dInsurance + dRent;
         
         const rowHtml = `
             <tr>
@@ -3634,6 +3692,10 @@ function renderDepartments() {
                     <strong style="color: var(--success); cursor: pointer;" onclick="openDepartmentCostAuditModal('${dept.id}')" title="Nhấp chuột để xem giải trình cơ cấu chi phí chi tiết">
                         ${dept.name} <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 0.7rem; margin-left: 4px; opacity: 0.8;"></i>
                     </strong>
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-money-bill-wave" style="color: var(--success); opacity: 0.7;"></i> 
+                        <span title="Chi phí Tự thân = Quỹ lương CBNV + Tiền gánh mặt bằng trực tiếp">Chi phí tự thân: <strong>${formatCurrency(totalDirect)}</strong></span>
+                    </div>
                 </td>
                 <td>
                     <div class="priority-container" style="display: inline-block;">
@@ -3701,43 +3763,12 @@ function renderDepartments() {
             </div>
         `;
 
-        let mainAllocationHtml = "";
+        let mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts, method);
 
-        if (method === "student") {
-            const activeStudents = getActiveStudentCounts();
-            const listText = Object.keys(activeStudents).map(did => {
-                const name = appState.departments.find(d => d.id === did)?.name.replace("Khối ", "").replace("Ban ", "") || did;
-                return `${name}: ${activeStudents[did]} HS`;
-            }).join(", ");
-
-            mainAllocationHtml = `
-                <div style="font-size:0.75rem; color: var(--success); font-weight:500; padding: 6px 10px; background: rgba(52, 199, 89, 0.04); border: 1px dashed rgba(52, 199, 89, 0.2); border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; white-space: normal;">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Tự động kết chuyển theo sỹ số học sinh (${listText})</span>
-                </div>
-            `;
-        } else if (method === "staff") {
-            const staffCounts = getStaffCounts();
-            const listText = Object.keys(staffCounts).map(did => {
-                const name = appState.departments.find(d => d.id === did)?.name.replace("Khối ", "").replace("Ban ", "") || did;
-                const count = staffCounts[did].toFixed(1).replace(".0", "");
-                return `${name}: ${count} người`;
-            }).join(", ");
-
-            mainAllocationHtml = `
-                <div style="font-size:0.75rem; color: var(--success); font-weight:500; padding: 6px 10px; background: rgba(52, 199, 89, 0.04); border: 1px dashed rgba(52, 199, 89, 0.2); border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; white-space: normal;">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Tự động kết chuyển theo định biên nhân sự (${listText})</span>
-                </div>
-            `;
-        } else {
-            let showOnboarding = false;
-            if (!firstManualRendered) {
-                showOnboarding = true;
-                firstManualRendered = true;
-            }
-            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts, showOnboarding);
-        }
+        const dSalary = currentResult.indirectSalary[dept.id] || 0;
+        const dInsurance = currentResult.indirectInsurance[dept.id] || 0;
+        const dRent = currentResult.indirectRent[dept.id] || 0;
+        const totalDirect = dSalary + dInsurance + dRent;
 
         const rowHtml = `
             <tr>
@@ -3746,6 +3777,10 @@ function renderDepartments() {
                     <strong style="color: var(--primary); cursor: pointer;" onclick="openDepartmentCostAuditModal('${dept.id}')" title="Nhấp chuột để xem giải trình cơ cấu chi phí chi tiết">
                         ${dept.name} <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 0.7rem; margin-left: 4px; opacity: 0.8;"></i>
                     </strong>
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-money-bill-wave" style="color: var(--primary); opacity: 0.7;"></i> 
+                        <span title="Chi phí Tự thân = Quỹ lương CBNV + Tiền gánh mặt bằng trực tiếp">Chi phí tự thân: <strong>${formatCurrency(totalDirect)}</strong></span>
+                    </div>
                 </td>
                 <td>${dropdownWrapperHtml}</td>
                 <td>${mainAllocationHtml}</td>
@@ -3804,38 +3839,12 @@ function renderDepartments() {
             </div>
         `;
 
-        let mainAllocationHtml = "";
+        let mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts, method);
 
-        if (method === "student") {
-            const activeStudents = getActiveStudentCounts();
-            const listText = Object.keys(activeStudents).map(did => {
-                const name = appState.departments.find(d => d.id === did)?.name.replace("Khối ", "").replace("Ban ", "") || did;
-                return `${name}: ${activeStudents[did]} HS`;
-            }).join(", ");
-
-            mainAllocationHtml = `
-                <div style="font-size:0.75rem; color: var(--success); font-weight:500; padding: 6px 10px; background: rgba(52, 199, 89, 0.04); border: 1px dashed rgba(52, 199, 89, 0.2); border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; white-space: normal;">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Tự động theo sỹ số học sinh (${listText})</span>
-                </div>
-            `;
-        } else if (method === "staff") {
-            const staffCounts = getStaffCounts();
-            const listText = Object.keys(staffCounts).map(did => {
-                const name = appState.departments.find(d => d.id === did)?.name.replace("Khối ", "").replace("Ban ", "") || did;
-                const count = staffCounts[did].toFixed(1).replace(".0", "");
-                return `${name}: ${count} người`;
-            }).join(", ");
-
-            mainAllocationHtml = `
-                <div style="font-size:0.75rem; color: var(--success); font-weight:500; padding: 6px 10px; background: rgba(52, 199, 89, 0.04); border: 1px dashed rgba(52, 199, 89, 0.2); border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; white-space: normal;">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Tự động theo định biên nhân sự (${listText})</span>
-                </div>
-            `;
-        } else {
-            mainAllocationHtml = renderCustomRatiosHtml(dept, revenueDepts, false);
-        }
+        const dSalary = currentResult.indirectSalary[dept.id] || 0;
+        const dInsurance = currentResult.indirectInsurance[dept.id] || 0;
+        const dRent = currentResult.indirectRent[dept.id] || 0;
+        const totalDirect = dSalary + dInsurance + dRent;
 
         const rowHtml = `
             <tr>
@@ -3844,6 +3853,10 @@ function renderDepartments() {
                     <strong style="color: var(--warning); cursor: pointer;" onclick="openDepartmentCostAuditModal('${dept.id}')" title="Nhấp chuột để xem giải trình cơ cấu chi phí chi tiết">
                         ${dept.name} <i class="fa-solid fa-magnifying-glass-chart" style="font-size: 0.7rem; margin-left: 4px; opacity: 0.8;"></i>
                     </strong>
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-money-bill-wave" style="color: var(--warning); opacity: 0.7;"></i> 
+                        <span title="Chi phí Tự thân = Quỹ lương CBNV + Tiền gánh mặt bằng trực tiếp">Chi phí tự thân: <strong>${formatCurrency(totalDirect)}</strong></span>
+                    </div>
                 </td>
                 <td>
                     <div class="priority-container" style="display: inline-block;">
@@ -3899,21 +3912,60 @@ function openDepartmentCostAuditModal(deptId) {
 
     // 1. Chi phí nhân sự (Lương)
     let totalSalary = 0;
-    const deptEmployees = appState.employees.filter(emp => {
-        if (emp.isMultiLevel && emp.ratios && emp.ratios[deptId] > 0) return true;
-        return emp.deptId === deptId;
+    let deptEmployees = [];
+    appState.employees.forEach(emp => {
+        if (emp.isMultiLevel && emp.ratios) {
+            if (emp.ratios[deptId] > 0) {
+                deptEmployees.push(emp);
+            }
+        } else if (emp.deptId === deptId) {
+            deptEmployees.push(emp);
+        }
     });
+
+    const getEmpTooltipHtml = (emp) => {
+        if (!emp.isMultiLevel || !emp.ratios) return `<i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}`;
+        
+        const isAmt = emp.allocationMode === 'amount';
+        let activeDeptsCount = 0;
+        let tooltipContent = `<strong style="color: #34C759; display: block; margin-bottom: 8px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;"><i class="fa-solid fa-layer-group"></i> Chi tiết ${emp.name}:</strong>`;
+        
+        Object.keys(emp.ratios).forEach(did => {
+            const rVal = emp.ratios[did];
+            if (rVal > 0) {
+                activeDeptsCount++;
+                const d = appState.departments.find(x => x.id === did);
+                const dName = d ? d.name.replace("Khối ", "").replace("Ban ", "") : "Không rõ";
+                const note = (emp.ratioNotes && emp.ratioNotes[did]) ? `<div style="font-style: italic; color: #E5E5EA; font-size: 0.72rem; margin-top: 2px; padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.2);"><i class="fa-regular fa-comment-dots"></i> ${emp.ratioNotes[did]}</div>` : '';
+                const formattedVal = isAmt ? formatCurrency(rVal) : (rVal + '%');
+                tooltipContent += `<div style="margin-bottom: 8px; font-size: 0.8rem;"><div style="display: flex; justify-content: space-between;"><strong style="color: #FFF;">${dName}:</strong> <span style="color: #FFCA28; font-weight: bold;">${formattedVal}</span></div>${note}</div>`;
+            }
+        });
+
+        if (activeDeptsCount === 0) return `<i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}`;
+
+        return `
+            <div class="dept-note-tooltip-trigger" style="display: inline-flex; align-items: center; cursor: help;">
+                <i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 6px;"></i>
+                <span style="border-bottom: 1px dashed rgba(0,0,0,0.3); padding-bottom: 1px;">${emp.name}</span>
+                <span style="margin-left: 6px; font-size: 0.65rem; background: rgba(52,199,89,0.1); border: 1px solid rgba(52,199,89,0.2); padding: 1px 5px; border-radius: 10px; font-weight: 700; color: #059669;" title="Kiêm nhiệm ${activeDeptsCount} phòng ban">${activeDeptsCount} PB</span>
+                <div class="custom-note-tooltip" style="min-width: 280px; text-align: left; padding: 12px; z-index: 100010; top: 100%; bottom: auto; left: 0; transform: translateY(8px); margin-left: 10px;">
+                    ${tooltipContent}
+                </div>
+            </div>
+        `;
+    };
 
     let employeesListHtml = "";
     if (deptEmployees.length > 0) {
         employeesListHtml = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.78rem; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.78rem; background: #FFF; border-radius: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
-                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Nhân sự</th>
+                        <th style="border-top-left-radius: 10px; padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Nhân sự</th>
                         <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: center; width: 100px;">Loại hình</th>
                         <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Chi tiết công thức</th>
-                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Lương phân bổ</th>
+                        <th style="border-top-right-radius: 10px; padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Lương phân bổ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3926,7 +3978,7 @@ function openDepartmentCostAuditModal(deptId) {
                 totalSalary += allocatedSalary;
                 employeesListHtml += `
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getEmpTooltipHtml(emp)}</td>
                         <td style="padding: 10px 12px; text-align: center;">
                             <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: #059669; font-weight: 700; border-radius: 6px;">Kiêm nhiệm</span>
                         </td>
@@ -3938,7 +3990,7 @@ function openDepartmentCostAuditModal(deptId) {
                 totalSalary += emp.salary;
                 employeesListHtml += `
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getEmpTooltipHtml(emp)}</td>
                         <td style="padding: 10px 12px; text-align: center;">
                             <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(71, 85, 105, 0.08); color: var(--text-secondary); font-weight: 700; border-radius: 6px;">Cơ hữu</span>
                         </td>
@@ -3970,10 +4022,10 @@ function openDepartmentCostAuditModal(deptId) {
     let roomsListHtml = "";
     if (deptRooms.length > 0) {
         roomsListHtml = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.78rem; background: #FFF; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.78rem; background: #FFF; border-radius: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
-                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Phòng học / Mặt bằng</th>
+                        <th style="border-top-left-radius: 10px; padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Phòng học / Mặt bằng</th>
                         <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Khu / Toà</th>
                         <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Tỷ lệ gánh mặt bằng</th>
                         <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Tiền mặt bằng phân bổ</th>
@@ -4245,6 +4297,7 @@ function editDepartmentNote(deptId) {
     if (!dept) return;
 
     document.getElementById("edit_dept_note_id").value = deptId;
+    document.getElementById("edit_dept_note_type").value = "department";
     document.getElementById("dept_note_modal_desc").innerHTML = `Nhập giải trình phương án phân bổ cho bộ phận <strong>${dept.name}</strong>:`;
     document.getElementById("dept_note_textarea").value = dept.note || "";
     
@@ -4257,16 +4310,46 @@ function editDepartmentNote(deptId) {
     }, 120);
 }
 
+function editRoomNote(roomId) {
+    const room = appState.rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    document.getElementById("edit_dept_note_id").value = roomId;
+    document.getElementById("edit_dept_note_type").value = "room";
+    document.getElementById("dept_note_modal_desc").innerHTML = `Nhập giải trình cho phòng <strong>${room.name}</strong>:`;
+    document.getElementById("dept_note_textarea").value = room.note || "";
+    
+    document.getElementById("dept_note_modal").classList.add("open");
+    
+    setTimeout(() => {
+        const ta = document.getElementById("dept_note_textarea");
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = ta.value.length;
+    }, 120);
+}
+
 function saveDepartmentNoteFromModal() {
-    const deptId = document.getElementById("edit_dept_note_id").value;
+    const noteId = document.getElementById("edit_dept_note_id").value;
+    const noteType = document.getElementById("edit_dept_note_type").value;
     const textVal = document.getElementById("dept_note_textarea").value;
-    const dept = appState.departments.find(d => d.id === deptId);
-    if (dept) {
-        dept.note = textVal; // Giữ nguyên khoảng trắng và ký tự xuống dòng
-        saveState();
-        renderDepartments();
-        renderDashboard();
+    
+    if (noteType === "department") {
+        const dept = appState.departments.find(d => d.id === noteId);
+        if (dept) {
+            dept.note = textVal; // Giữ nguyên khoảng trắng và ký tự xuống dòng
+            saveState();
+            renderDepartments();
+            renderDashboard();
+        }
+    } else if (noteType === "room") {
+        const room = appState.rooms.find(r => r.id === noteId);
+        if (room) {
+            room.note = textVal;
+            saveState();
+            renderFacilities();
+        }
     }
+    
     closeModal("dept_note_modal");
 }
 
@@ -4296,6 +4379,135 @@ function updateUtilityCost(deptId, value) {
     appState.utilityCosts[deptId] = val;
     saveState();
     renderDepartments();
+    renderDashboard();
+}
+
+let tempAllocationState = null;
+
+function openAllocationModal(deptId) {
+    const dept = appState.departments.find(d => d.id === deptId);
+    if (!dept) return;
+
+    document.getElementById("allocation_modal_title").innerHTML = `Phân bổ tỷ lệ chi phí: <strong style="color:var(--primary)">${dept.name}</strong>`;
+
+    const revenueDepts = appState.departments.filter(d => d.type === "revenue");
+    const currentRatios = appState.drivers.custom_percent?.[deptId] || {};
+    
+    tempAllocationState = {
+        deptId: deptId,
+        ratios: {}
+    };
+
+    revenueDepts.forEach(rd => {
+        tempAllocationState.ratios[rd.id] = currentRatios[rd.id] !== undefined ? currentRatios[rd.id] : 25;
+    });
+
+    renderAllocationModalBody();
+    document.getElementById("allocation_modal").classList.add("open");
+}
+
+function renderAllocationModalBody() {
+    const body = document.getElementById("allocation_modal_body");
+    const revenueDepts = appState.departments.filter(d => d.type === "revenue");
+    
+    let totalPct = 0;
+    Object.values(tempAllocationState.ratios).forEach(v => totalPct += v);
+
+    const getDeptTheme = (name) => {
+        const lower = name.toLowerCase();
+        if (lower.includes("tiểu học")) return { color: "#007AFF" }; 
+        if (lower.includes("thcs")) return { color: "#00C7BE" };    
+        if (lower.includes("thpt")) return { color: "#AF52DE" };    
+        return { color: "#FF9500" };                                
+    };
+
+    let inputsHtml = `<div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">`;
+    revenueDepts.forEach(rd => {
+        const val = tempAllocationState.ratios[rd.id];
+        const theme = getDeptTheme(rd.name);
+        inputsHtml += `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${theme.color};"></span>
+                    <strong style="font-size: 0.9rem; color: var(--text-primary);">${rd.name}</strong>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" min="0" max="100" style="width: 60px; padding: 6px; text-align: center; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; font-weight: 700; font-size: 0.9rem;" value="${val}" onchange="updateTempAllocation('${rd.id}', this.value)" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.min(100, Math.abs(this.value)) : ''">
+                    <span style="font-weight: 700; color: var(--text-secondary);">%</span>
+                </div>
+            </div>
+        `;
+    });
+    inputsHtml += `</div>`;
+
+    let pieConic = "";
+    let currentDeg = 0;
+    revenueDepts.forEach(rd => {
+        const val = tempAllocationState.ratios[rd.id];
+        if (val > 0) {
+            const theme = getDeptTheme(rd.name);
+            const deg = (val / 100) * 360;
+            pieConic += `${theme.color} ${currentDeg}deg ${currentDeg + deg}deg, `;
+            currentDeg += deg;
+        }
+    });
+    
+    if (totalPct < 100) {
+        pieConic += `#EAEAEF ${currentDeg}deg 360deg, `;
+    } else if (totalPct > 100) {
+        pieConic = `rgba(255, 59, 48, 0.5) 0deg 360deg, `;
+    }
+    pieConic = pieConic.slice(0, -2); 
+
+    let statusHtml = "";
+    if (totalPct === 100) {
+        statusHtml = `<div style="text-align: center; font-weight: 700; color: #34C759; margin-top: 15px; font-size: 1.1rem;"><i class="fa-solid fa-circle-check"></i> Đạt 100%</div>`;
+    } else {
+        statusHtml = `<div style="text-align: center; font-weight: 700; color: #FF3B30; margin-top: 15px; font-size: 1.1rem;"><i class="fa-solid fa-triangle-exclamation"></i> Tổng: ${totalPct}%</div>`;
+    }
+
+    body.innerHTML = `
+        <div style="display: flex; gap: 30px; align-items: flex-start;">
+            ${inputsHtml}
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 200px; flex-shrink: 0; padding-top: 10px;">
+                <div style="width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(${pieConic || '#EAEAEF 0deg 360deg'}); box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; transition: all 0.3s ease;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: #FFF; border-radius: 50%; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);"></div>
+                </div>
+                ${statusHtml}
+            </div>
+        </div>
+    `;
+}
+
+function updateTempAllocation(rdId, value) {
+    if (!tempAllocationState) return;
+    tempAllocationState.ratios[rdId] = parseFloat(value) || 0;
+    renderAllocationModalBody();
+}
+
+function saveAllocationModal() {
+    if (!tempAllocationState) return;
+    
+    let totalPct = 0;
+    Object.values(tempAllocationState.ratios).forEach(v => totalPct += v);
+    if (totalPct !== 100) {
+        alert(`Tổng tỷ lệ phải đúng bằng 100%. Hiện tại đang là ${totalPct}%!`);
+        return;
+    }
+
+    if (!appState.drivers.custom_percent) appState.drivers.custom_percent = {};
+    if (!appState.drivers.custom_percent[tempAllocationState.deptId]) {
+        appState.drivers.custom_percent[tempAllocationState.deptId] = {};
+    }
+
+    Object.keys(tempAllocationState.ratios).forEach(rdId => {
+        appState.drivers.custom_percent[tempAllocationState.deptId][rdId] = tempAllocationState.ratios[rdId];
+    });
+
+    saveState();
+    runAllocation();
+    closeModal('allocation_modal');
+    renderDepartments(); 
     renderDashboard();
 }
 
@@ -4383,7 +4595,7 @@ function addDepartment(event) {
 }
 
 function deleteDepartment(deptId) {
-    if (confirm("CẢNH BÁO: Xóa phòng ban này sẽ giải phóng nhân sự và mặt bằng liên kết. Bạn muốn tiếp tục?")) {
+    customConfirm("CẢNH BÁO: Xóa phòng ban này sẽ giải phóng nhân sự và mặt bằng liên kết. Bạn muốn tiếp tục?", () => {
         appState.departments = appState.departments.filter(d => d.id !== deptId);
         appState.employees = appState.employees.filter(emp => {
             if (emp.deptId === deptId) return false;
@@ -4397,7 +4609,7 @@ function deleteDepartment(deptId) {
 
         saveState();
         renderDepartments();
-    }
+    });
 }
 function renderEmployees() {
     const listBody = document.getElementById("emp_list_body");
@@ -4462,47 +4674,42 @@ function renderEmployees() {
                 }
             }
 
-            // 1. Tạo Thanh phân bổ tỷ lệ trực quan cho nhân sự (Segmented Progress Bar) siêu sang trọng (Dày 4px thanh lịch)
-            let progressBarHtml = `<div style="display: flex; height: 4px; width: 100%; border-radius: 2px; overflow: hidden; background: #EAEAEF; margin-top: 5px; margin-bottom: 6px; box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,0.05);">`;
+            // 1. Tạo Biểu đồ Cột Mini (Sparklines) thay thế thanh ngang
+            let chartHtml = `<div style="display: flex; gap: 12px; align-items: flex-end; height: 48px; padding-bottom: 2px; margin-top: 6px;">`;
+            let hasAnyValue = false;
+            
             nonUtilityDepts.forEach(d => {
                 const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
                 if (val > 0) {
+                    hasAnyValue = true;
+                    
                     const theme = getDeptTheme(d.name);
-                    const widthPct = isAmountMode ? Math.min(100, val / emp.salary * 100) : val;
-                    progressBarHtml += `<div style="width: ${widthPct}%; background-color: ${theme.color}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);" title="${d.name}: ${isAmountMode ? formatCurrency(val) : (val + '%')}"></div>`;
-                }
-            });
-            progressBarHtml += `</div>`;
-
-            // 2. Tạo danh sách các phòng ban phân bổ ĐANG HOẠT ĐỘNG (Tỷ lệ > 0) để tóm tắt cực thoáng mắt
-            let activeTagsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center;">`;
-            let activeCount = 0;
-            nonUtilityDepts.forEach(d => {
-                const val = (emp.ratios?.[d.id] !== undefined) ? emp.ratios[d.id] : 0;
-                if (val > 0) {
-                    activeCount++;
-                    const theme = getDeptTheme(d.name);
-                    const shortName = d.name.replace("Khối ", "").replace("Ban ", "");
-                    const noteText = emp.ratioNotes?.[d.id] || '';
-                    const noteIcon = noteText ? ` <i class="fa-regular fa-comment-dots" style="color: ${theme.color}; opacity: 0.85; font-size: 0.65rem;" title="${noteText}"></i>` : '';
-
-                    activeTagsHtml += `
-                        <span style="font-size: 0.68rem; font-weight: 600; padding: 2px 6px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); color: var(--text-primary); border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);"
-                              title="${d.name}: ${isAmountMode ? formatCurrency(val) : (val + '%')}${noteText ? ' — Ghi chú: ' + noteText : ''}">
-                            <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${theme.color};"></span>
-                            ${shortName}: <strong style="color: ${theme.color}">${isAmountMode ? formatCurrency(val) : (val + '%')}</strong>${noteIcon}
-                        </span>
+                    const heightPct = isAmountMode ? Math.min(100, (val / emp.salary) * 100) : Math.min(100, val);
+                    const displayHeightPct = Math.max(8, heightPct); // min 8% for visibility
+                    
+                    const label = d.name.replace("Khối ", "").replace("Ban ", "");
+                    
+                    const valStr = isAmountMode ? formatCurrency(val) : (val + '%');
+                    const titleStr = `${d.name}: ${valStr}`;
+                    
+                    chartHtml += `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px;" title="${titleStr}">
+                            <div style="font-size: 0.65rem; font-weight: 700; color: ${val > 0 ? theme.color : 'transparent'}; line-height: 1;">${valStr}</div>
+                            <div style="width: 24px; height: ${val > 0 ? displayHeightPct + '%' : '2px'}; background-color: ${val > 0 ? (theme.bg || theme.color + '33') : '#F2F2F7'}; border: 1px solid ${val > 0 ? theme.color : 'rgba(0,0,0,0.1)'}; border-bottom: none; border-radius: 4px 4px 0 0; transition: height 0.3s ease;"></div>
+                            <div style="font-size: 0.55rem; font-weight: 600; color: ${val > 0 ? 'var(--text-secondary)' : 'rgba(0,0,0,0.3)'}; line-height: 1; white-space: nowrap;">${label}</div>
+                        </div>
                     `;
                 }
             });
-            if (activeCount === 0) {
-                activeTagsHtml += `<span style="font-size: 0.68rem; color: var(--text-muted); font-style: italic;">Chưa phân bổ tỷ lệ</span>`;
+            chartHtml += `</div>`;
+
+            if (!hasAnyValue) {
+                chartHtml = `<div style="font-size: 0.68rem; color: var(--text-muted); font-style: italic; margin-top: 6px; height: 48px; display: flex; align-items: center;">Chưa phân bổ tỷ lệ</div>`;
             }
-            activeTagsHtml += `</div>`;
 
             // 3. Nút mở popup modal phân bổ kiêm nhiệm
             const configBtnHtml = `
-                <button class="btn" style="padding: 3px 10px; font-size: 0.72rem; margin-top: 6px; background: rgba(0, 122, 255, 0.07); color: var(--info); border: 1px solid rgba(0, 122, 255, 0.15); border-radius: 5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;" 
+                <button class="btn" style="padding: 3px 10px; font-size: 0.72rem; margin-top: 10px; background: rgba(0, 122, 255, 0.07); color: var(--info); border: 1px solid rgba(0, 122, 255, 0.15); border-radius: 5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;" 
                     onclick="openEmpRatioModal('${emp.id}')" 
                     onmouseover="this.style.background='rgba(0,122,255,0.12)'" 
                     onmouseout="this.style.background='rgba(0,122,255,0.07)'">
@@ -4516,8 +4723,7 @@ function renderEmployees() {
                     ${empBadgeHtml}
                 </div>
                 <div id="emp_ratio_summary_container_${emp.id}">
-                    ${progressBarHtml}
-                    ${activeTagsHtml}
+                    ${chartHtml}
                 </div>
                 ${configBtnHtml}
             `;
@@ -4786,7 +4992,19 @@ function _renderEmpRatioModalList() {
         return { color: '#FF9500' };
     };
 
-    let html = '';
+    let html = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); text-align: left; font-size: 0.75rem; text-transform: uppercase;">
+                    <th style="padding: 8px 4px; width: 140px; font-weight: 700;">Phòng ban</th>
+                    <th style="padding: 8px 4px; font-weight: 700;">Tỷ trọng</th>
+                    <th style="padding: 8px 4px; text-align: right; width: ${isAmt ? '150px' : '90px'}; font-weight: 700;">Phân bổ</th>
+                    <th style="padding: 8px 4px; text-align: center; width: 40px; font-weight: 700;"><i class="fa-solid fa-comment"></i></th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
     nonUtilityDepts.forEach(d => {
         const theme = getDeptTheme(d.name);
         const shortName = d.name.replace('Khối ', '').replace('Ban ', '');
@@ -4798,41 +5016,55 @@ function _renderEmpRatioModalList() {
 
         const noteVal = _empRatioModalDraftNotes[d.id] || '';
 
-        html += `<div style="display:flex; flex-direction:column; gap:6px; padding:10px 12px; background:#FFFFFF; border-radius:7px; border-left:4px solid ${theme.color};">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
-                <div style="flex:1; min-width:0;">
-                    <div style="font-size:0.85rem; font-weight:700; color:#1D1D1F;">${shortName}</div>
-                    <div style="height:3px; border-radius:2px; background:rgba(0,0,0,0.06); overflow:hidden; margin-top:4px;">
-                        <div id="emp_ratio_bar_${d.id}" style="height:100%; width:${pctWidth}%; background:${theme.color}; border-radius:2px; transition:width 0.25s;"></div>
+        html += `
+            <tr style="border-bottom: 1px dashed var(--border-color);">
+                <td style="padding: 10px 4px; font-weight: 700; color: #1D1D1F;">
+                    <div style="border-left: 3px solid ${theme.color}; padding-left: 8px; line-height: 1.2;">${shortName}</div>
+                </td>
+                <td style="padding: 10px 4px;">
+                    <div style="height: 6px; border-radius: 3px; background: rgba(0,0,0,0.06); overflow: hidden; width: 100%;">
+                        <div id="emp_ratio_bar_${d.id}" style="height: 100%; width: ${pctWidth}%; background: ${theme.color}; border-radius: 3px; transition: width 0.25s;"></div>
                     </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
-                    <input type="${isAmt ? 'text' : 'number'}" ${isAmt ? '' : 'min="0" max="100"'}
-                        id="emp_ratio_input_${d.id}"
-                        class="ratio-pct-input"
-                        data-dept-id="${d.id}"
-                        data-dept-color="${theme.color}"
-                        style="width:${isAmt ? '165px' : '75px'}; padding:5px 6px; box-sizing:border-box; font-size:0.9rem; font-weight:800; color:${inputColor}; background:#F5F5F7; border:1.5px solid rgba(0,0,0,0.1); border-radius:6px; text-align:right; outline:none; font-family:inherit; transition:border-color 0.15s;"
-                        value="${isAmt ? formatNumberWithDots(val) : val}"
-                        oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
-                        onfocus="this.style.borderColor='${theme.color}'"
-                        onblur="this.style.borderColor='rgba(0,0,0,0.1)'">
-                    <span style="font-size:0.78rem; font-weight:700; color:#8E8E93; min-width:16px;">${isAmt ? 'đ' : '%'}</span>
-                </div>
-            </div>
-            <!-- Ô nhập ghi chú lý do / vai trò kiêm nhiệm -->
-            <div style="display:flex; align-items:center; gap:6px; background:#F5F5F7; padding:4px 8px; border-radius:6px; border: 1px dashed rgba(0,0,0,0.05);">
-                <i class="fa-regular fa-comment-dots" style="color:#8E8E93; font-size:0.78rem;"></i>
-                <input type="text"
-                    id="emp_ratio_note_${d.id}"
-                    data-dept-id="${d.id}"
-                    placeholder="Mô tả vai trò / công việc kiêm nhiệm..."
-                    style="flex:1; border:none; background:transparent; font-size:0.75rem; color:#1D1D1F; outline:none; font-family:inherit; padding:0;"
-                    value="${noteVal}"
-                    oninput="updateEmpRatioModalDraftNote(this)">
-            </div>
-        </div>`;
+                </td>
+                <td style="padding: 10px 4px; text-align: right;">
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                        <input type="${isAmt ? 'text' : 'number'}" ${isAmt ? '' : 'min="0" max="100"'}
+                            id="emp_ratio_input_${d.id}"
+                            class="ratio-pct-input"
+                            data-dept-id="${d.id}"
+                            data-dept-color="${theme.color}"
+                            style="width: ${isAmt ? '110px' : '60px'}; padding: 4px 6px; font-size: 0.85rem; font-weight: 700; color: ${inputColor}; background: #F5F5F7; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 4px; text-align: right; outline: none; transition: border-color 0.15s;"
+                            value="${isAmt ? formatNumberWithDots(val) : val}"
+                            oninput="${isAmt ? 'handleMoneyInput(this);' : ''}updateEmpRatioModalDraft(this)"
+                            onfocus="this.style.borderColor='${theme.color}'"
+                            onblur="this.style.borderColor='rgba(0,0,0,0.1)'">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #8E8E93;">${isAmt ? 'đ' : '%'}</span>
+                    </div>
+                </td>
+                <td style="padding: 10px 4px; text-align: center;">
+                    <button id="note_btn_${d.id}" onclick="const r = document.getElementById('note_row_${d.id}'); r.style.display = r.style.display === 'none' ? 'table-row' : 'none';" style="background: none; border: none; cursor: pointer; color: ${noteVal ? theme.color : '#C7C7CC'}; transition: color 0.2s;" title="Thêm/sửa ghi chú">
+                        <i class="fa-solid fa-comment-dots" style="font-size: 1.1rem;"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr id="note_row_${d.id}" style="display: ${noteVal ? 'table-row' : 'none'}; background: #fafafa;">
+                <td colspan="4" style="padding: 4px 8px 12px 14px; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 8px; background: #fff; padding: 4px 10px; border-radius: 6px; border: 1px dashed rgba(0,0,0,0.12);">
+                        <i class="fa-solid fa-arrow-turn-up" style="transform: rotate(90deg); color: #8E8E93; font-size: 0.75rem;"></i>
+                        <input type="text"
+                            id="emp_ratio_note_${d.id}"
+                            data-dept-id="${d.id}"
+                            placeholder="Mô tả công việc kiêm nhiệm tại ${shortName}..."
+                            style="flex: 1; border: none; background: transparent; font-size: 0.75rem; color: #1D1D1F; outline: none; padding: 4px 0;"
+                            value="${noteVal}"
+                            oninput="updateEmpRatioModalDraftNote(this); document.getElementById('note_btn_${d.id}').style.color = this.value ? '${theme.color}' : '#C7C7CC';">
+                    </div>
+                </td>
+            </tr>
+        `;
     });
+
+    html += `</tbody></table>`;
 
     document.getElementById('emp_ratio_dept_list').innerHTML = html;
     updateEmpRatioStatusBar();
@@ -4988,16 +5220,8 @@ function saveEmpRatioModal() {
     const emp = appState.employees.find(e => e.id === _empRatioModalId);
     if (!emp) return;
     let total = Object.values(_empRatioModalDraftRatios).reduce((s, v) => s + (v || 0), 0);
-    if (isAmt) {
-        if (Math.abs(total - emp.salary) > 1) {
-            const diff = emp.salary - total;
-            if (!confirm('Tổng phân bổ chưa khớp lương gốc (Thiếu/Thừa ' + formatCurrency(Math.abs(diff)) + '). Vẫn lưu?')) return;
-        }
-    } else {
-        if (Math.abs(total - 100) > 0.5) {
-            if (!confirm('Tổng % chưa đủ 100% (Hiện: ' + total.toFixed(1) + '%). Vẫn lưu?')) return;
-        }
-    }
+    // Removed confirm() dialogs because they block saving in some WebViews.
+    // Incomplete allocations are now allowed to save, and the UI will show a warning badge.
 
     // Save to appState
     emp.allocationMode = _empRatioModalMode;
@@ -5385,11 +5609,12 @@ function addEmployee(event) {
 }
 
 function deleteEmployee(empId) {
-    if (confirm("Xóa nhân viên này?")) {
-        appState.employees = appState.employees.filter(e => e.id !== empId);
+    customConfirm("Xóa nhân viên này?", () => {
+        appState.employees = appState.employees.filter(e => e.id.toString() !== empId.toString());
         saveState();
         renderEmployees();
-    }
+        renderDashboard();
+    });
 }
 
 
@@ -5676,6 +5901,29 @@ function renderFacilities() {
 
                 // Render splits text as beautiful badges/chips using the helper function
                 const splitsText = getRoomSplitsHTML(room);
+                
+                const hasNote = room.note && room.note.trim() !== "";
+                const noteIconClass = hasNote ? "fa-solid fa-comment-dots" : "fa-regular fa-comment-dots";
+                const noteIconStyle = hasNote 
+                    ? "cursor: pointer; font-size: 0.85rem; color: #FF5E00; transition: all 0.2s; display: inline-block; padding: 6px 8px; background: rgba(255, 94, 0, 0.08); border-radius: 6px;" 
+                    : "cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); opacity: 0.4; transition: all 0.2s; display: inline-block; padding: 6px 8px; border-radius: 6px;";
+                
+                const safeNoteContent = hasNote 
+                    ? room.note.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
+                    : "";
+
+                const tooltipText = hasNote 
+                    ? `<strong style="color: #34C759; display: block; margin-bottom: 6px; font-size: 0.82rem;"><i class="fa-solid fa-square-check"></i> Đã giải trình phương án:</strong><span style="font-style: italic; white-space: pre-wrap; display: block; font-weight: 500; font-size: 0.8rem; color: #E5E5EA;">${safeNoteContent}</span><hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 8px 0 6px 0;"><span style="font-size: 0.75rem; opacity: 0.7; display: block; text-align: center; color: #FF5E00;"><i class="fa-solid fa-pen"></i> Nhấp chuột để chỉnh sửa</span>`
+                    : `<span style="opacity: 0.9; display: block; text-align: center; font-size: 0.78rem;"><i class="fa-regular fa-comment-dots"></i> Chưa có giải trình.<br>Nhấp chuột để thêm mới!</span>`;
+
+                const noteIconHtml = `
+                    <div class="dept-note-tooltip-trigger">
+                        <i class="${noteIconClass}" style="${noteIconStyle}" onclick="editRoomNote('${room.id}')" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"></i>
+                        <div class="custom-note-tooltip">
+                            ${tooltipText}
+                        </div>
+                    </div>
+                `;
 
                 let typeLabel = "";
                 if (room.type === "classroom") typeLabel = "Lớp học";
@@ -5747,7 +5995,12 @@ function renderFacilities() {
                                 <small class="text-muted">/ ${room.capacity} HS</small>
                             </div>
                         </td>
-                        <td style="line-height: 1.8;">${splitsText}</td>
+                        <td style="line-height: 1.8;">
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+                                <div style="flex-grow: 1;">${splitsText}</div>
+                                ${noteIconHtml}
+                            </div>
+                        </td>
                         <td class="text-center">
                             <button class="btn btn-danger btn-sm" onclick="deleteRoom('${room.id}')" style="padding: 2px 6px; font-size: 0.72rem;">Xóa</button>
                         </td>
@@ -5771,6 +6024,29 @@ function renderFacilities() {
 
         orphanRooms.forEach(room => {
             const splitsText = getRoomSplitsHTML(room);
+            
+            const hasNote = room.note && room.note.trim() !== "";
+            const noteIconClass = hasNote ? "fa-solid fa-comment-dots" : "fa-regular fa-comment-dots";
+            const noteIconStyle = hasNote 
+                ? "cursor: pointer; font-size: 0.85rem; color: #FF5E00; transition: all 0.2s; display: inline-block; padding: 6px 8px; background: rgba(255, 94, 0, 0.08); border-radius: 6px;" 
+                : "cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); opacity: 0.4; transition: all 0.2s; display: inline-block; padding: 6px 8px; border-radius: 6px;";
+            
+            const safeNoteContent = hasNote 
+                ? room.note.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
+                : "";
+
+            const tooltipText = hasNote 
+                ? `<strong style="color: #34C759; display: block; margin-bottom: 6px; font-size: 0.82rem;"><i class="fa-solid fa-square-check"></i> Đã giải trình phương án:</strong><span style="font-style: italic; white-space: pre-wrap; display: block; font-weight: 500; font-size: 0.8rem; color: #E5E5EA;">${safeNoteContent}</span><hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 8px 0 6px 0;"><span style="font-size: 0.75rem; opacity: 0.7; display: block; text-align: center; color: #FF5E00;"><i class="fa-solid fa-pen"></i> Nhấp chuột để chỉnh sửa</span>`
+                : `<span style="opacity: 0.9; display: block; text-align: center; font-size: 0.78rem;"><i class="fa-regular fa-comment-dots"></i> Chưa có giải trình.<br>Nhấp chuột để thêm mới!</span>`;
+
+            const noteIconHtml = `
+                <div class="dept-note-tooltip-trigger">
+                    <i class="${noteIconClass}" style="${noteIconStyle}" onclick="editRoomNote('${room.id}')" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"></i>
+                    <div class="custom-note-tooltip">
+                        ${tooltipText}
+                    </div>
+                </div>
+            `;
 
             let typeLabel = "";
             if (room.type === "classroom") typeLabel = "Lớp học";
@@ -5831,7 +6107,12 @@ function renderFacilities() {
                             <small class="text-muted">/ ${room.capacity} HS</small>
                         </div>
                     </td>
-                    <td style="line-height: 1.8;">${splitsText}</td>
+                    <td style="line-height: 1.8;">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+                            <div style="flex-grow: 1;">${splitsText}</div>
+                            ${noteIconHtml}
+                        </div>
+                    </td>
                     <td class="text-center">
                         <button class="btn btn-danger btn-sm" onclick="deleteRoom('${room.id}')" style="padding: 2px 6px; font-size: 0.72rem;">Xóa</button>
                     </td>
@@ -6258,11 +6539,11 @@ function addRentBlock(event) {
 }
 
 function deleteRentBlock(blockId) {
-    if (confirm("Xóa Dãy nhà này? Toàn bộ các phòng thuộc Dãy nhà này sẽ được gán lại.")) {
+    customConfirm("Xóa Dãy nhà này? Toàn bộ các phòng thuộc Dãy nhà này sẽ được gán lại.", () => {
         appState.rentBlocks = appState.rentBlocks.filter(b => b.id !== blockId);
         saveState();
         renderFacilities();
-    }
+    });
 }
 
 function toggleRoomSplitInputs() {
@@ -6331,11 +6612,11 @@ function addRoom(event) {
 }
 
 function deleteRoom(roomId) {
-    if (confirm("Xóa phòng học này khỏi hệ thống cơ sở vật chất?")) {
+    customConfirm("Xóa phòng học này khỏi hệ thống cơ sở vật chất?", () => {
         appState.rooms = appState.rooms.filter(r => r.id !== roomId);
         saveState();
         renderFacilities();
-    }
+    });
 }
 
 
