@@ -3123,6 +3123,7 @@ function openDirectSalaryAuditModal(rdId) {
             if (emp.deptId === rdId) {
                 permanentList.push({
                     name: emp.name,
+                    rawEmp: emp,
                     grossSalary: emp.salary,
                     contribution: emp.salary
                 });
@@ -3143,6 +3144,7 @@ function openDirectSalaryAuditModal(rdId) {
                 const transferredOut = emp.salary * (1 - share);
                 transferOutList.push({
                     name: emp.name,
+                    rawEmp: emp,
                     grossSalary: emp.salary,
                     ownSharePercent: Math.round(share * 100),
                     contribution: contribution,
@@ -3154,6 +3156,7 @@ function openDirectSalaryAuditModal(rdId) {
                     const originDept = appState.departments.find(d => d.id === emp.deptId)?.name || "Khác";
                     transferInList.push({
                         name: emp.name,
+                        rawEmp: emp,
                         originDept: originDept,
                         grossSalary: emp.salary,
                         sharePercent: Math.round(share * 100),
@@ -3192,7 +3195,7 @@ function openDirectSalaryAuditModal(rdId) {
             sumPerm += emp.contribution;
             listHtml += `
                 <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getGlobalEmpTooltipHtml(emp.rawEmp)}</td>
                     <td style="padding: 10px 12px; text-align: center;"><span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(71, 85, 105, 0.08); color: var(--text-secondary); font-weight: 700; border-radius: 6px;">Cơ hữu</span></td>
                     <td style="padding: 10px 12px; text-align: right; color: var(--text-secondary);">${formatCurrency(emp.grossSalary)}</td>
                     <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-primary);">${formatCurrency(emp.contribution)}</td>
@@ -3234,7 +3237,7 @@ function openDirectSalaryAuditModal(rdId) {
             listHtml += `
                 <tr style="border-bottom: 1px solid var(--border-color);">
                     <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">
-                        <i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}
+                        ${getGlobalEmpTooltipHtml(emp.rawEmp)}
                         <div style="font-size: 0.65rem; color: var(--text-secondary); font-weight: normal; margin-top: 2px; margin-left: 20px;">Gốc: ${emp.originDept}</div>
                     </td>
                     <td style="padding: 10px 12px; text-align: center;"><span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: #059669; font-weight: 700; border-radius: 6px;">Kiêm nhiệm</span></td>
@@ -3279,7 +3282,7 @@ function openDirectSalaryAuditModal(rdId) {
             sumOutKeep += emp.contribution;
             listHtml += `
                 <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getGlobalEmpTooltipHtml(emp.rawEmp)}</td>
                     <td style="padding: 10px 12px; text-align: center;"><span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(245, 158, 11, 0.08); color: var(--warning); font-weight: 700; border-radius: 6px;">Cắt giảm</span></td>
                     <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Lương gốc ${formatCurrency(emp.grossSalary)}, Khối chỉ gánh <strong>${emp.ownSharePercent}%</strong></td>
                     <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-muted); font-style: italic;">-${formatCurrency(emp.transferredOut)}</td>
@@ -3898,7 +3901,41 @@ function saveBoardingNotes() {
     saveState();
 }
 
-// Bảng giải trình chi tiết cơ cấu chi phí phòng ban
+
+// Tạo tooltip thông tin nhân sự toàn cục
+function getGlobalEmpTooltipHtml(emp) {
+    if (!emp.isMultiLevel || !emp.ratios) return `<i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}`;
+    
+    const isAmt = emp.allocationMode === 'amount';
+    let activeDeptsCount = 0;
+    let tooltipContent = `<strong style="color: #34C759; display: block; margin-bottom: 8px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;"><i class="fa-solid fa-layer-group"></i> Chi tiết ${emp.name}:</strong>`;
+    
+    Object.keys(emp.ratios).forEach(did => {
+        const rVal = emp.ratios[did];
+        if (rVal > 0) {
+            activeDeptsCount++;
+            const d = appState.departments.find(x => x.id === did);
+            const dName = d ? d.name.replace("Khối ", "").replace("Ban ", "") : "Không rõ";
+            const note = (emp.ratioNotes && emp.ratioNotes[did]) ? `<div style="font-style: italic; color: #E5E5EA; font-size: 0.72rem; margin-top: 2px; padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.2);"><i class="fa-regular fa-comment-dots"></i> ${emp.ratioNotes[did]}</div>` : '';
+            const formattedVal = isAmt ? formatCurrency(rVal) : (rVal + '%');
+            tooltipContent += `<div style="margin-bottom: 8px; font-size: 0.8rem;"><div style="display: flex; justify-content: space-between;"><strong style="color: #FFF;">${dName}:</strong> <span style="color: #FFCA28; font-weight: bold;">${formattedVal}</span></div>${note}</div>`;
+        }
+    });
+
+    if (activeDeptsCount === 0) return `<i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}`;
+
+    return `
+        <div class="dept-note-tooltip-trigger" style="display: inline-block; position: relative; cursor: pointer;">
+            <i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 6px;"></i>
+            <span style="border-bottom: 1px dashed rgba(0,0,0,0.3); padding-bottom: 1px;">${emp.name}</span>
+            <span style="margin-left: 6px; font-size: 0.65rem; background: rgba(52,199,89,0.1); border: 1px solid rgba(52,199,89,0.2); padding: 1px 5px; border-radius: 10px; font-weight: 700; color: #059669;" title="Kiêm nhiệm ${activeDeptsCount} phòng ban">${activeDeptsCount} PB</span>
+            <div class="custom-note-tooltip" style="min-width: 280px; text-align: left; padding: 12px; z-index: 100010; top: 100%; bottom: auto; left: 0; transform: translateY(8px); margin-left: 10px;">
+                ${tooltipContent}
+            </div>
+        </div>
+    `;
+}
+
 // Bảng giải trình chi tiết cơ cấu chi phí phòng ban
 function openDepartmentCostAuditModal(deptId) {
     const data = runAllocation();
@@ -3923,39 +3960,6 @@ function openDepartmentCostAuditModal(deptId) {
         }
     });
 
-    const getEmpTooltipHtml = (emp) => {
-        if (!emp.isMultiLevel || !emp.ratios) return `<i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}`;
-        
-        const isAmt = emp.allocationMode === 'amount';
-        let activeDeptsCount = 0;
-        let tooltipContent = `<strong style="color: #34C759; display: block; margin-bottom: 8px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;"><i class="fa-solid fa-layer-group"></i> Chi tiết ${emp.name}:</strong>`;
-        
-        Object.keys(emp.ratios).forEach(did => {
-            const rVal = emp.ratios[did];
-            if (rVal > 0) {
-                activeDeptsCount++;
-                const d = appState.departments.find(x => x.id === did);
-                const dName = d ? d.name.replace("Khối ", "").replace("Ban ", "") : "Không rõ";
-                const note = (emp.ratioNotes && emp.ratioNotes[did]) ? `<div style="font-style: italic; color: #E5E5EA; font-size: 0.72rem; margin-top: 2px; padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.2);"><i class="fa-regular fa-comment-dots"></i> ${emp.ratioNotes[did]}</div>` : '';
-                const formattedVal = isAmt ? formatCurrency(rVal) : (rVal + '%');
-                tooltipContent += `<div style="margin-bottom: 8px; font-size: 0.8rem;"><div style="display: flex; justify-content: space-between;"><strong style="color: #FFF;">${dName}:</strong> <span style="color: #FFCA28; font-weight: bold;">${formattedVal}</span></div>${note}</div>`;
-            }
-        });
-
-        if (activeDeptsCount === 0) return `<i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}`;
-
-        return `
-            <div class="dept-note-tooltip-trigger" style="display: inline-flex; align-items: center; cursor: help;">
-                <i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 6px;"></i>
-                <span style="border-bottom: 1px dashed rgba(0,0,0,0.3); padding-bottom: 1px;">${emp.name}</span>
-                <span style="margin-left: 6px; font-size: 0.65rem; background: rgba(52,199,89,0.1); border: 1px solid rgba(52,199,89,0.2); padding: 1px 5px; border-radius: 10px; font-weight: 700; color: #059669;" title="Kiêm nhiệm ${activeDeptsCount} phòng ban">${activeDeptsCount} PB</span>
-                <div class="custom-note-tooltip" style="min-width: 280px; text-align: left; padding: 12px; z-index: 100010; top: 100%; bottom: auto; left: 0; transform: translateY(8px); margin-left: 10px;">
-                    ${tooltipContent}
-                </div>
-            </div>
-        `;
-    };
-
     let employeesListHtml = "";
     if (deptEmployees.length > 0) {
         employeesListHtml = `
@@ -3978,7 +3982,7 @@ function openDepartmentCostAuditModal(deptId) {
                 totalSalary += allocatedSalary;
                 employeesListHtml += `
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getEmpTooltipHtml(emp)}</td>
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getGlobalEmpTooltipHtml(emp)}</td>
                         <td style="padding: 10px 12px; text-align: center;">
                             <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: #059669; font-weight: 700; border-radius: 6px;">Kiêm nhiệm</span>
                         </td>
@@ -3990,7 +3994,7 @@ function openDepartmentCostAuditModal(deptId) {
                 totalSalary += emp.salary;
                 employeesListHtml += `
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getEmpTooltipHtml(emp)}</td>
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">${getGlobalEmpTooltipHtml(emp)}</td>
                         <td style="padding: 10px 12px; text-align: center;">
                             <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(71, 85, 105, 0.08); color: var(--text-secondary); font-weight: 700; border-radius: 6px;">Cơ hữu</span>
                         </td>
