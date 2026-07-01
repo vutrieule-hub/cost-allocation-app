@@ -3165,23 +3165,24 @@ function openDirectSalaryAuditModal(rdId) {
     });
 
     let listHtml = `
-        <div style="font-size: 0.9rem; margin-bottom: 12px; line-height: 1.5; color: var(--text-secondary);">
-            Báo cáo chi tiết nguồn nhân sự kiêm nhiệm & cơ hữu gánh lương trực tiếp của khối <strong>${rd.name}</strong>:
+        <div style="font-size: 0.85rem; margin-bottom: 15px; color: var(--text-secondary);">
+            Báo cáo chi tiết quỹ lương trực tiếp của khối <strong style="color: var(--text-primary);">${rd.name}</strong> sau khi đã cộng/trừ các khoản kiêm nhiệm:
         </div>
     `;
 
     // 1. Permanent Staff
-    listHtml += `<h4 style="margin: 14px 0 6px 0; color: #FFF; font-size: 0.9rem;"><i class="fa-solid fa-user-tie text-success"></i> 1. Nhân Sự Cơ Hữu Đơn Ban (100% gánh ở đây)</h4>`;
+    listHtml += `<h4 style="margin: 14px 0 8px 0; color: var(--text-primary); font-size: 0.85rem; text-transform: uppercase;"><i class="fa-solid fa-user-tie text-success" style="margin-right: 6px;"></i> 1. Nhân Sự Cơ Hữu Đơn Ban (100% gánh ở đây)</h4>`;
     if (permanentList.length === 0) {
         listHtml += `<div style="font-size:0.8rem; color: var(--text-secondary); padding-left: 20px; font-style: italic; margin-bottom: 10px;">Không có nhân sự cố định</div>`;
     } else {
         listHtml += `
-            <table class="pl-table" style="width: 100%; font-size: 0.85rem; border-collapse: collapse; margin-bottom: 15px;">
+            <table style="width: 100%; font-size: 0.78rem; border-collapse: collapse; margin-bottom: 20px; background: #FFF; border-radius: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); overflow: hidden;">
                 <thead>
-                    <tr style="border-bottom: 1px solid var(--border-color); text-align: left; opacity:0.7;">
-                        <th style="padding: 4px 6px;">Họ và Tên</th>
-                        <th style="padding: 4px 6px; text-align: right;">Mức Lương tháng</th>
-                        <th style="padding: 4px 6px; text-align: right;">Đóng góp thực tế</th>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Nhân sự</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: center; width: 100px;">Loại hình</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right;">Lương gốc</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Thực gánh</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3190,19 +3191,20 @@ function openDirectSalaryAuditModal(rdId) {
         permanentList.forEach(emp => {
             sumPerm += emp.contribution;
             listHtml += `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 6px;"><strong>${emp.name}</strong></td>
-                    <td style="padding: 6px; text-align: right;">${formatCurrency(emp.grossSalary)}</td>
-                    <td style="padding: 6px; text-align: right; font-weight: 600; color: var(--success);">${formatCurrency(emp.contribution)}</td>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(71, 85, 105, 0.08); color: var(--text-secondary); font-weight: 700; border-radius: 6px;">Cơ hữu</span></td>
+                    <td style="padding: 10px 12px; text-align: right; color: var(--text-secondary);">${formatCurrency(emp.grossSalary)}</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-primary);">${formatCurrency(emp.contribution)}</td>
                 </tr>
             `;
         });
         listHtml += `
                 </tbody>
                 <tfoot>
-                    <tr style="font-weight: bold; border-top: 1px solid var(--border-color);">
-                        <td style="padding: 6px;">Cộng cơ hữu:</td>
-                        <td colspan="2" style="padding: 6px; text-align: right; color: var(--success);">${formatCurrency(sumPerm)}</td>
+                    <tr style="background: #f8fafc; font-weight: bold; border-top: 1px solid var(--border-color);">
+                        <td colspan="3" style="padding: 10px 12px; text-align: right; color: var(--text-secondary); font-size: 0.75rem;">Cộng nhóm (1):</td>
+                        <td style="padding: 10px 12px; text-align: right; color: var(--text-primary); font-size: 0.85rem;">${formatCurrency(sumPerm)}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -3210,19 +3212,18 @@ function openDirectSalaryAuditModal(rdId) {
     }
 
     // 2. Kiêm nhiệm chuyển đến
-    listHtml += `<h4 style="margin: 14px 0 6px 0; color: #FFF; font-size: 0.9rem;"><i class="fa-solid fa-circle-arrow-down text-primary"></i> 2. Nhân Sự Kiêm Nhiệm Chuyển Đến (Nhận thêm +)</h4>`;
+    listHtml += `<h4 style="margin: 14px 0 8px 0; color: var(--text-primary); font-size: 0.85rem; text-transform: uppercase;"><i class="fa-solid fa-circle-arrow-down text-primary" style="margin-right: 6px;"></i> 2. Nhân Sự Kiêm Nhiệm Chuyển Đến (Nhận thêm +)</h4>`;
     if (transferInList.length === 0) {
-        listHtml += `<div style="font-size:0.8rem; color: var(--text-secondary); padding-left: 20px; font-style: italic; margin-bottom: 10px;">Không có giáo viên dạy chéo từ khối khác chuyển sang</div>`;
+        listHtml += `<div style="font-size:0.8rem; color: var(--text-secondary); padding-left: 20px; font-style: italic; margin-bottom: 10px;">Không có nhân sự từ khối khác gánh chung</div>`;
     } else {
         listHtml += `
-            <table class="pl-table" style="width: 100%; font-size: 0.85rem; border-collapse: collapse; margin-bottom: 15px;">
+            <table style="width: 100%; font-size: 0.78rem; border-collapse: collapse; margin-bottom: 20px; background: #FFF; border-radius: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); overflow: hidden;">
                 <thead>
-                    <tr style="border-bottom: 1px solid var(--border-color); text-align: left; opacity:0.7;">
-                        <th style="padding: 4px 6px;">Họ và Tên</th>
-                        <th style="padding: 4px 6px;">Từ Bộ phận chính</th>
-                        <th style="padding: 4px 6px; text-align: right;">Lương gốc</th>
-                        <th style="padding: 4px 6px; text-align: right;">Tỉ lệ gánh (%)</th>
-                        <th style="padding: 4px 6px; text-align: right;">Cộng thêm vào khối</th>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Nhân sự</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: center; width: 100px;">Loại hình</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Chi tiết công thức</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Cộng thêm vào khối</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3231,21 +3232,23 @@ function openDirectSalaryAuditModal(rdId) {
         transferInList.forEach(emp => {
             sumIn += emp.contribution;
             listHtml += `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 6px;"><strong>${emp.name}</strong></td>
-                    <td style="padding: 6px; font-size: 0.8rem; color: var(--text-secondary);">${emp.originDept}</td>
-                    <td style="padding: 6px; text-align: right;">${formatCurrency(emp.grossSalary)}</td>
-                    <td style="padding: 6px; text-align: right; color: var(--primary); font-weight:600;">${emp.sharePercent}%</td>
-                    <td style="padding: 6px; text-align: right; font-weight: 600; color: var(--success);">${formatCurrency(emp.contribution)}</td>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);">
+                        <i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); font-weight: normal; margin-top: 2px; margin-left: 20px;">Gốc: ${emp.originDept}</div>
+                    </td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: #059669; font-weight: 700; border-radius: 6px;">Kiêm nhiệm</span></td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Gánh <strong>${emp.sharePercent}%</strong> trên tổng lương ${formatCurrency(emp.grossSalary)}</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #059669;">+${formatCurrency(emp.contribution)}</td>
                 </tr>
             `;
         });
         listHtml += `
                 </tbody>
                 <tfoot>
-                    <tr style="font-weight: bold; border-top: 1px solid var(--border-color);">
-                        <td colspan="2" style="padding: 6px;">Cộng kiêm nhiệm nhận thêm:</td>
-                        <td colspan="3" style="padding: 6px; text-align: right; color: var(--success);">${formatCurrency(sumIn)}</td>
+                    <tr style="background: #f8fafc; font-weight: bold; border-top: 1px solid var(--border-color);">
+                        <td colspan="3" style="padding: 10px 12px; text-align: right; color: var(--text-secondary); font-size: 0.75rem;">Cộng nhóm (2):</td>
+                        <td style="padding: 10px 12px; text-align: right; color: #059669; font-size: 0.85rem;">+${formatCurrency(sumIn)}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -3253,47 +3256,42 @@ function openDirectSalaryAuditModal(rdId) {
     }
 
     // 3. Kiêm nhiệm chuyển đi
-    listHtml += `<h4 style="margin: 14px 0 6px 0; color: #FFF; font-size: 0.9rem;"><i class="fa-solid fa-circle-arrow-up text-warning"></i> 3. Nhân Sự Kiêm Nhiệm Chuyển Đi (Cắt giảm -)</h4>`;
+    listHtml += `<h4 style="margin: 14px 0 8px 0; color: var(--text-primary); font-size: 0.85rem; text-transform: uppercase;"><i class="fa-solid fa-circle-arrow-up text-warning" style="margin-right: 6px;"></i> 3. Nhân Sự Kiêm Nhiệm Chuyển Đi (Cắt giảm -)</h4>`;
     if (transferOutList.length === 0) {
-        listHtml += `<div style="font-size:0.8rem; color: var(--text-secondary); padding-left: 20px; font-style: italic; margin-bottom: 10px;">Không có giáo viên của khối đi kiêm nhiệm dạy chéo khối khác</div>`;
+        listHtml += `<div style="font-size:0.8rem; color: var(--text-secondary); padding-left: 20px; font-style: italic; margin-bottom: 10px;">Không có nhân sự nào của khối phải chia sẻ chi phí sang ban khác</div>`;
     } else {
         listHtml += `
-            <table class="pl-table" style="width: 100%; font-size: 0.85rem; border-collapse: collapse; margin-bottom: 15px;">
+            <table style="width: 100%; font-size: 0.78rem; border-collapse: collapse; margin-bottom: 20px; background: #FFF; border-radius: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); overflow: hidden;">
                 <thead>
-                    <tr style="border-bottom: 1px solid var(--border-color); text-align: left; opacity:0.7;">
-                        <th style="padding: 4px 6px;">Họ và Tên</th>
-                        <th style="padding: 4px 6px; text-align: right;">Lương gốc</th>
-                        <th style="padding: 4px 6px; text-align: right;">Giữ lại khối (%)</th>
-                        <th style="padding: 4px 6px; text-align: right;">Khấu trừ sang ban khác</th>
-                        <th style="padding: 4px 6px; text-align: right;">Thực tế gánh tại khối</th>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Nhân sự</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: center; width: 100px;">Loại hình</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Chi tiết công thức</th>
+                        <th style="padding: 10px 12px; font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; text-align: right; width: 130px;">Khấu trừ đi</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
-        let sumOutKeep = 0;
         let sumOutCut = 0;
+        let sumOutKeep = 0;
         transferOutList.forEach(emp => {
-            sumOutKeep += emp.contribution;
             sumOutCut += emp.transferredOut;
+            sumOutKeep += emp.contribution;
             listHtml += `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 6px;"><strong>${emp.name}</strong></td>
-                    <td style="padding: 6px; text-align: right;">${formatCurrency(emp.grossSalary)}</td>
-                    <td style="padding: 6px; text-align: right; color: var(--warning); font-weight:600;">${emp.ownSharePercent}%</td>
-                    <td style="padding: 6px; text-align: right; color: var(--text-muted); font-style:italic;">-${formatCurrency(emp.transferredOut)}</td>
-                    <td style="padding: 6px; text-align: right; font-weight: 600; color: var(--success);">${formatCurrency(emp.contribution)}</td>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 8px;"></i>${emp.name}</td>
+                    <td style="padding: 10px 12px; text-align: center;"><span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(245, 158, 11, 0.08); color: var(--warning); font-weight: 700; border-radius: 6px;">Cắt giảm</span></td>
+                    <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Lương gốc ${formatCurrency(emp.grossSalary)}, Khối chỉ gánh <strong>${emp.ownSharePercent}%</strong></td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--text-muted); font-style: italic;">-${formatCurrency(emp.transferredOut)}</td>
                 </tr>
             `;
         });
         listHtml += `
                 </tbody>
                 <tfoot>
-                    <tr style="font-weight: bold; border-top: 1px solid var(--border-color);">
-                        <td style="padding: 6px;">Tổng giữ lại & Khấu trừ:</td>
-                        <td style="padding: 6px; text-align: right;"></td>
-                        <td style="padding: 6px; text-align: right;"></td>
-                        <td style="padding: 6px; text-align: right; color: var(--text-muted); font-style:italic;">-${formatCurrency(sumOutCut)}</td>
-                        <td style="padding: 6px; text-align: right; color: var(--success);">${formatCurrency(sumOutKeep)}</td>
+                    <tr style="background: #f8fafc; font-weight: bold; border-top: 1px solid var(--border-color);">
+                        <td colspan="3" style="padding: 10px 12px; text-align: right; color: var(--text-secondary); font-size: 0.75rem;">Cộng nhóm khấu trừ (3):</td>
+                        <td style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-style: italic; font-size: 0.85rem;">-${formatCurrency(sumOutCut)}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -3305,9 +3303,11 @@ function openDirectSalaryAuditModal(rdId) {
                                transferInList.reduce((acc, curr) => acc + curr.contribution, 0) +
                                transferOutList.reduce((acc, curr) => acc + curr.contribution, 0));
     listHtml += `
-        <div style="margin-top: 20px; padding: 12px; background: rgba(52, 199, 89, 0.08); border: 1.5px solid var(--primary); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 1rem; font-weight: bold; color: #FFF;">
-            <span>➔ TỔNG QUỸ LƯƠNG TRỰC TIẾP THỰC TẾ:</span>
-            <span style="font-size: 1.15rem; color: var(--success);">${formatCurrency(totalSalaryDirect)}</span>
+        <div style="margin-top: 25px; padding: 15px; background: #FFF; border: 1.5px solid var(--success); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm);">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase;">
+                <i class="fa-solid fa-calculator" style="color: var(--success); margin-right: 6px;"></i> Quỹ Lương Chốt: <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: none; font-weight: 500;">(1) + (2) + gốc của (3)</span>
+            </div>
+            <span style="font-size: 1.25rem; font-weight: 800; color: var(--success);">${formatCurrency(totalSalaryDirect)}</span>
         </div>
     `;
 
