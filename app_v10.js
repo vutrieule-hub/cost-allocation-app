@@ -6867,6 +6867,7 @@ function connectCloudSync(projectCode) {
     projectCode = projectCode.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
     currentProjectCode = projectCode;
     localStorage.setItem("XTD_CLOUD_PROJECT_CODE", projectCode);
+    saveRecentMonth(projectCode);
     const inputEl = document.getElementById("cloud_project_code");
     if (inputEl) inputEl.value = projectCode;
 
@@ -6973,6 +6974,68 @@ function pushLocalDataToCloud() {
             console.error("Cloud synchronization failed:", e);
             updateCloudSyncUI("offline");
         });
+}
+
+/* ==========================================================================
+   MONTH MANAGEMENT LOGIC
+   ========================================================================== */
+
+function loadRecentMonths() {
+    const listEl = document.getElementById("cloud_project_code_list");
+    if (!listEl) return;
+    
+    let recent = [];
+    try {
+        recent = JSON.parse(localStorage.getItem("XTD_RECENT_MONTHS")) || [];
+    } catch(e){}
+    
+    listEl.innerHTML = "";
+    recent.forEach(code => {
+        const opt = document.createElement("option");
+        opt.value = code;
+        listEl.appendChild(opt);
+    });
+}
+
+function saveRecentMonth(code) {
+    if (!code || code.trim() === "") return;
+    code = code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+    
+    let recent = [];
+    try {
+        recent = JSON.parse(localStorage.getItem("XTD_RECENT_MONTHS")) || [];
+    } catch(e){}
+    
+    if (!recent.includes(code)) {
+        recent.unshift(code);
+        if (recent.length > 20) recent.pop();
+        localStorage.setItem("XTD_RECENT_MONTHS", JSON.stringify(recent));
+        loadRecentMonths();
+    }
+}
+
+function createNewMonth() {
+    if (!firebaseDb) {
+        alert("Tính năng Tạo tháng mới chỉ hoạt động khi có kết nối Cloud Sync.");
+        return;
+    }
+    const newName = prompt("Nhập tên Mã Kỳ báo cáo / Tháng mới muốn tạo (VD: T9_2026).\n\nHệ thống sẽ NHÂN BẢN (clone) toàn bộ số liệu hiện tại của màn hình này sang tháng mới để anh bắt đầu làm việc độc lập:");
+    if (newName) {
+        const cleanName = newName.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+        if (cleanName === "") return;
+        
+        if (cleanName === currentProjectCode) {
+            alert("Mã này đang được mở rồi!");
+            return;
+        }
+        
+        const inputEl = document.getElementById("cloud_project_code");
+        if (inputEl) inputEl.value = cleanName;
+        
+        connectCloudSync(cleanName);
+        
+        alert(`Đã chuyển sang phiên bản: ${cleanName}. Mọi thay đổi từ giờ sẽ được lưu vào tháng này!`);
+    }
 }
 
 if (document.readyState === "loading") {
