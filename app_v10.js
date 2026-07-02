@@ -6700,6 +6700,7 @@ function formatCurrency(val) {
 
 function initApp() {
     loadState();
+    loadMasterIndex();
 
     // Đồng bộ hóa trạng thái giao diện giả lập What-If với dữ liệu đã lưu
     if (appState.simulation) {
