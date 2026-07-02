@@ -7015,6 +7015,18 @@ function loadMasterIndex() {
             } else {
                 masterIndexData = { months: [] };
             }
+            
+            // Auto-migrate old project code into the new Master Index
+            const savedCloudCode = localStorage.getItem("XTD_CLOUD_PROJECT_CODE");
+            if (savedCloudCode && !masterIndexData.months.find(m => m.docId === savedCloudCode)) {
+                masterIndexData.months.push({
+                    name: "Dữ liệu cũ (" + savedCloudCode + ")",
+                    docId: savedCloudCode,
+                    password: savedCloudCode // The old code is the password
+                });
+                firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData);
+            }
+            
             renderMonthSelector();
         })
         .catch(e => console.error("Lỗi khi tải Master Index:", e));
