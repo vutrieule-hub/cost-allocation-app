@@ -6858,8 +6858,8 @@ function connectCloudSync(projectCode) {
         // Disconnect
         currentProjectCode = "";
         localStorage.removeItem("XTD_CLOUD_PROJECT_CODE");
-        const inputEl = document.getElementById("cloud_project_code");
-        if (inputEl) inputEl.value = "";
+        const selector = document.getElementById("month_selector");
+        if (selector) selector.value = "";
         updateCloudSyncUI("offline");
         return;
     }
@@ -6867,9 +6867,10 @@ function connectCloudSync(projectCode) {
     projectCode = projectCode.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
     currentProjectCode = projectCode;
     localStorage.setItem("XTD_CLOUD_PROJECT_CODE", projectCode);
-    saveRecentMonth(projectCode);
-    const inputEl = document.getElementById("cloud_project_code");
-    if (inputEl) inputEl.value = projectCode;
+    const selector = document.getElementById("month_selector");
+    if (selector && selector.value !== projectCode) {
+        selector.value = projectCode;
+    }
 
     // Khởi tạo Firebase nếu chưa khởi tạo
     if (typeof firebase === 'undefined') {
@@ -6983,8 +6984,28 @@ function pushLocalDataToCloud() {
 let masterIndexData = { months: [] };
 
 function loadMasterIndex() {
-    if (!firebaseDb) return;
+    if (!firebaseDb) {
+        if (typeof firebase !== 'undefined') {
+            try {
+                const firebaseConfig = {
+                    apiKey: "AIzaSyBqUnifWKaPeZ03q9cLMCgQNQbQm6mmX5M",
+                    authDomain: "xanh-tue-duc-apps.firebaseapp.com",
+                    projectId: "xanh-tue-duc-apps",
+                    storageBucket: "xanh-tue-duc-apps.firebasestorage.app",
+                    messagingSenderId: "955600480894",
+                    appId: "1:955600480894:web:e2bc9d0d34f0d6118dcd83"
+                };
+                firebase.initializeApp(firebaseConfig);
+                firebaseDb = firebase.firestore();
+            } catch (e) {
+                // Ignore if already initialized
+                firebaseDb = firebase.firestore();
+            }
+        }
+    }
     
+    if (!firebaseDb) return;
+
     firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").get()
         .then(doc => {
             if (doc.exists) {
