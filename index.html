@@ -84,8 +84,9 @@
                     <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;"></div>
                     <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; margin: 0;">KỲ BÁO CÁO:</label>
                     <div style="position: relative; display: flex; align-items: center; gap: 4px;">
-                        <input list="cloud_project_code_list" type="text" id="cloud_project_code" placeholder="VD: T8_2026" onchange="connectCloudSync(this.value)" style="border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; width: 120px; font-weight: 600; outline: none; background: #FFF; transition: var(--transition);">
-                        <datalist id="cloud_project_code_list"></datalist>
+                        <select id="month_selector" onchange="onMonthSelect(this.value)" style="border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; width: 150px; font-weight: 600; outline: none; background: #FFF; transition: var(--transition); cursor: pointer;">
+                            <option value="">-- Chọn Kỳ Báo Cáo --</option>
+                        </select>
                         <button onclick="createNewMonth()" style="background: var(--primary); color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 4px;" title="Tạo tháng mới (Nhân bản số liệu tháng hiện tại)"><i class="fa-solid fa-copy"></i> Tạo mới</button>
                     </div>
                 </div>
@@ -1632,6 +1633,6 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app_v10.js?v=54"></script>
+    <script src="app_v10.js?v=55"></script>
 </body>
 </html>

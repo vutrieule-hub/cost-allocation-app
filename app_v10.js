@@ -6977,40 +6977,74 @@ function pushLocalDataToCloud() {
 }
 
 /* ==========================================================================
-   MONTH MANAGEMENT LOGIC
+   MONTH MANAGEMENT LOGIC (MASTER INDEX & PASSWORD)
    ========================================================================== */
 
-function loadRecentMonths() {
-    const listEl = document.getElementById("cloud_project_code_list");
-    if (!listEl) return;
+let masterIndexData = { months: [] };
+
+function loadMasterIndex() {
+    if (!firebaseDb) return;
     
-    let recent = [];
-    try {
-        recent = JSON.parse(localStorage.getItem("XTD_RECENT_MONTHS")) || [];
-    } catch(e){}
-    
-    listEl.innerHTML = "";
-    recent.forEach(code => {
-        const opt = document.createElement("option");
-        opt.value = code;
-        listEl.appendChild(opt);
-    });
+    firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").get()
+        .then(doc => {
+            if (doc.exists) {
+                masterIndexData = doc.data();
+                if (!masterIndexData.months) masterIndexData.months = [];
+            } else {
+                masterIndexData = { months: [] };
+            }
+            renderMonthSelector();
+        })
+        .catch(e => console.error("Lỗi khi tải Master Index:", e));
 }
 
-function saveRecentMonth(code) {
-    if (!code || code.trim() === "") return;
-    code = code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+function renderMonthSelector() {
+    const selector = document.getElementById("month_selector");
+    if (!selector) return;
     
-    let recent = [];
-    try {
-        recent = JSON.parse(localStorage.getItem("XTD_RECENT_MONTHS")) || [];
-    } catch(e){}
+    // Lưu lại giá trị đang chọn
+    const currentVal = selector.value;
     
-    if (!recent.includes(code)) {
-        recent.unshift(code);
-        if (recent.length > 20) recent.pop();
-        localStorage.setItem("XTD_RECENT_MONTHS", JSON.stringify(recent));
-        loadRecentMonths();
+    selector.innerHTML = '<option value="">-- Chọn Kỳ Báo Cáo --</option>';
+    
+    // Sắp xếp các tháng mới nhất lên trên
+    const sortedMonths = [...masterIndexData.months].reverse();
+    
+    sortedMonths.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.docId;
+        opt.text = m.name;
+        selector.appendChild(opt);
+    });
+    
+    if (currentProjectCode) {
+        selector.value = currentProjectCode;
+    }
+}
+
+function onMonthSelect(selectedDocId) {
+    if (!selectedDocId) return;
+    
+    const monthData = masterIndexData.months.find(m => m.docId === selectedDocId);
+    if (!monthData) return;
+    
+    // Nếu đang chọn lại đúng tháng hiện tại thì không làm gì cả
+    if (selectedDocId === currentProjectCode) return;
+    
+    const pwd = prompt(`Vui lòng nhập mật khẩu truy cập để mở [${monthData.name}]:`);
+    if (pwd === null) {
+        // Hủy bỏ
+        renderMonthSelector(); // Reset lại dropdown
+        return;
+    }
+    
+    if (pwd === monthData.password) {
+        // Mật khẩu đúng -> Kết nối
+        alert("Mật khẩu chính xác! Đang tải dữ liệu...");
+        connectCloudSync(selectedDocId);
+    } else {
+        alert("Sai mật khẩu! Từ chối truy cập.");
+        renderMonthSelector(); // Reset lại dropdown
     }
 }
 
@@ -7019,23 +7053,48 @@ function createNewMonth() {
         alert("Tính năng Tạo tháng mới chỉ hoạt động khi có kết nối Cloud Sync.");
         return;
     }
-    const newName = prompt("Nhập tên Mã Kỳ báo cáo / Tháng mới muốn tạo (VD: T9_2026).\n\nHệ thống sẽ NHÂN BẢN (clone) toàn bộ số liệu hiện tại của màn hình này sang tháng mới để anh bắt đầu làm việc độc lập:");
-    if (newName) {
-        const cleanName = newName.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
-        if (cleanName === "") return;
-        
-        if (cleanName === currentProjectCode) {
-            alert("Mã này đang được mở rồi!");
-            return;
-        }
-        
-        const inputEl = document.getElementById("cloud_project_code");
-        if (inputEl) inputEl.value = cleanName;
-        
-        connectCloudSync(cleanName);
-        
-        alert(`Đã chuyển sang phiên bản: ${cleanName}. Mọi thay đổi từ giờ sẽ được lưu vào tháng này!`);
+    
+    const newName = prompt("Nhập TÊN hiển thị cho kỳ báo cáo mới (VD: Báo cáo Tháng 10/2026).\n\nHệ thống sẽ NHÂN BẢN (clone) toàn bộ số liệu hiện tại của màn hình này sang báo cáo mới:");
+    if (!newName || newName.trim() === "") return;
+    
+    const newPassword = prompt(`Thiết lập MẬT KHẨU BẢO VỆ cho [${newName.trim()}]:\n(Người khác cần có mật khẩu này mới xem và sửa được dữ liệu)`);
+    if (!newPassword || newPassword.trim() === "") {
+        alert("Chưa nhập mật khẩu, thao tác đã bị hủy!");
+        return;
     }
+    
+    // Tạo docId ngẫu nhiên nhưng có prefix để dễ nhận diện
+    const randomHash = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const cleanName = newName.trim().replace(/[^a-zA-Z0-9]/g, ""); // Dùng làm prefix
+    const newDocId = `XTD_${cleanName}_${randomHash}`;
+    
+    const newMonthObj = {
+        name: newName.trim(),
+        docId: newDocId,
+        password: newPassword.trim(),
+        createdAt: new Date().toISOString()
+    };
+    
+    // Cập nhật Master Index trên Firestore
+    firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set({
+        months: firebase.firestore.FieldValue.arrayUnion(newMonthObj)
+    }, { merge: true })
+    .then(() => {
+        alert(`Đã khởi tạo xong: ${newName.trim()}\nMật khẩu của bạn là: ${newPassword.trim()}`);
+        
+        // Cập nhật local index & UI
+        masterIndexData.months.push(newMonthObj);
+        renderMonthSelector();
+        
+        // Kết nối vào docId mới (sẽ trigger logic pushLocalDataToCloud để nhân bản dữ liệu)
+        const selector = document.getElementById("month_selector");
+        if(selector) selector.value = newDocId;
+        connectCloudSync(newDocId);
+    })
+    .catch(e => {
+        console.error("Lỗi tạo tháng mới:", e);
+        alert("Có lỗi xảy ra khi tạo tháng mới trên Đám mây!");
+    });
 }
 
 if (document.readyState === "loading") {
