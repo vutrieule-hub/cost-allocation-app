@@ -1,4 +1,3 @@
-let pendingMonthSelection = null;
 /* ==========================================================================
    UPDATED STATE & DYNAMIC ALLOCATION ENGINE: XANH TUỆ ĐỨC
    ========================================================================== */
@@ -7114,6 +7113,12 @@ function onMonthSelect(selectedDocId) {
     const monthData = masterIndexData.months.find(m => m.docId === selectedDocId);
     if (!monthData) return;
     if (selectedDocId === currentProjectCode) return;
+    
+    if (!monthData.password) {
+        // Fallback for old data without password
+        connectCloudSync(selectedDocId);
+        return;
+    }
     
     openMonthPwModal(monthData);
 }
