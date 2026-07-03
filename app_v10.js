@@ -2069,6 +2069,35 @@ function getSimulatedRevenueForDept(deptId) {
     return Math.round(totalRevenue);
 }
 
+// Tính doanh thu thực tế từ số HS thực tế trong từng phòng × học phí theo hệ
+function calculateActualRevenueForDept(deptId) {
+    const tuition = appState.simulation?.tuition || {};
+    let totalRevenue = 0;
+
+    (appState.rooms || []).forEach(room => {
+        if (room.status === "active" && room.type !== "functional") {
+            const splitRatio = room.splits?.[deptId] || 0;
+            if (splitRatio > 0) {
+                const actualStudents = (room.currentStudents || 0) * (splitRatio / 100);
+
+                let isXanh = (room.system === "xanh");
+                if (deptId === "dept_tieuhoc" || deptId === "dept_thcs") {
+                    isXanh = true;
+                }
+                const tuitionKey = `${deptId}_${isXanh ? 'xanh' : 'thuong'}`;
+                const tuitionRate = tuition[tuitionKey] !== undefined
+                    ? tuition[tuitionKey]
+                    : (tuition[deptId] || 0);
+
+                totalRevenue += actualStudents * tuitionRate;
+            }
+        }
+    });
+
+    return Math.round(totalRevenue);
+}
+
+
 function getActiveRoomCounts() {
     const roomCounts = {};
     appState.departments.filter(d => d.type === "revenue").forEach(rd => {
@@ -3686,9 +3715,14 @@ function renderDepartments() {
 
     // 1. RENDER KHỐI TRỰC TIẾP (REVENUE CENTERS)
     revenueDepts.forEach((dept, index) => {
-        const rev = appState.revenues[dept.id] || 0;
         const stud = dept.students || 0;
         const tuition = appState.simulation?.tuition || {};
+        
+        // Tính doanh thu thực tế từ phòng học
+        const actualRev = calculateActualRevenueForDept(dept.id);
+        // Auto-sync vào appState.revenues để dashboard P&L dùng
+        appState.revenues[dept.id] = actualRev;
+        const rev = actualRev;
         
         const dSalary = currentResult.directSalary[dept.id] || 0;
         const dInsurance = currentResult.directInsurance[dept.id] || 0;
@@ -3724,7 +3758,7 @@ function renderDepartments() {
                             placeholder="Học phí/HS...">
                     </div>
                 </div>`;
-            revenueCellHtml = `<div style="font-weight:600; color:var(--success); font-size:0.85rem;">${formatCurrency(rev)}</div><div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">Tự tính từ mặt bằng</div>`;
+            revenueCellHtml = `<div style="font-weight:600; color:var(--success); font-size:0.85rem;">${formatCurrency(rev)}</div><div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">HS thực tế từng phòng × học phí/hệ</div>`;
         } else {
             // Tiểu học, THCS (hệ xanh), Nội trú
             const tuitionKey = dept.id === 'dept_noitru' ? 'dept_noitru'
@@ -3743,9 +3777,9 @@ function renderDepartments() {
                         placeholder="Nhập học phí/HS...">
                     <span class="priority-dot" title="Học phí/HS để tính doanh thu tháng"></span>
                 </div>`;
-            revenueCellHtml = fee > 0
-                ? `<div style="font-weight:600; color:var(--success);">${formatNumberWithDots(calcRev)} đ</div><div style="font-size:0.7rem; color:var(--text-muted);">${formatNumberWithDots(fee)} × ${stud} HS</div>`
-                : `<div style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">= Học phí × Sỹ số</div>`;
+            revenueCellHtml = rev > 0
+                ? `<div style="font-weight:600; color:var(--success);">${formatCurrency(rev)}</div><div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">HS thực tế từng phòng × học phí/hệ</div>`
+                : `<div style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">Chưa có dữ liệu phòng học</div>`;
         }
 
         const rowHtml = `
