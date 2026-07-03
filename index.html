@@ -63,16 +63,6 @@
         </ul>
 
 
-        <div class="sidebar-footer">
-            <button class="btn btn-secondary btn-sm" onclick="exportStateJSON()" style="width: 100%; justify-content: center;">
-                <i class="fa-solid fa-file-export"></i> Backup Dữ liệu (JSON)
-            </button>
-            <div style="position: relative;">
-                <input type="file" id="import_file_input" style="display:none;" onchange="importStateJSON(event)">
-                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import_file_input').click()" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-file-import"></i> Restore Dữ liệu
-                </button>
-            </div>
             <button class="btn btn-danger btn-sm" onclick="resetToDefault()" style="width: 100%; justify-content: center; margin-top: 5px;">
                 <i class="fa-solid fa-rotate-left"></i> Khôi phục mẫu gốc
             </button>
