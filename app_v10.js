@@ -2918,6 +2918,7 @@ function renderDashboardChart(revenueDepts, data) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 30 } },
                 plugins: {
                     legend: {
                         labels: { 
@@ -2998,7 +2999,10 @@ function renderDashboardChart(revenueDepts, data) {
                             // Find the height of the tallest bar in this category group to float above it
                             const maxVal = Math.max(revenueData[index], costData[index]);
                             const barTopY = chart.scales.y.getPixelForValue(maxVal);
-                            const rectY = barTopY - 26; // Float elegantly 26px above the tallest bar
+                            let rectY = barTopY - 26; // Float elegantly 26px above the tallest bar
+                            // Giới hạn: không cho nhãn nhảy lên trên vùng chart
+                            const chartTop = chart.chartArea.top;
+                            if (rectY < chartTop) rectY = chartTop;
                             
                             // Draw shadow for premium floating glow
                             ctx.shadowColor = val >= 0 ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)';
