@@ -63,6 +63,20 @@
         </ul>
 
 
+        <div class="sidebar-footer">
+            <button class="btn btn-secondary btn-sm" onclick="exportStateJSON()" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-file-export"></i> Backup Dữ liệu (JSON)
+            </button>
+            <div style="position: relative;">
+                <input type="file" id="import_file_input" style="display:none;" onchange="importStateJSON(event)">
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import_file_input').click()" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-file-import"></i> Restore Dữ liệu
+                </button>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="resetToDefault()" style="width: 100%; justify-content: center; margin-top: 5px;">
+                <i class="fa-solid fa-rotate-left"></i> Khôi phục mẫu gốc
+            </button>
+        </div>
     </aside>
 
     <!-- 2. MAIN WORKSPACE -->
@@ -77,8 +91,8 @@
             <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
                 <!-- Cloud Sync Bar -->
                 <div class="cloud-sync-bar" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.7); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 5px 12px; box-shadow: var(--shadow-sm);">
-                    <div id="cloud_sync_status" class="cloud-status-dot offline" title="Chưa kết nối Đám mây. Dữ liệu đang được lưu cục bộ (Offline)"></div>
-                    <span id="cloud_sync_text" style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                    <div id="cloud_sync_status" class="cloud-status-dot offline" style="display:none;" title="Chưa kết nối Đám mây. Dữ liệu đang được lưu cục bộ (Offline)"></div>
+                    <span id="cloud_sync_text" style="display:none; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
                         <i class="fa-solid fa-cloud-arrow-up"></i> Offline
                     </span>
                     <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;"></div>
@@ -88,6 +102,7 @@
                             <option value="">-- Chọn Kỳ Báo Cáo --</option>
                         </select>
                         <button onclick="createNewMonth()" style="background: var(--primary); color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 4px;" title="Tạo tháng mới (Nhân bản số liệu tháng hiện tại)"><i class="fa-solid fa-copy"></i> Tạo mới</button>
+                        <button onclick="openManualSyncModal()" style="background: var(--text-secondary); color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 4px;" title="Nhập mã đồng bộ thủ công"><i class="fa-solid fa-keyboard"></i> Nhập mã</button>
                     </div>
                 </div>
 
@@ -1627,6 +1642,82 @@
                 <div style="display: flex; gap: 12px; justify-content: center;">
                     <button class="btn btn-secondary" style="min-width: 120px;" onclick="closeModal('custom_confirm_modal')">Hủy bỏ</button>
                     <button class="btn btn-danger" style="min-width: 120px;" id="custom_confirm_ok_btn">Đồng ý</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL POPUP: MONTH PASSWORD
+         =================================================================== -->
+    <div class="modal-overlay" id="month_pw_modal" style="z-index: 100000;">
+        <div class="modal-content" style="max-width: 400px; border-radius: 12px;">
+            <div class="modal-header">
+                <h3 id="month_pw_title"><i class="fa-solid fa-lock"></i> Mở khóa báo cáo</h3>
+                <button class="modal-close" onclick="closeMonthPwModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <p id="month_pw_desc" style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 15px;">Vui lòng nhập mật khẩu truy cập để mở:</p>
+                <div style="margin-bottom: 15px;">
+                    <input type="password" id="month_pw_input" class="form-input" placeholder="Nhập mật khẩu" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem;" onkeydown="if(event.key==='Enter')submitMonthPw()">
+                    <div id="month_pw_error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:6px;"><i class="fa-solid fa-circle-exclamation"></i> Mật khẩu không đúng.</div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeMonthPwModal()">Hủy bỏ</button>
+                    <button class="btn btn-primary" onclick="submitMonthPw()">Mở khóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL POPUP: CREATE NEW MONTH
+         =================================================================== -->
+    <div class="modal-overlay" id="month_create_modal" style="z-index: 100000;">
+        <div class="modal-content" style="max-width: 450px; border-radius: 12px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-folder-plus"></i> Tạo Kỳ Báo Cáo Mới</h3>
+                <button class="modal-close" onclick="closeMonthCreateModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div style="background: rgba(0, 122, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Hệ thống sẽ <strong>NHÂN BẢN (clone)</strong> toàn bộ số liệu hiện tại sang báo cáo mới.
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">TÊN HIỂN THỊ <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="month_create_name" class="form-input" placeholder="VD: Báo cáo Tháng 10/2026" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;" onkeydown="if(event.key==='Enter')submitMonthCreate()">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">MẬT KHẨU BẢO VỆ <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="month_create_pw" class="form-input" placeholder="Người khác cần mật khẩu này để mở" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;" onkeydown="if(event.key==='Enter')submitMonthCreate()">
+                    <div id="month_create_error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:6px;">Vui lòng nhập đủ Tên và Mật khẩu.</div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeMonthCreateModal()">Hủy bỏ</button>
+                    <button class="btn btn-primary" onclick="submitMonthCreate()"><i class="fa-solid fa-check"></i> Khởi tạo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL POPUP: MANUAL SYNC CODE
+         =================================================================== -->
+    <div class="modal-overlay" id="manual_sync_modal" style="z-index: 100000;">
+        <div class="modal-content" style="max-width: 400px; border-radius: 12px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-keyboard"></i> Nhập Mã Đồng Bộ</h3>
+                <button class="modal-close" onclick="closeManualSyncModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 15px;">Vui lòng nhập mã đồng bộ cũ (ví dụ: <strong>tomdeptrai</strong>) để tải lại dữ liệu:</p>
+                <div style="margin-bottom: 15px;">
+                    <input type="text" id="manual_sync_input" class="form-input" placeholder="Nhập mã đồng bộ..." style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem;" onkeydown="if(event.key==='Enter')submitManualSync()">
+                    <div id="manual_sync_error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:6px;">Vui lòng nhập mã.</div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeManualSyncModal()">Hủy bỏ</button>
+                    <button class="btn btn-primary" onclick="submitManualSync()">Kết nối</button>
                 </div>
             </div>
         </div>
