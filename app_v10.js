@@ -7212,67 +7212,36 @@ function submitMonthRename() {
         
         const newName = document.getElementById("month_rename_input").value.trim();
         if (newName === "") { customConfirm("Tên không được để trống."); return; }
-        
-        // Buộc tải lại MASTER_INDEX_V2 mới nhất từ server để tránh lỗi cache/phiên bản cũ
-        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").get().then(doc => {
-            if (!doc.exists) {
-                customConfirm("Lỗi: Không tìm thấy dữ liệu gốc (Master Index) trên Cloud.");
-                return;
-            }
-            let indexData = doc.data();
-            let months = indexData.months || [];
-            
-            // Tìm kỳ báo cáo cần đổi tên
-            const monthIndex = months.findIndex(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
-            if (monthIndex === -1) {
-                customConfirm("Lỗi: Không tìm thấy kỳ báo cáo khớp với mã " + currentDocId + " trên máy chủ. Có thể ai đó đã xóa nó.");
-                return;
-            }
-            
-            // Bắt buộc clone obj cũ trước khi sửa để arrayRemove hoạt động chính xác
-            const oldObj = Object.assign({}, months[monthIndex]);
-            
-            // Cập nhật tên (local copy)
-            months[monthIndex].name = newName;
-            
-            // Lưu lại lên Cloud
-            firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(indexData)
-                .then(() => {
-                    // Cập nhật biến cục bộ và giao diện
-                    masterIndexData = indexData;
-                    renderMonthSelector();
-                    closeModal('month_rename_modal');
-                    customConfirm("Đã đổi tên kỳ báo cáo thành công!");
-                })
-                .catch(err => {
-                    console.error("Lỗi khi set:", err);
-                    // Dự phòng 2: Nếu set bị chặn quyền, dùng arrayRemove và arrayUnion
-                    const newObj = Object.assign({}, oldObj);
-                    newObj.name = newName;
-                    
-                    firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
-                        months: firebase.firestore.FieldValue.arrayRemove(oldObj)
-                    }).then(() => {
-                        return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
-                            months: firebase.firestore.FieldValue.arrayUnion(newObj)
-                        });
-                    }).then(() => {
-                        // Cập nhật masterIndexData cục bộ (tìm lại index cho chắc)
-                        const localIndex = masterIndexData.months.findIndex(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
-                        if(localIndex !== -1) {
-                            masterIndexData.months[localIndex].name = newName;
-                        }
-                        renderMonthSelector();
-                        closeModal('month_rename_modal');
-                        customConfirm("Đã đổi tên kỳ báo cáo thành công!");
-                    }).catch(e2 => {
-                        console.error("Lỗi array update:", e2);
-                        customConfirm("Có lỗi xảy ra khi lưu lên Cloud (Lỗi quyền truy cập). Vui lòng liên hệ Admin.");
-                    });
-                });
+
+        if (!masterIndexData || !masterIndexData.months) {
+            customConfirm("Lỗi: Chưa có dữ liệu gốc."); return;
+        }
+
+        const monthIndex = masterIndexData.months.findIndex(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
+        if (monthIndex === -1) {
+            customConfirm("Lỗi: Không tìm thấy kỳ báo cáo khớp với mã " + currentDocId);
+            return;
+        }
+
+        const oldObj = Object.assign({}, masterIndexData.months[monthIndex]);
+        const newObj = Object.assign({}, oldObj);
+        newObj.name = newName;
+
+        // Dùng phương pháp Update Array trực tiếp để tránh lỗi Permission khi Get/Set
+        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
+            months: firebase.firestore.FieldValue.arrayRemove(oldObj)
+        }).then(() => {
+            return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
+                months: firebase.firestore.FieldValue.arrayUnion(newObj)
+            });
+        }).then(() => {
+            masterIndexData.months[monthIndex].name = newName;
+            renderMonthSelector();
+            closeModal('month_rename_modal');
+            customConfirm("Đã đổi tên kỳ báo cáo thành công!");
         }).catch(err => {
-            console.error("Lỗi get:", err);
-            customConfirm("Lỗi kết nối máy chủ: " + err.message);
+            console.error("Lỗi cập nhật tên:", err);
+            customConfirm("Lỗi kết nối Cloud hoặc Quyền truy cập bị từ chối.");
         });
     } catch (error) {
         console.error(error);
