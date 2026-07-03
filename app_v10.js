@@ -7171,17 +7171,23 @@ function submitMonthRename() {
             return;
         }
         
+        const oldMonthObj = Object.assign({}, monthObj);
         monthObj.name = newName;
-        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set({ months: masterIndexData.months }, { merge: true })
-            .then(() => {
-                renderMonthSelector();
-                closeModal('month_rename_modal');
-                customConfirm("Đã đổi tên kỳ báo cáo thành công!");
-            })
-            .catch(err => {
-                console.error(err);
-                customConfirm("Có lỗi xảy ra khi lưu lên Cloud: " + err.message);
+        
+        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
+            months: firebase.firestore.FieldValue.arrayRemove(oldMonthObj)
+        }).then(() => {
+            return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
+                months: firebase.firestore.FieldValue.arrayUnion(monthObj)
             });
+        }).then(() => {
+            renderMonthSelector();
+            closeModal('month_rename_modal');
+            customConfirm("Đã đổi tên kỳ báo cáo thành công!");
+        }).catch(err => {
+            console.error(err);
+            customConfirm("Có lỗi xảy ra khi lưu lên Cloud: " + err.message);
+        });
     } catch (error) {
         console.error(error);
         customConfirm("Lỗi hệ thống: " + error.message);
