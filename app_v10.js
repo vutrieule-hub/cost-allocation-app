@@ -3990,7 +3990,7 @@ function openDepartmentCostAuditModal(deptId) {
                         <td style="padding: 10px 12px; text-align: center;">
                             <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.08); color: #059669; font-weight: 700; border-radius: 6px;">Kiêm nhiệm</span>
                         </td>
-                        <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Gánh <strong>${ratioVal}%</strong> trên tổng lương ${formatCurrency(emp.salary)}</td>
+                        <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 0.75rem;">Gánh <strong>${Math.round((ratioVal / totalRatio) * 100)}%</strong> trên tổng lương ${formatCurrency(emp.salary)}</td>
                         <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #059669;">${formatCurrency(allocatedSalary)}</td>
                     </tr>
                 `;
