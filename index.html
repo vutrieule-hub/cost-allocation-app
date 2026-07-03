@@ -1730,8 +1730,29 @@
         </div>
     </div>
 
+    <!-- Modal: Đổi Mật Khẩu Kỳ Báo Cáo -->
+    <div class="modal-overlay" id="month_changepw_modal" style="z-index: 100000;">
+        <div class="modal-content" style="max-width: 400px; border-radius: 12px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-key"></i> Đổi Mật Khẩu</h3>
+                <button class="modal-close" onclick="closeModal('month_changepw_modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">Mật khẩu mới:</label>
+                    <input type="text" id="month_changepw_input" class="form-input" placeholder="Nhập mật khẩu mới..." style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem;" onkeydown="if(event.key==='Enter')submitChangePassword()">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeModal('month_changepw_modal')">Hủy bỏ</button>
+                    <button class="btn btn-primary" onclick="submitChangePassword()">Lưu Mật Khẩu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Script loading -->
-    <script src="app_v10.js?v=78"></script>
+
+    <script src="app_v10.js?v=79"></script>
 
     </body>
 </html>

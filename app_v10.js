@@ -7096,6 +7096,11 @@ function renderMonthSelector() {
     optRename.text = "Đổi tên kỳ hiện tại...";
     actionGroup.appendChild(optRename);
     
+    let optChangePw = document.createElement("option");
+    optChangePw.value = "__ACTION_CHANGE_PW__";
+    optChangePw.text = "Đổi mật khẩu kỳ hiện tại...";
+    actionGroup.appendChild(optChangePw);
+    
     selector.appendChild(actionGroup);
     
     if (currentProjectCode) {
@@ -7147,6 +7152,12 @@ function onMonthSelect(selectedDocId) {
     if (selectedDocId === "__ACTION_RENAME__") {
         selector.value = currentProjectCode || "";
         renameCurrentMonth();
+        return;
+    }
+    
+    if (selectedDocId === "__ACTION_CHANGE_PW__") {
+        selector.value = currentProjectCode || "";
+        changeCurrentPassword();
         return;
     }
     
@@ -7245,6 +7256,73 @@ function submitMonthRename() {
             })
             .finally(() => {
                 if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Lưu Thay Đổi"; }
+            });
+    } catch (error) {
+        console.error(error);
+        customConfirm("Lỗi hệ thống: " + error.message);
+    }
+}
+
+
+function changeCurrentPassword() {
+    if (!firebaseDb) {
+        customConfirm("Tính năng này chỉ hoạt động khi có kết nối Cloud.");
+        return;
+    }
+    if (!currentProjectCode) {
+        customConfirm("Vui lòng chọn một kỳ báo cáo trước.");
+        return;
+    }
+    document.getElementById("month_changepw_input").value = "";
+    document.getElementById("month_changepw_modal").classList.add("open");
+    setTimeout(() => document.getElementById("month_changepw_input").focus(), 100);
+}
+
+function submitChangePassword() {
+    try {
+        const newPw = document.getElementById("month_changepw_input").value.trim();
+        if (newPw === "") { customConfirm("Mật khẩu không được để trống."); return; }
+
+        if (!currentProjectCode || !firebaseDb) {
+            customConfirm("Lỗi: Chưa chọn kỳ hoặc không có kết nối Cloud."); return;
+        }
+
+        const saveBtn = document.querySelector("#month_changepw_modal .btn-primary");
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Đang lưu..."; }
+
+        // GET → sửa password → SET (cùng pattern đổi tên)
+        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").get()
+            .then(doc => {
+                if (!doc.exists) throw new Error("Không tìm thấy dữ liệu gốc trên Cloud");
+
+                const serverData = doc.data();
+                const months = serverData.months || [];
+                const idx = months.findIndex(m =>
+                    m.docId && m.docId.toUpperCase() === currentProjectCode.toUpperCase()
+                );
+
+                if (idx === -1) throw new Error("Không tìm thấy kỳ: " + currentProjectCode);
+
+                months[idx].password = newPw;
+
+                return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2")
+                    .set(serverData);
+            })
+            .then(() => {
+                const localIdx = masterIndexData.months.findIndex(m =>
+                    m.docId && m.docId.toUpperCase() === currentProjectCode.toUpperCase()
+                );
+                if (localIdx !== -1) masterIndexData.months[localIdx].password = newPw;
+
+                closeModal('month_changepw_modal');
+                customConfirm("Đã đổi mật khẩu thành công!");
+            })
+            .catch(err => {
+                console.error("Lỗi đổi mật khẩu:", err);
+                customConfirm("Lỗi: " + err.message);
+            })
+            .finally(() => {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Lưu Mật Khẩu"; }
             });
     } catch (error) {
         console.error(error);
