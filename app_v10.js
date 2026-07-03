@@ -7058,52 +7058,45 @@ function renderMonthSelector() {
     const selector = document.getElementById("month_selector");
     if (!selector) return;
     
-    // Lưu lại giá trị đang chọn
-    const currentVal = selector.value;
-    
     selector.innerHTML = '';
     
-    // Nhóm tháo tác
+    // Option mặc định
+    let optDefault = document.createElement("option");
+    optDefault.value = "";
+    optDefault.text = "-- Chọn kỳ báo cáo --";
+    selector.appendChild(optDefault);
+
+    // Nhóm Kỳ Báo Cáo (ưu tiên hiện đầu tiên)
+    if (masterIndexData.months && masterIndexData.months.length > 0) {
+        const dataGroup = document.createElement("optgroup");
+        dataGroup.label = "Kỳ Báo Cáo";
+        
+        const sortedMonths = [...masterIndexData.months].reverse();
+        sortedMonths.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.docId;
+            opt.text = m.name;
+            dataGroup.appendChild(opt);
+        });
+        
+        selector.appendChild(dataGroup);
+    }
+
+    // Nhóm Thao tác (ở cuối, phụ)
     const actionGroup = document.createElement("optgroup");
-    actionGroup.label = "🛠 Thao Tác Nhanh";
+    actionGroup.label = "Thao tác";
     
     let optCreate = document.createElement("option");
     optCreate.value = "__ACTION_CREATE__";
-    optCreate.text = "➕ Tạo kỳ báo cáo mới...";
+    optCreate.text = "+ Tạo kỳ mới...";
     actionGroup.appendChild(optCreate);
     
     let optRename = document.createElement("option");
     optRename.value = "__ACTION_RENAME__";
-    optRename.text = "✏️ Đổi tên kỳ báo cáo hiện tại...";
+    optRename.text = "Đổi tên kỳ hiện tại...";
     actionGroup.appendChild(optRename);
     
-    let optManual = document.createElement("option");
-    optManual.value = "__ACTION_MANUAL_SYNC__";
-    optManual.text = "⌨️ Nhập mã đồng bộ cũ...";
-    actionGroup.appendChild(optManual);
-    
     selector.appendChild(actionGroup);
-
-    // Nhóm Data
-    const dataGroup = document.createElement("optgroup");
-    dataGroup.label = "📂 Danh Sách Kỳ Báo Cáo";
-    
-    let optEmpty = document.createElement("option");
-    optEmpty.value = "";
-    optEmpty.text = "-- Không có dữ liệu --";
-    dataGroup.appendChild(optEmpty);
-    
-    // Sắp xếp các tháng mới nhất lên trên
-    const sortedMonths = [...masterIndexData.months].reverse();
-    
-    sortedMonths.forEach(m => {
-        const opt = document.createElement("option");
-        opt.value = m.docId;
-        opt.text = m.name;
-        dataGroup.appendChild(opt);
-    });
-    
-    selector.appendChild(dataGroup);
     
     if (currentProjectCode) {
         selector.value = currentProjectCode;
@@ -7157,11 +7150,6 @@ function onMonthSelect(selectedDocId) {
         return;
     }
     
-    if (selectedDocId === "__ACTION_MANUAL_SYNC__") {
-        selector.value = currentProjectCode || "";
-        openManualSyncModal();
-        return;
-    }
 
     if (!selectedDocId) return;
     const monthData = masterIndexData.months.find(m => m.docId === selectedDocId);
