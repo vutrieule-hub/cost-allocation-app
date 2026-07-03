@@ -4122,11 +4122,13 @@ function openDepartmentCostAuditModal(deptId) {
                 <tr style="border-bottom: 1px solid var(--border-color);">
                     <td style="padding: 10px 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-graduation-cap" style="color: var(--primary); margin-right: 6px;"></i>${rd.name}</td>
                     <td style="padding: 10px 12px; color: var(--text-secondary);">${ratioExplanation}</td>
-                    <td style="padding: 10px 12px; text-align: right;">
-                        <div style="display: inline-block; width: 60px; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden; margin-right: 8px; vertical-align: middle;">
-                            <div style="width: ${percent}%; background: var(--primary); height: 100%;"></div>
+                    <td style="padding: 10px 12px;">
+                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                            <div style="width: 70px; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden; flex-shrink: 0;">
+                                <div style="width: ${percent}%; background: var(--primary); height: 100%;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary); min-width: 44px; text-align: right;">${percent}%</span>
                         </div>
-                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary);">${percent}%</span>
                     </td>
                     <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #059669;">${formatCurrency(allocatedVal)}</td>
                 </tr>
