@@ -3768,14 +3768,13 @@ function renderDepartments() {
             const fee = tuition[tuitionKey] || 0;
             const calcRev = fee * stud;
             tuitionCellHtml = `
-                <div class="priority-container" style="display:inline-block;">
+                <div style="display:inline-block;">
                     <input type="text" class="base-select-dropdown" style="width:150px; display:inline; font-weight:500;"
                         value="${formatNumberWithDots(fee)}"
                         oninput="handleMoneyInput(this)"
                         onblur="updateSimTuition('${tuitionKey}', this.value)"
                         onkeydown="if(event.key==='Enter')this.blur()"
                         placeholder="Nhập học phí/HS...">
-                    <span class="priority-dot" title="Học phí/HS để tính doanh thu tháng"></span>
                 </div>`;
             revenueCellHtml = rev > 0
                 ? `<div style="font-weight:600; color:var(--success);">${formatCurrency(rev)}</div><div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">HS thực tế từng phòng × học phí/hệ</div>`
@@ -3795,10 +3794,7 @@ function renderDepartments() {
                     </div>
                 </td>
                 <td>
-                    <div class="priority-container" style="display: inline-block;">
-                        <input type="number" class="base-select-dropdown" style="width:100px; display:inline;" value="${stud}" onchange="updateDeptStudents('${dept.id}', this.value)">
-                        <span class="priority-dot priority-dot-blue" title="Cần điền Sỹ số học sinh thực tế"></span>
-                    </div>
+                    <input type="number" class="base-select-dropdown" style="width:100px;" value="${stud}" onchange="updateDeptStudents('${dept.id}', this.value)">
                 </td>
                 <td>${tuitionCellHtml}</td>
                 <td>${revenueCellHtml}</td>
