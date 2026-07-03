@@ -7156,7 +7156,7 @@ function submitMonthRename() {
             .then(() => {
                 renderMonthSelector();
                 closeModal('month_rename_modal');
-                showToast("Đã đổi tên kỳ báo cáo thành công!");
+                customConfirm("Đã đổi tên kỳ báo cáo thành công!");
             })
             .catch(err => {
                 console.error(err);
