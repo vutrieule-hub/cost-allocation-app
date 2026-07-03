@@ -1731,6 +1731,29 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app_v10.js?v=71"></script>
+    <script src="app_v10.js?v=72"></script>
+
+    <!-- Màn hình Modal: NHẬP MẬT KHẨU KỲ BÁO CÁO -->
+    <div id="month_password_modal" class="modal">
+        <div class="modal-content" style="max-width:400px; padding:30px; border-radius:12px;">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
+                <h3 style="margin:0; font-size:18px; color:#2c3e50; font-weight:600;"><i class="fas fa-lock" style="margin-right:8px; color:#e74c3c;"></i>Xác Thực Bảo Mật</h3>
+                <span class="close-btn" onclick="cancelMonthSelection()" style="cursor:pointer; font-size:24px; color:#95a5a6; transition:color 0.2s;">&times;</span>
+            </div>
+            
+            <p style="margin-top:0; margin-bottom:15px; font-size:14px; color:#7f8c8d;">Vui lòng nhập mật khẩu để truy cập dữ liệu của kỳ báo cáo này.</p>
+            
+            <div class="form-group" style="margin-bottom:20px;">
+                <input type="password" id="month_password_input" class="form-control" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter')submitMonthPassword()" style="padding:12px; font-size:15px; border-radius:8px; border:1px solid #ddd;">
+                <p id="month_password_error" style="color:#e74c3c; font-size:13px; margin-top:8px; display:none;"><i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>Mật khẩu không chính xác!</p>
+            </div>
+            
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-secondary" onclick="cancelMonthSelection()" style="padding:10px 20px; border-radius:8px;">Quay lại</button>
+                <button class="btn btn-primary" onclick="submitMonthPassword()" style="padding:10px 20px; border-radius:8px; background-color:#3498db; border-color:#3498db;">Mở Dữ Liệu</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
