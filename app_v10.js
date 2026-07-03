@@ -7144,13 +7144,33 @@ function renameCurrentMonth() {
 }
 
 function submitMonthRename() {
-    const selector = document.getElementById("month_selector");
-    const currentDocId = selector.value;
-    const monthObj = masterIndexData.months.find(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
-    if (!monthObj) return;
+    try {
+        const selector = document.getElementById("month_selector");
+        if (!selector) {
+            customConfirm("Lỗi: Không tìm thấy thẻ select.");
+            return;
+        }
+        const currentDocId = selector.value;
+        if (!currentDocId) {
+            customConfirm("Lỗi: Chưa chọn kỳ báo cáo.");
+            return;
+        }
+        if (!masterIndexData || !masterIndexData.months) {
+            customConfirm("Lỗi: Dữ liệu danh sách kỳ báo cáo trống.");
+            return;
+        }
+        const monthObj = masterIndexData.months.find(m => m.docId && m.docId.toUpperCase() === currentDocId.toUpperCase());
+        if (!monthObj) {
+            customConfirm("Lỗi: Không tìm thấy kỳ báo cáo khớp với mã " + currentDocId);
+            return;
+        }
 
-    const newName = document.getElementById("month_rename_input").value.trim();
-    if (newName !== "") {
+        const newName = document.getElementById("month_rename_input").value.trim();
+        if (newName === "") {
+            customConfirm("Tên không được để trống.");
+            return;
+        }
+        
         monthObj.name = newName;
         firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData)
             .then(() => {
@@ -7160,8 +7180,11 @@ function submitMonthRename() {
             })
             .catch(err => {
                 console.error(err);
-                customConfirm("Có lỗi xảy ra khi đổi tên.");
+                customConfirm("Có lỗi xảy ra khi lưu lên Cloud: " + err.message);
             });
+    } catch (error) {
+        console.error(error);
+        customConfirm("Lỗi hệ thống: " + error.message);
     }
 }
 
