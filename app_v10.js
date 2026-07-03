@@ -4619,7 +4619,19 @@ function deleteDepartment(deptId) {
         renderDepartments();
     });
 }
+function filterEmployeeList(keyword) {
+    const rows = document.querySelectorAll("#emp_list_body tr");
+    const kw = keyword.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    rows.forEach(row => {
+        const nameCell = row.querySelector("td:nth-child(2)");
+        if (!nameCell) return;
+        const name = nameCell.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        row.style.display = name.includes(kw) ? "" : "none";
+    });
+}
+
 function renderEmployees() {
+
     const listBody = document.getElementById("emp_list_body");
     listBody.innerHTML = "";
 

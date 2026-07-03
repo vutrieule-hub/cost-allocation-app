@@ -604,7 +604,14 @@
                     <h2>Danh sách CBNV - Giáo viên & Bảng lương Xanh Tuệ Đức</h2>
                 </div>
 
+                <div style="margin-bottom: 12px; padding: 0 4px;">
+                    <input type="text" id="emp_search_input" placeholder="🔍 Tìm nhân sự theo tên..." 
+                        oninput="filterEmployeeList(this.value)"
+                        style="width: 100%; max-width: 350px; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; font-family: 'Outfit', sans-serif; background: var(--card-bg); color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                </div>
+
                 <div class="table-container">
+
                     <table>
                         <thead>
                             <tr>
@@ -1752,7 +1759,7 @@
 
     <!-- Script loading -->
 
-    <script src="app_v10.js?v=80"></script>
+    <script src="app_v10.js?v=81"></script>
 
     </body>
 </html>
