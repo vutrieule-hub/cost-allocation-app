@@ -7172,7 +7172,7 @@ function submitMonthRename() {
         }
         
         monthObj.name = newName;
-        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData)
+        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set({ months: masterIndexData.months }, { merge: true })
             .then(() => {
                 renderMonthSelector();
                 closeModal('month_rename_modal');
