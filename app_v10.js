@@ -7205,50 +7205,64 @@ function renameCurrentMonth() {
 
 function submitMonthRename() {
     try {
-        const selector = document.getElementById("month_selector");
-        if (!selector) { customConfirm("Lỗi: Không tìm thấy thẻ select."); return; }
-        const currentDocId = selector.value;
-        if (!currentDocId) { customConfirm("Lỗi: Chưa chọn kỳ báo cáo."); return; }
-        
         const newName = document.getElementById("month_rename_input").value.trim();
         if (newName === "") { customConfirm("Tên không được để trống."); return; }
 
-        if (!masterIndexData || !masterIndexData.months) {
-            customConfirm("Lỗi: Chưa có dữ liệu gốc."); return;
+        if (!currentProjectCode) {
+            customConfirm("Lỗi: Chưa chọn kỳ báo cáo nào."); return;
         }
 
-        const monthIndex = masterIndexData.months.findIndex(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
-        if (monthIndex === -1) {
-            customConfirm("Lỗi: Không tìm thấy kỳ báo cáo khớp với mã " + currentDocId);
-            return;
+        if (!firebaseDb) {
+            customConfirm("Lỗi: Không có kết nối Cloud."); return;
         }
 
-        const oldObj = Object.assign({}, masterIndexData.months[monthIndex]);
-        const newObj = Object.assign({}, oldObj);
-        newObj.name = newName;
+        // Disable nút để tránh bấm 2 lần
+        const saveBtn = document.querySelector("#month_rename_modal .btn-primary");
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Đang lưu..."; }
 
-        // Dùng phương pháp Update Array trực tiếp để tránh lỗi Permission khi Get/Set
-        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
-            months: firebase.firestore.FieldValue.arrayRemove(oldObj)
-        }).then(() => {
-            return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").update({
-                months: firebase.firestore.FieldValue.arrayUnion(newObj)
+        // GET mới nhất từ server → sửa → SET lại
+        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").get()
+            .then(doc => {
+                if (!doc.exists) throw new Error("Không tìm thấy dữ liệu gốc trên Cloud");
+
+                const serverData = doc.data();
+                const months = serverData.months || [];
+                const idx = months.findIndex(m =>
+                    m.docId && m.docId.toUpperCase() === currentProjectCode.toUpperCase()
+                );
+
+                if (idx === -1) throw new Error("Không tìm thấy kỳ báo cáo: " + currentProjectCode);
+
+                // Sửa tên trực tiếp trên dữ liệu server
+                months[idx].name = newName;
+
+                // SET lại toàn bộ document
+                return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2")
+                    .set(serverData);
+            })
+            .then(() => {
+                // Cập nhật dữ liệu local
+                const localIdx = masterIndexData.months.findIndex(m =>
+                    m.docId && m.docId.toUpperCase() === currentProjectCode.toUpperCase()
+                );
+                if (localIdx !== -1) masterIndexData.months[localIdx].name = newName;
+
+                renderMonthSelector();
+                closeModal('month_rename_modal');
+                customConfirm("Đã đổi tên kỳ báo cáo thành công!");
+            })
+            .catch(err => {
+                console.error("Lỗi đổi tên:", err);
+                customConfirm("Lỗi: " + err.message);
+            })
+            .finally(() => {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Lưu Thay Đổi"; }
             });
-        }).then(() => {
-            masterIndexData.months[monthIndex].name = newName;
-            renderMonthSelector();
-            closeModal('month_rename_modal');
-            customConfirm("Đã đổi tên kỳ báo cáo thành công!");
-        }).catch(err => {
-            console.error("Lỗi cập nhật tên:", err);
-            customConfirm("Lỗi kết nối Cloud hoặc Quyền truy cập bị từ chối.");
-        });
     } catch (error) {
         console.error(error);
         customConfirm("Lỗi hệ thống: " + error.message);
     }
 }
-// OLD SUBMIT RENAME
 
 function createNewMonth() {
     if (!firebaseDb) {
