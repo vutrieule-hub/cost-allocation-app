@@ -2959,6 +2959,8 @@ function renderDashboardChart(revenueDepts, data) {
                         ticks: { color: '#9CA3AF', font: { family: 'Outfit' } }
                     },
                     y: {
+                        min: 0,
+                        beginAtZero: true,
                         grid: { color: 'rgba(255,255,255,0.05)' },
                         ticks: { 
                             color: '#9CA3AF', 
