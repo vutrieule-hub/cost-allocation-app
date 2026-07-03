@@ -3688,12 +3688,66 @@ function renderDepartments() {
     revenueDepts.forEach((dept, index) => {
         const rev = appState.revenues[dept.id] || 0;
         const stud = dept.students || 0;
+        const tuition = appState.simulation?.tuition || {};
         
         const dSalary = currentResult.directSalary[dept.id] || 0;
         const dInsurance = currentResult.directInsurance[dept.id] || 0;
         const dRent = currentResult.directRent[dept.id] || 0;
         const totalDirect = dSalary + dInsurance + dRent;
-        
+
+        // Xây dựng cell Học phí/HS và Doanh thu tháng
+        let tuitionCellHtml = '';
+        let revenueCellHtml = '';
+
+        if (dept.id === 'dept_thpt') {
+            // THPT có 2 hệ: thường + xanh
+            const feeThuong = tuition['dept_thpt_thuong'] || 0;
+            const feeXanh   = tuition['dept_thpt_xanh']   || 0;
+            tuitionCellHtml = `
+                <div style="font-size:0.8rem;">
+                    <div style="margin-bottom:4px;">
+                        <span style="color:var(--text-muted); margin-right:4px;">Hệ thường:</span>
+                        <input type="text" class="base-select-dropdown" style="width:130px; display:inline; font-weight:500; font-size:0.8rem;"
+                            value="${formatNumberWithDots(feeThuong)}"
+                            oninput="handleMoneyInput(this)"
+                            onblur="updateSimTuition('dept_thpt_thuong', this.value)"
+                            onkeydown="if(event.key==='Enter')this.blur()"
+                            placeholder="Học phí/HS...">
+                    </div>
+                    <div>
+                        <span style="color:var(--text-muted); margin-right:4px;">🌿 Hệ Xanh:</span>
+                        <input type="text" class="base-select-dropdown" style="width:130px; display:inline; font-weight:500; font-size:0.8rem;"
+                            value="${formatNumberWithDots(feeXanh)}"
+                            oninput="handleMoneyInput(this)"
+                            onblur="updateSimTuition('dept_thpt_xanh', this.value)"
+                            onkeydown="if(event.key==='Enter')this.blur()"
+                            placeholder="Học phí/HS...">
+                    </div>
+                </div>`;
+            revenueCellHtml = `<div style="font-weight:600; color:var(--success); font-size:0.85rem;">${formatCurrency(rev)}</div><div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">Tự tính từ mặt bằng</div>`;
+        } else {
+            // Tiểu học, THCS (hệ xanh), Nội trú
+            const tuitionKey = dept.id === 'dept_noitru' ? 'dept_noitru'
+                             : dept.id === 'dept_tieuhoc' ? 'dept_tieuhoc_xanh'
+                             : dept.id === 'dept_thcs' ? 'dept_thcs_xanh'
+                             : dept.id;
+            const fee = tuition[tuitionKey] || 0;
+            const calcRev = fee * stud;
+            tuitionCellHtml = `
+                <div class="priority-container" style="display:inline-block;">
+                    <input type="text" class="base-select-dropdown" style="width:150px; display:inline; font-weight:500;"
+                        value="${formatNumberWithDots(fee)}"
+                        oninput="handleMoneyInput(this)"
+                        onblur="updateSimTuition('${tuitionKey}', this.value)"
+                        onkeydown="if(event.key==='Enter')this.blur()"
+                        placeholder="Nhập học phí/HS...">
+                    <span class="priority-dot" title="Học phí/HS để tính doanh thu tháng"></span>
+                </div>`;
+            revenueCellHtml = fee > 0
+                ? `<div style="font-weight:600; color:var(--success);">${formatNumberWithDots(calcRev)} đ</div><div style="font-size:0.7rem; color:var(--text-muted);">${formatNumberWithDots(fee)} × ${stud} HS</div>`
+                : `<div style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">= Học phí × Sỹ số</div>`;
+        }
+
         const rowHtml = `
             <tr>
                 <td>${index + 1}</td>
@@ -3709,27 +3763,11 @@ function renderDepartments() {
                 <td>
                     <div class="priority-container" style="display: inline-block;">
                         <input type="number" class="base-select-dropdown" style="width:100px; display:inline;" value="${stud}" onchange="updateDeptStudents('${dept.id}', this.value)">
-                        <span class="priority-dot priority-dot-blue" title="Cần điền Sỹ số học sinh thực tế để phân bổ tự động Điện & Nước"></span>
+                        <span class="priority-dot priority-dot-blue" title="Cần điền Sỹ số học sinh thực tế"></span>
                     </div>
                 </td>
-                <td>
-                    <div class="priority-container" style="display: inline-block;">
-                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: 500;" 
-                            value="${formatNumberWithDots(dept.tuitionFee || 0)}" 
-                            oninput="handleMoneyInput(this)" 
-                            onblur="updateTuitionFee('${dept.id}', this.value)" 
-                            onkeydown="if(event.key==='Enter') this.blur()"
-                            placeholder="Nhập học phí/HS...">
-                        <span class="priority-dot" title="Nhập học phí/HS để tự tính doanh thu tháng"></span>
-                    </div>
-                </td>
-                <td>
-                    <div style="font-weight: 600; color: var(--success); font-size: 0.95rem; padding: 6px 4px;">
-                        ${(dept.tuitionFee || 0) > 0 
-                            ? formatNumberWithDots(Math.round((dept.tuitionFee || 0) * stud)) + ' đ'
-                            : '<span style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">= Học phí × Sỹ số</span>'}
-                    </div>
-                </td>
+                <td>${tuitionCellHtml}</td>
+                <td>${revenueCellHtml}</td>
                 <td class="text-center">
                     <button class="btn btn-danger btn-sm" onclick="deleteDepartment('${dept.id}')">
                         <i class="fas fa-trash"></i> Xóa
@@ -7741,6 +7779,7 @@ function updateSimTuition(deptId, val) {
 
     saveState();
     const result = runAllocation();
+    renderDepartments();
     renderDashboard(result);
 }
 
