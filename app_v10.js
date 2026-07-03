@@ -7138,12 +7138,24 @@ function renameCurrentMonth() {
     if (defaultName.startsWith("Dữ liệu hiện tại (")) {
         defaultName = ""; 
     }
-    const newName = prompt("Nhập tên mới cho kỳ báo cáo này:", defaultName);
-    if (newName && newName.trim() !== "") {
-        monthObj.name = newName.trim();
+    document.getElementById("month_rename_input").value = defaultName;
+    document.getElementById("month_rename_modal").classList.add("open");
+    setTimeout(() => document.getElementById("month_rename_input").focus(), 100);
+}
+
+function submitMonthRename() {
+    const selector = document.getElementById("month_selector");
+    const currentDocId = selector.value;
+    const monthObj = masterIndexData.months.find(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
+    if (!monthObj) return;
+
+    const newName = document.getElementById("month_rename_input").value.trim();
+    if (newName !== "") {
+        monthObj.name = newName;
         firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData)
             .then(() => {
                 renderMonthSelector();
+                closeModal('month_rename_modal');
                 showToast("Đã đổi tên kỳ báo cáo thành công!");
             })
             .catch(err => {
