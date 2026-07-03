@@ -7128,8 +7128,11 @@ function renameCurrentMonth() {
         return;
     }
     const currentDocId = selector.value;
-    const monthObj = masterIndexData.months.find(m => m.docId === currentDocId);
-    if (!monthObj) return;
+    const monthObj = masterIndexData.months.find(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
+    if (!monthObj) {
+        customConfirm("Không tìm thấy kỳ báo cáo này trong danh sách để đổi tên.");
+        return;
+    }
 
     let defaultName = monthObj.name;
     if (defaultName.startsWith("Dữ liệu hiện tại (")) {
