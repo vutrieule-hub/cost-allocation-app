@@ -7147,7 +7147,7 @@ function onMonthSelect(selectedDocId) {
     
     if (selectedDocId === "__ACTION_CREATE__") {
         selector.value = currentProjectCode || "";
-        openMonthCreateModal();
+        createNewMonth();
         return;
     }
     
@@ -7223,13 +7223,16 @@ function submitMonthRename() {
             let months = indexData.months || [];
             
             // Tìm kỳ báo cáo cần đổi tên
-            const monthIndex = months.findIndex(m => m.docId === currentDocId);
+            const monthIndex = months.findIndex(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
             if (monthIndex === -1) {
                 customConfirm("Lỗi: Không tìm thấy kỳ báo cáo khớp với mã " + currentDocId + " trên máy chủ. Có thể ai đó đã xóa nó.");
                 return;
             }
             
-            // Cập nhật tên
+            // Bắt buộc clone obj cũ trước khi sửa để arrayRemove hoạt động chính xác
+            const oldObj = Object.assign({}, months[monthIndex]);
+            
+            // Cập nhật tên (local copy)
             months[monthIndex].name = newName;
             
             // Lưu lại lên Cloud
@@ -7244,7 +7247,6 @@ function submitMonthRename() {
                 .catch(err => {
                     console.error("Lỗi khi set:", err);
                     // Dự phòng 2: Nếu set bị chặn quyền, dùng arrayRemove và arrayUnion
-                    const oldObj = doc.data().months[monthIndex]; // lấy nguyên mẫu cũ để arrayRemove
                     const newObj = Object.assign({}, oldObj);
                     newObj.name = newName;
                     
@@ -7255,10 +7257,14 @@ function submitMonthRename() {
                             months: firebase.firestore.FieldValue.arrayUnion(newObj)
                         });
                     }).then(() => {
-                        masterIndexData.months[monthIndex].name = newName;
+                        // Cập nhật masterIndexData cục bộ (tìm lại index cho chắc)
+                        const localIndex = masterIndexData.months.findIndex(m => m.docId.toUpperCase() === currentDocId.toUpperCase());
+                        if(localIndex !== -1) {
+                            masterIndexData.months[localIndex].name = newName;
+                        }
                         renderMonthSelector();
                         closeModal('month_rename_modal');
-                        customConfirm("Đã đổi tên kỳ báo cáo thành công! (Dùng phương pháp array update)");
+                        customConfirm("Đã đổi tên kỳ báo cáo thành công!");
                     }).catch(e2 => {
                         console.error("Lỗi array update:", e2);
                         customConfirm("Có lỗi xảy ra khi lưu lên Cloud (Lỗi quyền truy cập). Vui lòng liên hệ Admin.");
