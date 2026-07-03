@@ -7061,7 +7061,37 @@ function renderMonthSelector() {
     // Lưu lại giá trị đang chọn
     const currentVal = selector.value;
     
-    selector.innerHTML = '<option value="">-- Chọn Kỳ Báo Cáo --</option>';
+    selector.innerHTML = '';
+    
+    // Nhóm tháo tác
+    const actionGroup = document.createElement("optgroup");
+    actionGroup.label = "🛠 Thao Tác Nhanh";
+    
+    let optCreate = document.createElement("option");
+    optCreate.value = "__ACTION_CREATE__";
+    optCreate.text = "➕ Tạo kỳ báo cáo mới...";
+    actionGroup.appendChild(optCreate);
+    
+    let optRename = document.createElement("option");
+    optRename.value = "__ACTION_RENAME__";
+    optRename.text = "✏️ Đổi tên kỳ báo cáo hiện tại...";
+    actionGroup.appendChild(optRename);
+    
+    let optManual = document.createElement("option");
+    optManual.value = "__ACTION_MANUAL_SYNC__";
+    optManual.text = "⌨️ Nhập mã đồng bộ cũ...";
+    actionGroup.appendChild(optManual);
+    
+    selector.appendChild(actionGroup);
+
+    // Nhóm Data
+    const dataGroup = document.createElement("optgroup");
+    dataGroup.label = "📂 Danh Sách Kỳ Báo Cáo";
+    
+    let optEmpty = document.createElement("option");
+    optEmpty.value = "";
+    optEmpty.text = "-- Không có dữ liệu --";
+    dataGroup.appendChild(optEmpty);
     
     // Sắp xếp các tháng mới nhất lên trên
     const sortedMonths = [...masterIndexData.months].reverse();
@@ -7070,11 +7100,15 @@ function renderMonthSelector() {
         const opt = document.createElement("option");
         opt.value = m.docId;
         opt.text = m.name;
-        selector.appendChild(opt);
+        dataGroup.appendChild(opt);
     });
+    
+    selector.appendChild(dataGroup);
     
     if (currentProjectCode) {
         selector.value = currentProjectCode;
+    } else {
+        selector.value = "";
     }
 }
 
@@ -7109,6 +7143,26 @@ function submitMonthPw() {
 }
 
 function onMonthSelect(selectedDocId) {
+    const selector = document.getElementById("month_selector");
+    
+    if (selectedDocId === "__ACTION_CREATE__") {
+        selector.value = currentProjectCode || "";
+        openMonthCreateModal();
+        return;
+    }
+    
+    if (selectedDocId === "__ACTION_RENAME__") {
+        selector.value = currentProjectCode || "";
+        renameCurrentMonth();
+        return;
+    }
+    
+    if (selectedDocId === "__ACTION_MANUAL_SYNC__") {
+        selector.value = currentProjectCode || "";
+        openManualSyncModal();
+        return;
+    }
+
     if (!selectedDocId) return;
     const monthData = masterIndexData.months.find(m => m.docId === selectedDocId);
     if (!monthData) return;
