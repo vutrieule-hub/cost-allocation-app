@@ -83,7 +83,7 @@
                     <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;"></div>
                     <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; margin: 0;">KỲ BÁO CÁO:</label>
                     <div style="position: relative; display: flex; align-items: center; gap: 4px;">
-                        <select id="month_selector" onchange="onMonthSelect(this.value)" style="border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; width: 150px; font-weight: 600; outline: none; background: #FFF; transition: var(--transition); cursor: pointer;">
+                        <select id="month_selector" class="form-control" onchange="handleMonthSelectionChange()" style="min-width: 200px;">
                             <option value="">-- Chọn Kỳ Báo Cáo --</option>
                         </select>
                         <button onclick="createNewMonth()" style="background: var(--primary); color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 4px;" title="Tạo tháng mới (Nhân bản số liệu tháng hiện tại)"><i class="fa-solid fa-copy"></i> Tạo mới</button>
@@ -379,7 +379,7 @@
                             <h2 style="color: var(--primary);"><i class="fa-solid fa-bolt"></i> Gợi ý Quản trị Kinh doanh</h2>
                         </div>
                         <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
-                            * <strong>Đơn giá phòng học</strong> được chia đều tự động từ Dãy nhà giúp anh tối ưu hóa mật độ sử dụng phòng. Những phòng trống nên được ưu tiên đón học sinh mới tuyển để tối ưu hóa chi phí thuê.<br>
+                            * <strong>Đơn giá phòng học</strong> được chia đều tự động từ Dãy nhà giúp anh tối ưu hóa mật độ sử dụng phòng. Những phòng trống nên được ưu tiên đón học sinh mới tuyển để ưu tiên hóa chi phí thuê.<br>
                             * **Sĩ số học sinh** được tự động tổng hợp động trực tiếp từ danh mục phòng học. Anh chỉ cần thay đổi số học sinh ở danh sách lớp, toàn bộ tỷ lệ phân bổ của các phòng gián tiếp sẽ tự nhảy theo mượt mà!
                         </p>
                     </div>
@@ -1731,6 +1731,6 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app_v10.js?v=70"></script>
+    <script src="app_v10.js?v=71"></script>
 </body>
 </html>
