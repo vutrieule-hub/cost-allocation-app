@@ -7117,6 +7117,39 @@ function onMonthSelect(selectedDocId) {
     openMonthPwModal(monthData);
 }
 
+function renameCurrentMonth() {
+    if (!firebaseDb) {
+        customConfirm("Tính năng Đổi tên chỉ hoạt động khi có kết nối mạng (Cloud Sync).");
+        return;
+    }
+    const selector = document.getElementById("month_selector");
+    if (!selector || !selector.value) {
+        customConfirm("Vui lòng chọn một kỳ báo cáo để đổi tên.");
+        return;
+    }
+    const currentDocId = selector.value;
+    const monthObj = masterIndexData.months.find(m => m.docId === currentDocId);
+    if (!monthObj) return;
+
+    let defaultName = monthObj.name;
+    if (defaultName.startsWith("Dữ liệu hiện tại (")) {
+        defaultName = ""; 
+    }
+    const newName = prompt("Nhập tên mới cho kỳ báo cáo này:", defaultName);
+    if (newName && newName.trim() !== "") {
+        monthObj.name = newName.trim();
+        firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData)
+            .then(() => {
+                renderMonthSelector();
+                showToast("Đã đổi tên kỳ báo cáo thành công!");
+            })
+            .catch(err => {
+                console.error(err);
+                customConfirm("Có lỗi xảy ra khi đổi tên.");
+            });
+    }
+}
+
 function createNewMonth() {
     if (!firebaseDb) {
         customConfirm("Tính năng Tạo tháng mới chỉ hoạt động khi có kết nối mạng (Cloud Sync). Vui lòng kiểm tra kết nối mạng hoặc tắt trình chặn quảng cáo!");
