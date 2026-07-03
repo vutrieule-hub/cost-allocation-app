@@ -3714,8 +3714,20 @@ function renderDepartments() {
                 </td>
                 <td>
                     <div class="priority-container" style="display: inline-block;">
-                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: 500;" value="${formatNumberWithDots(rev)}" oninput="handleMoneyInput(this)" onblur="updateRevenue('${dept.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()">
-                        <span class="priority-dot" title="Cần điền Doanh thu thực tế hàng tháng của khối để tính P&L"></span>
+                        <input type="text" class="base-select-dropdown" style="width:160px; display:inline; font-weight: 500;" 
+                            value="${formatNumberWithDots(dept.tuitionFee || 0)}" 
+                            oninput="handleMoneyInput(this)" 
+                            onblur="updateTuitionFee('${dept.id}', this.value)" 
+                            onkeydown="if(event.key==='Enter') this.blur()"
+                            placeholder="Nhập học phí/HS...">
+                        <span class="priority-dot" title="Nhập học phí/HS để tự tính doanh thu tháng"></span>
+                    </div>
+                </td>
+                <td>
+                    <div style="font-weight: 600; color: var(--success); font-size: 0.95rem; padding: 6px 4px;">
+                        ${(dept.tuitionFee || 0) > 0 
+                            ? formatNumberWithDots(Math.round((dept.tuitionFee || 0) * stud)) + ' đ'
+                            : '<span style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">= Học phí × Sỹ số</span>'}
                     </div>
                 </td>
                 <td class="text-center">
@@ -4374,11 +4386,29 @@ function updateRevenue(deptId, value) {
     renderDashboard();
 }
 
+function updateTuitionFee(deptId, value) {
+    const fee = parseMoneyValue(value);
+    const dept = appState.departments.find(d => d.id === deptId);
+    if (!dept) return;
+    dept.tuitionFee = fee;
+    // Tự tính doanh thu = học phí × sỹ số
+    const students = dept.students || 0;
+    appState.revenues[deptId] = fee * students;
+    saveState();
+    renderDepartments();
+    renderDashboard();
+}
+
+
 function updateDeptStudents(deptId, value) {
     const val = parseInt(value) || 0;
     const dept = appState.departments.find(d => d.id === deptId);
     if (dept) {
         dept.students = val;
+        // Nếu đã có học phí → tự tính lại doanh thu
+        if (dept.tuitionFee && dept.tuitionFee > 0) {
+            appState.revenues[deptId] = dept.tuitionFee * val;
+        }
         saveState();
         renderDepartments();
         renderDashboard();
