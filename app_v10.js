@@ -6971,6 +6971,10 @@ function updateHelperSteps(tabId) {
 let firebaseDb = null;
 let currentProjectCode = "";
 let isSyncingFromCloud = false;
+// Chỉ cho phép tạo tài liệu mới trên Cloud khi người dùng chủ động "Tạo kỳ mới".
+// Nếu không có cờ này, kết nối tới mã kỳ không tồn tại sẽ bị chặn thay vì
+// tự đẩy dữ liệu máy (có thể rỗng) lên làm bản gốc — tránh ghi đè/tạo rác.
+let allowCreateDocId = null;
 
 function connectCloudSync(projectCode) {
     if (!projectCode || projectCode.trim() === "") {
@@ -7048,10 +7052,23 @@ function connectCloudSync(projectCode) {
             
             isSyncingFromCloud = false;
             updateCloudSyncUI("online");
-        } else {
-            // Nếu node trống, đẩy dữ liệu hiện tại từ máy lên đám mây làm dữ liệu gốc ban đầu
+        } else if (allowCreateDocId === projectCode) {
+            // Đang trong luồng "Tạo kỳ mới": đẩy dữ liệu hiện tại lên làm dữ liệu gốc ban đầu
+            allowCreateDocId = null;
             console.log("Cloud document is empty. Initializing with local data...");
             pushLocalDataToCloud();
+        } else {
+            // Mã kỳ không tồn tại trên Cloud: KHÔNG tự đẩy dữ liệu máy lên nữa (chống ghi đè/tạo rác)
+            console.warn("Kỳ báo cáo không tồn tại trên Cloud:", projectCode);
+            if (window.firestoreUnsubscribe) {
+                window.firestoreUnsubscribe();
+                window.firestoreUnsubscribe = null;
+            }
+            currentProjectCode = "";
+            localStorage.removeItem("XTD_CLOUD_PROJECT_CODE");
+            updateCloudSyncUI("offline");
+            renderMonthSelector();
+            customConfirm('Kỳ báo cáo "' + projectCode + '" không tồn tại trên Đám mây nên không thể mở. Vui lòng chọn kỳ khác trong danh sách.');
         }
     }, (error) => {
         console.error("Database read failed:", error);
@@ -7102,6 +7119,51 @@ function pushLocalDataToCloud() {
 
 let masterIndexData = { months: [] };
 
+// --- Mã hoá một chiều mật khẩu kỳ báo cáo (SHA-256, muối = docId) ---
+// Trên Cloud chỉ lưu passwordHash, không lưu mật khẩu trần. Trả về null nếu
+// trình duyệt không hỗ trợ (khi đó giữ cơ chế cũ để không khoá người dùng).
+async function hashMonthPassword(docId, plainPw) {
+    if (!window.crypto || !crypto.subtle || !window.TextEncoder) return null;
+    try {
+        const data = new TextEncoder().encode(String(docId).toUpperCase() + ":" + plainPw);
+        const buf = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    } catch (e) {
+        return null;
+    }
+}
+
+async function verifyMonthPassword(monthObj, inputPw) {
+    if (monthObj.passwordHash) {
+        const h = await hashMonthPassword(monthObj.docId, inputPw);
+        return h !== null && h === monthObj.passwordHash;
+    }
+    return inputPw === (monthObj.password || "");
+}
+
+// Chuyển các mật khẩu trần còn sót trong Master Index sang dạng mã hoá (chạy 1 lần mỗi khi phát hiện)
+async function migrateMasterIndexPasswords() {
+    if (!firebaseDb || !masterIndexData.months) return;
+    const needs = masterIndexData.months.filter(m => m.password && !m.passwordHash);
+    if (needs.length === 0) return;
+    try {
+        const hashes = [];
+        for (const m of needs) {
+            const h = await hashMonthPassword(m.docId, m.password);
+            if (!h) return; // trình duyệt không hỗ trợ mã hoá — giữ nguyên
+            hashes.push(h);
+        }
+        needs.forEach((m, i) => {
+            m.passwordHash = hashes[i];
+            delete m.password;
+        });
+        await firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData);
+        console.log("Đã mã hoá " + needs.length + " mật khẩu kỳ báo cáo trong Master Index.");
+    } catch (e) {
+        console.error("Không thể mã hoá mật khẩu Master Index:", e);
+    }
+}
+
 function loadMasterIndex() {
     if (!firebaseDb) {
         if (typeof firebase !== 'undefined') {
@@ -7146,17 +7208,24 @@ function loadMasterIndex() {
             }
             
             // Auto-migrate old project code into the new Master Index
+            // (chỉ thêm khi tài liệu đó THẬT SỰ tồn tại trên Cloud, tránh mục ma trong menu)
             const savedCloudCode = localStorage.getItem("XTD_CLOUD_PROJECT_CODE");
             if (savedCloudCode && !masterIndexData.months.find(m => m.docId === savedCloudCode)) {
-                masterIndexData.months.push({
-                    name: "Dữ liệu cũ (" + savedCloudCode + ")",
-                    docId: savedCloudCode,
-                    password: savedCloudCode // The old code is the password
+                firebaseDb.collection("sessions").doc(savedCloudCode).get().then(oldDoc => {
+                    if (!oldDoc.exists) return;
+                    masterIndexData.months.push({
+                        name: "Dữ liệu cũ (" + savedCloudCode + ")",
+                        docId: savedCloudCode,
+                        password: savedCloudCode // The old code is the password
+                    });
+                    firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData);
+                    renderMonthSelector();
+                    migrateMasterIndexPasswords();
                 });
-                firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(masterIndexData);
             }
-            
+
             renderMonthSelector();
+            migrateMasterIndexPasswords();
         })
         .catch(e => {
             console.error("Lỗi khi tải Master Index:", e);
@@ -7245,10 +7314,10 @@ function closeMonthPwModal() {
     renderMonthSelector(); // Reset lại dropdown
 }
 
-function submitMonthPw() {
+async function submitMonthPw() {
     if (!pendingMonthData) return;
     const pwd = document.getElementById("month_pw_input").value.trim();
-    if (pwd === pendingMonthData.password) {
+    if (await verifyMonthPassword(pendingMonthData, pwd)) {
         document.getElementById("month_pw_modal").classList.remove("open");
         connectCloudSync(pendingMonthData.docId);
         pendingMonthData = null;
@@ -7285,7 +7354,7 @@ function onMonthSelect(selectedDocId) {
     if (!monthData) return;
     if (selectedDocId === currentProjectCode) return;
     
-    if (!monthData.password) {
+    if (!monthData.password && !monthData.passwordHash) {
         // Fallback for old data without password
         connectCloudSync(selectedDocId);
         return;
@@ -7396,7 +7465,7 @@ function changeCurrentPassword() {
     setTimeout(() => document.getElementById("month_changepw_input").focus(), 100);
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
     try {
         const newPw = document.getElementById("month_changepw_input").value.trim();
         if (newPw === "") { customConfirm("Mật khẩu không được để trống."); return; }
@@ -7404,6 +7473,9 @@ function submitChangePassword() {
         if (!currentProjectCode || !firebaseDb) {
             customConfirm("Lỗi: Chưa chọn kỳ hoặc không có kết nối Cloud."); return;
         }
+
+        // Mã hoá một chiều trước khi lưu (null nếu trình duyệt không hỗ trợ → lưu kiểu cũ)
+        const newHash = await hashMonthPassword(currentProjectCode, newPw);
 
         const saveBtn = document.querySelector("#month_changepw_modal .btn-primary");
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Đang lưu..."; }
@@ -7421,7 +7493,13 @@ function submitChangePassword() {
 
                 if (idx === -1) throw new Error("Không tìm thấy kỳ: " + currentProjectCode);
 
-                months[idx].password = newPw;
+                if (newHash) {
+                    months[idx].passwordHash = newHash;
+                    delete months[idx].password;
+                } else {
+                    months[idx].password = newPw;
+                    delete months[idx].passwordHash;
+                }
 
                 return firebaseDb.collection("sessions").doc("MASTER_INDEX_V2")
                     .set(serverData);
@@ -7430,7 +7508,15 @@ function submitChangePassword() {
                 const localIdx = masterIndexData.months.findIndex(m =>
                     m.docId && m.docId.toUpperCase() === currentProjectCode.toUpperCase()
                 );
-                if (localIdx !== -1) masterIndexData.months[localIdx].password = newPw;
+                if (localIdx !== -1) {
+                    if (newHash) {
+                        masterIndexData.months[localIdx].passwordHash = newHash;
+                        delete masterIndexData.months[localIdx].password;
+                    } else {
+                        masterIndexData.months[localIdx].password = newPw;
+                        delete masterIndexData.months[localIdx].passwordHash;
+                    }
+                }
 
                 closeModal('month_changepw_modal');
                 customConfirm("Đã đổi mật khẩu thành công!");
@@ -7464,30 +7550,36 @@ function closeMonthCreateModal() {
     document.getElementById("month_create_modal").classList.remove("open");
 }
 
-function submitMonthCreate() {
+async function submitMonthCreate() {
     const newName = document.getElementById("month_create_name").value.trim();
     const newPassword = document.getElementById("month_create_pw").value.trim();
-    
+
     if (!newName || !newPassword) {
         document.getElementById("month_create_error").style.display = "block";
         return;
     }
-    
+
     document.getElementById("month_create_error").style.display = "none";
-    
+
     const randomHash = Math.random().toString(36).substring(2, 8).toUpperCase();
     const cleanName = newName.replace(/[^a-zA-Z0-9]/g, "");
     const newDocId = `XTD_${cleanName}_${randomHash}`;
-    
+
     const newMonthObj = {
         name: newName,
         docId: newDocId,
-        password: newPassword,
         createdAt: new Date().toISOString()
     };
-    
+    // Lưu mật khẩu đã mã hoá; nếu trình duyệt không hỗ trợ thì lưu kiểu cũ
+    const pwHash = await hashMonthPassword(newDocId, newPassword);
+    if (pwHash) {
+        newMonthObj.passwordHash = pwHash;
+    } else {
+        newMonthObj.password = newPassword;
+    }
+
     closeMonthCreateModal();
-    
+
     firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set({
         months: firebase.firestore.FieldValue.arrayUnion(newMonthObj)
     }, { merge: true })
@@ -7496,6 +7588,7 @@ function submitMonthCreate() {
         renderMonthSelector();
         const selector = document.getElementById("month_selector");
         if(selector) selector.value = newDocId;
+        allowCreateDocId = newDocId; // cho phép khởi tạo tài liệu mới trên Cloud cho kỳ này
         connectCloudSync(newDocId);
     })
     .catch(e => {
@@ -8283,24 +8376,26 @@ function submitManualSync() {
         return;
     }
     closeManualSyncModal();
-    
+
     // Check if code is already in masterIndexData
-    if (masterIndexData && !masterIndexData.months.find(m => m.docId.toUpperCase() === code.toUpperCase())) {
-        const newObj = {
-            name: "Dữ liệu (" + code + ")",
-            docId: code,
-            password: code // fallback for legacy code
-        };
-        masterIndexData.months.push(newObj);
-        
-        if (firebaseDb) {
+    // (chỉ thêm vào danh mục khi tài liệu đó thật sự tồn tại trên Cloud)
+    if (masterIndexData && !masterIndexData.months.find(m => m.docId.toUpperCase() === code.toUpperCase()) && firebaseDb) {
+        firebaseDb.collection("sessions").doc(code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "")).get().then(d => {
+            if (!d.exists) return;
+            const newObj = {
+                name: "Dữ liệu (" + code + ")",
+                docId: code,
+                password: code // fallback for legacy code
+            };
+            masterIndexData.months.push(newObj);
             firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set({
                 months: firebase.firestore.FieldValue.arrayUnion(newObj)
             }, { merge: true }).catch(e => console.error("Lỗi cập nhật Index:", e));
-        }
-        renderMonthSelector();
+            renderMonthSelector();
+            migrateMasterIndexPasswords();
+        }).catch(e => console.error("Lỗi kiểm tra mã:", e));
     }
-    
+
     connectCloudSync(code);
 }
 
@@ -8321,7 +8416,7 @@ function handleMonthSelectionChange() {
     const monthObj = masterIndexData.months.find(m => m.docId === selectedDocId);
     
     // Nếu không có mật khẩu (các kỳ báo cáo cũ) hoặc mật khẩu trống
-    if (!monthObj || !monthObj.password) {
+    if (!monthObj || (!monthObj.password && !monthObj.passwordHash)) {
         connectCloudSync(selectedDocId);
     } else {
         // Có mật khẩu -> hiển thị form nhập
@@ -8344,14 +8439,14 @@ function cancelMonthSelection() {
     }
 }
 
-function submitMonthPassword() {
+async function submitMonthPassword() {
     const input = document.getElementById("month_password_input").value.trim();
     if (!pendingMonthSelection) return;
-    
+
     const monthObj = masterIndexData.months.find(m => m.docId === pendingMonthSelection);
     if (!monthObj) return;
-    
-    if (input === monthObj.password) {
+
+    if (await verifyMonthPassword(monthObj, input)) {
         // Đúng mật khẩu
         document.getElementById("month_password_modal").classList.remove("open");
         connectCloudSync(pendingMonthSelection);
