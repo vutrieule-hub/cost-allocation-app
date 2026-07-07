@@ -7094,6 +7094,41 @@ function updateCloudSyncUI(status) {
     }
 }
 
+// Tải bản sao lưu TOÀN BỘ về máy: mọi kỳ báo cáo + danh mục, gói trong 1 file JSON.
+// Không cần mật khẩu vì chỉ tải về máy người đang dùng, không sửa gì trên Cloud.
+async function downloadFullBackup() {
+    if (!firebaseDb) {
+        customConfirm("Cần có kết nối mạng (Cloud) để tải bản sao lưu. Vui lòng kiểm tra kết nối rồi thử lại.");
+        return;
+    }
+    const btn = document.getElementById("backup_all_btn");
+    try {
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...'; }
+        const snap = await firebaseDb.collection("sessions").get();
+        const backup = {
+            app: "cost-allocation-app (Xanh Tuệ Đức)",
+            exportedAt: new Date().toISOString(),
+            note: "Bản sao lưu toàn bộ collection sessions trên Firestore. Mỗi khóa trong 'docs' là một kỳ báo cáo (hoặc danh mục MASTER_INDEX_V2).",
+            docs: {}
+        };
+        snap.forEach(d => { backup.docs[d.id] = d.data(); });
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "SaoLuu_PhanBoChiPhi_" + new Date().toISOString().slice(0, 10) + ".json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+        customConfirm("Đã tải bản sao lưu toàn bộ (" + snap.size + " gói dữ liệu) về thư mục Tải về (Downloads) của máy. Hãy cất file này ở nơi an toàn (Google Drive, USB...).");
+    } catch (e) {
+        console.error("Lỗi sao lưu:", e);
+        customConfirm("Không thể tải bản sao lưu: " + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-download"></i> Sao lưu'; }
+    }
+}
+
 function pushLocalDataToCloud() {
     if (!currentProjectCode || !firebaseDb) return;
     

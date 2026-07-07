@@ -86,9 +86,9 @@
                         <select id="month_selector" class="form-control" onchange="onMonthSelect(this.value)" style="min-width: 200px;">
                             <option value="">-- Chọn Kỳ Báo Cáo --</option>
                         </select>
-                        
-                        
-                        
+                        <button id="backup_all_btn" class="btn" onclick="downloadFullBackup()" title="Tải bản sao lưu TOÀN BỘ các kỳ báo cáo về máy (file JSON)" style="padding: 6px 10px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #fff; cursor: pointer; color: var(--text-secondary);">
+                            <i class="fa-solid fa-download"></i> Sao lưu
+                        </button>
                     </div>
                 </div>
 
@@ -1759,7 +1759,7 @@
 
     <!-- Script loading -->
 
-    <script src="app_v10.js?v=92"></script>
+    <script src="app_v10.js?v=93"></script>
 
     </body>
 </html>
