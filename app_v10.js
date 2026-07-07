@@ -7322,7 +7322,12 @@ function renderMonthSelector() {
     optChangePw.value = "__ACTION_CHANGE_PW__";
     optChangePw.text = "Đổi mật khẩu kỳ hiện tại...";
     actionGroup.appendChild(optChangePw);
-    
+
+    let optDelete = document.createElement("option");
+    optDelete.value = "__ACTION_DELETE__";
+    optDelete.text = "Xóa kỳ hiện tại...";
+    actionGroup.appendChild(optDelete);
+
     selector.appendChild(actionGroup);
     
     if (currentProjectCode) {
@@ -7382,7 +7387,13 @@ function onMonthSelect(selectedDocId) {
         changeCurrentPassword();
         return;
     }
-    
+
+    if (selectedDocId === "__ACTION_DELETE__") {
+        selector.value = currentProjectCode || "";
+        deleteCurrentMonth();
+        return;
+    }
+
 
     if (!selectedDocId) return;
     const monthData = masterIndexData.months.find(m => m.docId === selectedDocId);
@@ -7566,6 +7577,91 @@ async function submitChangePassword() {
     } catch (error) {
         console.error(error);
         customConfirm("Lỗi hệ thống: " + error.message);
+    }
+}
+
+// Doc kỳ đang chờ xóa (dùng chung giữa lúc mở modal và lúc xác nhận)
+let pendingDeleteMonth = null;
+
+function deleteCurrentMonth() {
+    if (!firebaseDb) {
+        customConfirm("Tính năng Xóa chỉ hoạt động khi có kết nối mạng (Cloud Sync).");
+        return;
+    }
+    if (!currentProjectCode) {
+        customConfirm("Vui lòng chọn một kỳ báo cáo cần xóa trước.");
+        return;
+    }
+    const monthObj = masterIndexData.months.find(m => m.docId && m.docId.toUpperCase() === currentProjectCode.toUpperCase());
+    if (!monthObj) {
+        customConfirm("Không tìm thấy kỳ báo cáo này trong danh sách.");
+        return;
+    }
+    pendingDeleteMonth = monthObj;
+    document.getElementById("month_delete_name").innerText = monthObj.name || monthObj.docId;
+    document.getElementById("month_delete_pw").value = "";
+    document.getElementById("month_delete_confirm").value = "";
+    document.getElementById("month_delete_error").style.display = "none";
+    document.getElementById("month_delete_modal").classList.add("open");
+    setTimeout(() => document.getElementById("month_delete_pw").focus(), 100);
+}
+
+async function submitMonthDelete() {
+    if (!pendingDeleteMonth) return;
+    const pw = document.getElementById("month_delete_pw").value.trim();
+    const confirmText = document.getElementById("month_delete_confirm").value.trim();
+    const errEl = document.getElementById("month_delete_error");
+    const errTextEl = document.getElementById("month_delete_error_text");
+
+    // Lớp 1: gõ đúng chữ xác nhận
+    if (confirmText.toUpperCase() !== "XOA") {
+        errTextEl.innerText = 'Vui lòng gõ đúng chữ "XOA" để xác nhận.';
+        errEl.style.display = "block";
+        return;
+    }
+    // Lớp 2: đúng mật khẩu của kỳ (bỏ qua nếu kỳ cũ không đặt mật khẩu)
+    const hasPw = !!(pendingDeleteMonth.password || pendingDeleteMonth.passwordHash);
+    if (hasPw && !(await verifyMonthPassword(pendingDeleteMonth, pw))) {
+        errTextEl.innerText = "Mật khẩu không đúng.";
+        errEl.style.display = "block";
+        return;
+    }
+
+    const delDocId = pendingDeleteMonth.docId;
+    const btn = document.querySelector("#month_delete_modal .btn[style*='danger']");
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xóa...'; }
+
+    try {
+        // 1) Xóa tài liệu dữ liệu của kỳ
+        await firebaseDb.collection("sessions").doc(delDocId).delete();
+
+        // 2) Gỡ khỏi danh mục MASTER_INDEX_V2 (GET mới nhất → lọc bỏ → SET lại, chống đè lệch)
+        const doc = await firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").get();
+        if (doc.exists) {
+            const serverData = doc.data();
+            serverData.months = (serverData.months || []).filter(m => !(m.docId && m.docId.toUpperCase() === delDocId.toUpperCase()));
+            await firebaseDb.collection("sessions").doc("MASTER_INDEX_V2").set(serverData);
+            masterIndexData = serverData;
+        }
+
+        // 3) Nếu đang mở chính kỳ vừa xóa thì ngắt kết nối để không tự tạo lại
+        if (currentProjectCode && currentProjectCode.toUpperCase() === delDocId.toUpperCase()) {
+            if (window.firestoreUnsubscribe) { window.firestoreUnsubscribe(); window.firestoreUnsubscribe = null; }
+            currentProjectCode = "";
+            localStorage.removeItem("XTD_CLOUD_PROJECT_CODE");
+            updateCloudSyncUI("offline");
+        }
+
+        pendingDeleteMonth = null;
+        closeModal("month_delete_modal");
+        renderMonthSelector();
+        customConfirm('Đã xóa vĩnh viễn kỳ báo cáo. Vui lòng chọn một kỳ khác trong danh sách để tiếp tục.');
+    } catch (e) {
+        console.error("Lỗi xóa kỳ báo cáo:", e);
+        errTextEl.innerText = "Lỗi khi xóa: " + e.message;
+        errEl.style.display = "block";
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-trash"></i> Xóa vĩnh viễn'; }
     }
 }
 

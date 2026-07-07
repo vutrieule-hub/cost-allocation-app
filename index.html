@@ -1757,9 +1757,40 @@
         </div>
     </div>
 
+    <!-- Modal: Xóa Kỳ Báo Cáo (thao tác nguy hiểm, xác nhận kép) -->
+    <div class="modal-overlay" id="month_delete_modal" style="z-index: 100000;">
+        <div class="modal-content" style="max-width: 440px; border-radius: 12px;">
+            <div class="modal-header">
+                <h3 style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Xóa Kỳ Báo Cáo</h3>
+                <button class="modal-close" onclick="closeModal('month_delete_modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div style="background: rgba(255, 59, 48, 0.07); border: 1px solid rgba(255, 59, 48, 0.3); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+                    <i class="fa-solid fa-circle-exclamation" style="color: var(--danger);"></i> Bạn sắp xóa vĩnh viễn kỳ báo cáo <strong id="month_delete_name" style="color: var(--danger);"></strong> khỏi Đám mây. <strong>Thao tác này KHÔNG thể hoàn tác.</strong> Toàn bộ số liệu của kỳ này sẽ mất.
+                </div>
+                <div style="background: rgba(0, 122, 255, 0.05); padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.82rem; color: var(--text-secondary);">
+                    <i class="fa-solid fa-lightbulb" style="color: var(--primary);"></i> Khuyên: hãy bấm nút <strong>Sao lưu</strong> để tải bản lưu về máy trước khi xóa (phòng khi cần lại).
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">1. Nhập <strong>mật khẩu</strong> của kỳ này:</label>
+                    <input type="password" id="month_delete_pw" class="form-input" placeholder="Mật khẩu kỳ báo cáo" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem;">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">2. Gõ chữ <strong style="color: var(--danger); letter-spacing: 1px;">XOA</strong> để xác nhận:</label>
+                    <input type="text" id="month_delete_confirm" class="form-input" placeholder="Gõ: XOA" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem;" onkeydown="if(event.key==='Enter')submitMonthDelete()">
+                    <div id="month_delete_error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:6px;"><i class="fa-solid fa-circle-exclamation"></i> <span id="month_delete_error_text">Sai mật khẩu hoặc chưa gõ đúng chữ xác nhận.</span></div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeModal('month_delete_modal')">Hủy bỏ</button>
+                    <button class="btn" onclick="submitMonthDelete()" style="background: var(--danger); color: #fff;"><i class="fa-solid fa-trash"></i> Xóa vĩnh viễn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Script loading -->
 
-    <script src="app_v10.js?v=93"></script>
+    <script src="app_v10.js?v=94"></script>
 
     </body>
 </html>
